@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 import { getAccounts } from "../services/accountService";
 import AccountCard from "../components/AccountCard";
 import "../styles/dashboard.css";
+import type { Account } from "../types/Account";
 
-export default function Dashboard() {
-    const [accounts, setAccounts] = useState([]);
-    const [loading, setLoading] = useState(true);
+export default function Dashboard(): JSX.Element {
+    const [accounts, setAccounts] = useState<Account[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         async function loadAccounts() {
