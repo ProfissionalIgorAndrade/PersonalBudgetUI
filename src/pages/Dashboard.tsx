@@ -27,16 +27,18 @@ export default function Dashboard(): JSX.Element {
     if (loading) {
         return <p className="loading">Carregando contas...</p>;
     }
-
+    
     return (
-        <div className="dashboard">
-            <h1>Dashboard</h1>
+    <div className="page">
+      <div className="page-container">
+        <h1 className="page-title">Contas</h1>
 
-            <div className="accounts-grid">
-                {accounts.map((account) => (
+        <div className="accounts-grid">
+          {accounts.map((account) => (
                     <AccountCard key={account.id} account={account} />
                 ))}
-            </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 }

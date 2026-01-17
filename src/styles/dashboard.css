@@ -53,3 +53,78 @@ body {
   margin-left: 240px;
   padding: 32px;
 }
+
+/* Área principal */
+.page {
+  margin-left: 100%; /* sidebar */
+  padding: 40px 24px;
+  min-height: 100vh;
+
+  /* 👇 isso é o pulo do gato */
+  display: flex;
+  justify-content: center;
+}
+
+/* Container central */
+.page-container {
+  width: 100%;
+  max-width: 1200px;
+
+  /* 👇 cria distância real da sidebar */
+  padding-left: 100%;
+}
+
+/* Título */
+.page-title {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 32px;
+}
+
+/* Grid */
+.accounts-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 1200px) {
+  .accounts-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .page-container {
+    padding-left: 48px;
+  }
+
+  .accounts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .page {
+    margin-left: 0;
+  }
+
+  .page-container {
+    padding-left: 0;
+  }
+
+  .accounts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
