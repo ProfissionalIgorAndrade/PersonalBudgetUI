@@ -3,10 +3,22 @@
   align-items: center;
   justify-content: space-between;
 
-  margin-top: 16px;
   margin-bottom: 40px;
   padding: 0 8px;
 }
+
+.sidebar {          /* 🔥 ocupa a tela toda */
+  position: sticky;
+  top: 0;
+
+  background: linear-gradient(180deg, #020617, #020617);
+  color: #e5e7eb;
+
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+}
+
 
 .sidebar-logo {
   font-size: 20px;
@@ -36,11 +48,13 @@
   align-items: center;
   gap: 12px;
 
-  width: 100%;                 /* 🔥 garante área inteira clicável */
-  padding: 12px 16px;
-  border-radius: 12px;
+  width: 85%;                 /* 🔥 não ocupa tudo */
+  margin: 0 auto;             /* 🔥 centraliza */
 
-  text-decoration: none;       /* remove underline */
+  padding: 12px 16px;
+  border-radius: 14px;
+
+  text-decoration: none;
   font-size: 14px;
   font-weight: 500;
 
@@ -51,11 +65,8 @@
   transition: background 0.2s ease, color 0.2s ease;
 }
 
-/* Remove estados nativos do link */
-.sidebar-item:visited {
-  color: #cbd5f5;
-}
 
+/* Remove estados nativos do link */
 .sidebar-item svg {
   color: #93c5fd;
 }

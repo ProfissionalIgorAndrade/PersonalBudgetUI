@@ -1,6 +1,7 @@
 .app-layout {
   display: flex;
   min-height: 100vh;
+  width: 100vw;     
   background: #f8fafc;
 }
 
@@ -13,11 +14,14 @@
 
 /* Área principal */
 .app-main {
-  flex: 1;
+  flex: 1;                     /* 🔥 ocupa todo o resto */
+  background: #f8fafc;
+  min-height: 100vh;
+
   display: flex;
   justify-content: center;
-  background: #f8fafc;
 }
+
 
 /* Container central padrão */
 .app-container {
