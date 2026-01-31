@@ -2,10 +2,10 @@ import { useEffect, useState, type JSX } from "react";
 import { getAccounts } from "../../services/accountService";
 import AccountCard from "../../components/AccountCard";
 import "./dashboard.css"
-import type { Account } from "../../types/Account";
+import type { AccountViewModel } from "../../types/Account/AccountViewModel";
 
 export default function Dashboard(): JSX.Element {
-    const [accounts, setAccounts] = useState<Account[]>([]);
+    const [accounts, setAccounts] = useState<AccountViewModel[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {

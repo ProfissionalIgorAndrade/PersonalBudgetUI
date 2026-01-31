@@ -9,10 +9,8 @@ export default function Sidebar(): JSX.Element {
   const navigate = useNavigate();
 
   function handleLogout() {
-    if (confirm("Do you really want to logout?")) {
-      logout();
-      navigate("/login");
-    }
+    logout();
+    navigate("/login");
   }
 
   return (
