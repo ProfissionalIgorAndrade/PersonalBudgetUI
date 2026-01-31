@@ -1,14 +1,8 @@
-import Sidebar from "./components/Sidebar";
-import Dashboard from "./pages/Dashboard";
-import "./styles/sidebar.css";
+import type { JSX } from "react";
+import AppRoutes from "./routes/AppRoutes";
 
-function App() {
-  return (
-    <>
-      <Sidebar />
-      <Dashboard />
-    </>
-  );
+function App(): JSX.Element {
+  return <AppRoutes />;
 }
 
 export default App;

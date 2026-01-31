@@ -56,37 +56,44 @@ body {
 
 /* Área principal */
 .page {
-  margin-left: 100%; /* sidebar */
+  margin-left: 240px; /* sidebar */
   padding: 40px 24px;
   min-height: 100vh;
 
-  /* 👇 isso é o pulo do gato */
   display: flex;
   justify-content: center;
 }
 
-/* Container central */
 .page-container {
   width: 100%;
   max-width: 1200px;
 
-  /* 👇 cria distância real da sidebar */
-  padding-left: 100%;
+  /* 👇 espaçamento saudável da sidebar */
+  padding-left: 64px;
 }
 
-/* Título */
 .page-title {
   font-size: 28px;
   font-weight: 600;
   margin-bottom: 32px;
 }
 
-/* Grid */
 .accounts-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 24px;
 }
+
+.sidebar nav li.logout {
+  margin-top: 24px;
+  color: #fca5a5;
+}
+
+.sidebar nav li.logout:hover {
+  background: #7f1d1d;
+  color: #fff;
+}
+
 
 @media (max-width: 1200px) {
   .accounts-grid {
@@ -96,7 +103,7 @@ body {
 
 @media (max-width: 900px) {
   .page-container {
-    padding-left: 48px;
+    padding-left: 32px;
   }
 
   .accounts-grid {
@@ -117,6 +124,7 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
 
 @keyframes fadeIn {
   from {
