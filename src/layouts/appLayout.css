@@ -1,8 +1,27 @@
 .app-layout {
   display: flex;
   min-height: 100vh;
+  background: #f8fafc;
 }
 
-.app-content {
+/* Sidebar fixa */
+.app-layout aside {
+  width: 240px;
+  background: #0f172a;
+  color: white;
+}
+
+/* Área principal */
+.app-main {
   flex: 1;
+  display: flex;
+  justify-content: center;
+  background: #f8fafc;
+}
+
+/* Container central padrão */
+.app-container {
+  width: 100%;
+  max-width: 1200px;
+  padding: 32px 40px;
 }

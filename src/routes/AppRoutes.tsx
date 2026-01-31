@@ -9,14 +9,8 @@ import AppLayout from "../layouts/AppLayout";
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const { isAuthenticated, isLoading } = useAuth();
 
-  // 🔥 enquanto carrega auth, NÃO redireciona
-  if (isLoading) {
-    return <div>Carregando...</div>;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (isLoading) return <div>Loading...</div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return children;
 }
@@ -25,11 +19,9 @@ export default function AppRoutes(): JSX.Element {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rotas públicas */}
         <Route path="/login" element={<Login />} />
         <Route path="/signin" element={<Signin />} />
 
-        {/* Rotas privadas com layout */}
         <Route
           element={
             <PrivateRoute>
@@ -38,6 +30,7 @@ export default function AppRoutes(): JSX.Element {
           }
         >
           <Route path="/dashboard" element={<Dashboard />} />
+          {/* TODAS AS OUTRAS TELAS ENTRAM AQUI */}
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" />} />
