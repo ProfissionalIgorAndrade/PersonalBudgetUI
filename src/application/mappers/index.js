@@ -66,14 +66,28 @@ export function normalizeCategory(c) {
 }
 
 export function normalizeProfile(p) {
-  const v = memberVisuals.load()[p.id] || {};
+  if (!p || typeof p !== 'object') return null;
+  const id =
+    p.id
+    ?? p.profileId
+    ?? p.ProfileId
+    ?? p.memberId
+    ?? p.MemberId
+    ?? p.userId
+    ?? p.UserId;
+  if (id == null || id === '') return null;
+
+  const idKey = String(id);
+  const v = memberVisuals.load()[idKey] || memberVisuals.load()[id] || {};
+  const uid = p.userId ?? p.UserId ?? null;
+
   return {
-    id:     p.id,
-    name:   p.displayName,
+    id,
+    name:   (p.displayName ?? p.name ?? p.Name ?? '').trim() || 'Membro',
     emoji:  v.emoji || '👤',
     color:  v.color || '#2dd4bf',
-    type:   p.kind  || 'other',
-    userId: p.userId || null,
+    type:   p.kind ?? p.Kind ?? 'other',
+    userId: uid,
   };
 }
 
