@@ -81,7 +81,7 @@ export default function App() {
     accounts:     <AccountsView     accounts={accounts} members={members} transactions={transactions} categories={categories} cards={cards}
                                     {...accOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
-    members:      <MembersView      members={members} {...mbrOps} />,
+    members:      <MembersView      members={members} {...mbrOps} notify={notify} onLogout={handleLogout} />,
     categories:   <CategoriesView   categories={categories} {...catOps} />,
     profile:      <ProfileView      authSession={authSession} />,
   };

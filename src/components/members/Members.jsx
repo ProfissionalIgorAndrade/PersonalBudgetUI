@@ -26,7 +26,6 @@ export default function Members({ members, onAdd, onEdit, onDelete }) {
               <div>
                 <div style={{ fontSize: 42, marginBottom: 10 }}>{m.emoji}</div>
                 <div style={{ fontWeight: 700, fontSize: 17, fontFamily: 'Syne' }}>{m.name}</div>
-                <div className="txxs tmuted" style={{ marginTop: 6 }}>{MBR_TYPES[m.type] || m.type}</div>
               </div>
               <div className="flex gap2" style={{ gap: 5 }}>
                 <button className="btn-icon" onClick={() => { setF(m); setModal('form'); }}>✏️</button>
