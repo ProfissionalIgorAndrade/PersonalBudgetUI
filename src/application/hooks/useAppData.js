@@ -42,7 +42,7 @@ export function useAppData(notify) {
 
   const loadMembers = useCallback(async (hid) => {
     const raw = await householdRepo.listProfiles(hid || getHouseholdId());
-    setMembers((raw || []).map(normalizeProfile));
+    setMembers((raw || []).map(normalizeProfile).filter(Boolean));
   }, []);
 
   /* ── Bulk initial load ────────────────────────────────────── */
@@ -67,7 +67,7 @@ export function useAppData(notify) {
       setCategories((cats || []).map(normalizeCategory));
       setCards((cds       || []).map(normalizeCard));
       setTransactions((txs || []).map(normalizeTransaction));
-      setMembers((profs   || []).map(normalizeProfile));
+      setMembers((profs   || []).map(normalizeProfile).filter(Boolean));
     } catch (e) {
       notify('Erro ao carregar dados: ' + e.message, 'error');
     } finally {
@@ -210,8 +210,20 @@ export function useAppData(notify) {
       setMembers(prev => prev.map(x => x.id === m.id ? { ...x, ...m } : x));
       notify('Membro atualizado');
     },
-    onDelete: async () => {
-      notify('Remoção de membro não suportada pela API', 'error');
+    onDeleteProfile: async (removeProfileId, mergeIntoProfileId) => {
+      try {
+        await householdRepo.deleteProfileMerge(
+          getHouseholdId(),
+          removeProfileId,
+          mergeIntoProfileId,
+        );
+        memberVisuals.remove(removeProfileId);
+        await loadMembers();
+        notify('Perfil removido e dados migrados.');
+      } catch (e) {
+        notify(e.message, 'error');
+        throw e;
+      }
     },
   };
 
