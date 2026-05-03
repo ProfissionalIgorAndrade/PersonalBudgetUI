@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import * as accountRepo from '../../../data/repositories/accountRepository';
 import { normalizeTransaction } from '../../../application/mappers';
 import { R$ } from '../../../core/utils/format';
+import { parseMoneyAmount } from '../../../core/utils/money';
 import TxTable from '../../transactions/components/TxTable';
 
 const NUM = { fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' };
@@ -17,6 +18,7 @@ function parseCalendarMonth(ym) {
 
 export default function AccountDetail({
   account,
+  accountLedgerBalance,
   transactionsReloadGeneration,
   categories,
   members,
@@ -40,7 +42,7 @@ export default function AccountDetail({
     }
   }, [onUpdateStatus]);
 
-  /* Full refetch apenas após reload global da lista (add/edit/delete/loadAll), não após PATCH de status. */
+  /* Refetch do mês após reload global; saldo da conta vem de `accounts` (atualizado no PATCH de status). */
   useEffect(() => {
     let cancelled = false;
 
@@ -74,7 +76,9 @@ export default function AccountDetail({
 
   const income  = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const expense = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
-  const balance = income - expense;
+  const ledgerSaldo = typeof accountLedgerBalance === 'number' && Number.isFinite(accountLedgerBalance)
+    ? accountLedgerBalance
+    : parseMoneyAmount(account?.balance ?? account?.Balance);
 
   return (
     <div>
@@ -93,8 +97,15 @@ export default function AccountDetail({
           <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--red)', ...NUM }}>{loadingTx ? '—' : R$(expense)}</div>
         </div>
         <div className="summary-box" style={{ gridColumn: '1/-1' }}>
-          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Saldo do Período</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: balance >= 0 ? 'var(--green)' : 'var(--red)', ...NUM }}>{loadingTx ? '—' : R$(balance)}</div>
+          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Saldo da conta</div>
+          <div style={{
+            fontSize: 20,
+            fontWeight: 800,
+            color: ledgerSaldo >= 0 ? 'var(--green)' : 'var(--red)',
+            ...NUM,
+          }}>
+            {R$(ledgerSaldo)}
+          </div>
         </div>
       </div>
 
