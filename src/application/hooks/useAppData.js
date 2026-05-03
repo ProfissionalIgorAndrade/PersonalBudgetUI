@@ -109,6 +109,15 @@ export function useAppData(notify) {
         else notify('Lançamento removido');
       } catch (e) { notify(e.message, 'error'); }
     },
+    onUpdateStatus: async (id, uiStatus) => {
+      try {
+        const msg = await txRepo.patchTransactionStatus(id, uiStatus);
+        await loadTx();
+        notify(msg);
+      } catch (e) {
+        notify(e.message, 'error');
+      }
+    },
   };
 
   /* ── Account CRUD ─────────────────────────────────────────── */
