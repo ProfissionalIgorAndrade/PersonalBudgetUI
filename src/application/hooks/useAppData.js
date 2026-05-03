@@ -8,7 +8,7 @@ import * as txRepo           from '../../data/repositories/transactionRepository
 import {
   normalizeAccount, normalizeCategory, normalizeCard,
   normalizeTransaction, normalizeProfile,
-  txToApi, CAT_TYPE_TO_API, catVisuals, memberVisuals,
+  txToApi, CAT_TYPE_TO_API, catVisuals, memberVisuals, cardVisuals,
 } from '../mappers';
 
 export function useAppData(notify) {
@@ -37,7 +37,7 @@ export function useAppData(notify) {
 
   const loadCards = useCallback(async () => {
     const raw = await cardRepo.listCards();
-    setCards((raw || []).map(normalizeCard));
+    setCards((raw || []).map(normalizeCard).filter(Boolean));
   }, []);
 
   const loadMembers = useCallback(async (hid) => {
@@ -65,7 +65,7 @@ export function useAppData(notify) {
 
       setAccounts((accs   || []).map(normalizeAccount));
       setCategories((cats || []).map(normalizeCategory));
-      setCards((cds       || []).map(normalizeCard));
+      setCards((cds       || []).map(normalizeCard).filter(Boolean));
       setTransactions((txs || []).map(normalizeTransaction));
       setMembers((profs   || []).map(normalizeProfile).filter(Boolean));
     } catch (e) {
@@ -166,13 +166,20 @@ export function useAppData(notify) {
   const cardOps = {
     onAdd: async (card) => {
       try {
-        await cardRepo.createCard({
+        const created = await cardRepo.createCard({
           accountId:  card.accountId,
           name:       card.name,
           limit:      Number(card.limit      || 0),
           closingDay: Number(card.closingDay || 1),
           dueDay:     Number(card.dueDay     || 10),
+          color:      card.color,
+          flag:       card.flag,
+          lastDigits: card.lastDigits || '',
+          memberId:   card.memberId || undefined,
         });
+        const persistedId = created?.id ?? created?.Id ?? card.id;
+        if (persistedId != null && card.color)
+          cardVisuals.save(String(persistedId), { color: card.color });
         await loadCards();
         notify('Cartão adicionado');
       } catch (e) { notify(e.message, 'error'); }
@@ -180,17 +187,29 @@ export function useAppData(notify) {
     onEdit: async (card) => {
       try {
         await cardRepo.updateCard(card.id, {
+          accountId:  card.accountId,
           name:       card.name,
           limit:      Number(card.limit      || 0),
           closingDay: Number(card.closingDay || 1),
           dueDay:     Number(card.dueDay     || 10),
+          color:      card.color,
+          flag:       card.flag,
+          lastDigits: card.lastDigits || '',
+          memberId:   card.memberId || undefined,
         });
+        if (card.color != null && card.color !== '')
+          cardVisuals.save(String(card.id), { color: card.color });
         await loadCards();
         notify('Cartão atualizado');
       } catch (e) { notify(e.message, 'error'); }
     },
     onDelete: async (id) => {
-      try { await cardRepo.deleteCard(id); await loadCards(); notify('Cartão removido'); }
+      try {
+        await cardRepo.deleteCard(id);
+        cardVisuals.remove(String(id));
+        await loadCards();
+        notify('Cartão removido');
+      }
       catch (e) { notify(e.message, 'error'); }
     },
   };
@@ -229,7 +248,7 @@ export function useAppData(notify) {
 
   return {
     loading, transactions, accounts, categories, cards, members,
-    loadAll, clearData,
+    loadAll, loadTx, clearData,
     txOps, accOps, catOps, cardOps, mbrOps,
   };
 }
