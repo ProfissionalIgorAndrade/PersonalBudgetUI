@@ -1,4 +1,5 @@
 import { COLORS, FLAGS } from '../../core/constants/index';
+import { parseMoneyAmount } from '../../core/utils/money';
 
 /* ─── Enum conversions ──────────────────────────────────────── */
 export const TYPE_TO_API    = { income: 'Income', expense: 'Expense' };
@@ -66,7 +67,7 @@ export function normalizeAccount(a) {
     bank:     a.bank,
     agency:   a.agency || '',
     number:   a.number || '',
-    balance:  a.balance ?? 0,
+    balance:  parseMoneyAmount(a.balance ?? a.Balance),
     color:    BANK_COLORS[a.bank] || '#2dd4bf',
     type:     'checking',
     isActive: a.isActive !== false,
