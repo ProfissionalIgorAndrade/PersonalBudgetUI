@@ -32,6 +32,7 @@ export default function App() {
   const { authSession, login, signup, logout } = useAuth();
   const {
     loading, transactions, accounts, categories, cards, members,
+    transactionsReloadGeneration,
     loadAll, loadTx, clearData,
     txOps, accOps, catOps, cardOps, mbrOps,
   } = useAppData(notify);
@@ -81,6 +82,7 @@ export default function App() {
                                     notify={notify} loadTransactions={loadTx} />,
     accounts:     <AccountsView     accounts={accounts} members={members} transactions={transactions} categories={categories} cards={cards}
                                     {...accOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete} onUpdateStatus={txOps.onUpdateStatus}
+                                    notify={notify} transactionsReloadGeneration={transactionsReloadGeneration}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
     members:      <MembersView      members={members} {...mbrOps} notify={notify} onLogout={handleLogout} />,
     categories:   <CategoriesView   categories={categories} {...catOps} />,

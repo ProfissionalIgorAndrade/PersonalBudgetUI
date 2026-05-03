@@ -7,7 +7,10 @@ import AccountTile from './components/AccountTile';
 import AccountDetail from './components/AccountDetail';
 import AccountForm from './components/AccountForm';
 
-export default function AccountsView({ accounts, members, transactions, categories, cards, onAdd, onEdit, onDelete, onEditTx, onDeleteTx, onUpdateStatus, activeMonth, setActiveMonth }) {
+export default function AccountsView({
+  accounts, members, transactions, categories, cards, onAdd, onEdit, onDelete,
+  onEditTx, onDeleteTx, onUpdateStatus, notify, transactionsReloadGeneration, activeMonth, setActiveMonth,
+}) {
   const [showForm, setShowForm]             = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [f, setF]                           = useState({});
@@ -93,7 +96,7 @@ export default function AccountsView({ accounts, members, transactions, categori
               </div>
               <AccountDetail
                 account={selectedAccount}
-                transactions={transactions}
+                transactionsReloadGeneration={transactionsReloadGeneration}
                 categories={categories}
                 members={members}
                 accounts={accounts}
@@ -101,6 +104,7 @@ export default function AccountsView({ accounts, members, transactions, categori
                 onEditTx={onEditTx}
                 onDeleteTx={onDeleteTx}
                 onUpdateStatus={onUpdateStatus}
+                notify={notify}
                 activeMonth={activeMonth}
               />
             </div>
