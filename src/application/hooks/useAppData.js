@@ -117,6 +117,7 @@ export function useAppData(notify) {
       try {
         const msg = await txRepo.patchTransactionStatus(id, uiStatus);
         setTransactions(prev => prev.map(t => String(t.id) === String(id) ? { ...t, status: uiStatus } : t));
+        await loadAcc();
         notify(msg);
       } catch (e) {
         notify(e.message, 'error');
