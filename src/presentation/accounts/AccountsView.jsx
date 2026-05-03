@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { R$ } from '../../core/utils/format';
+import { parseMoneyAmount } from '../../core/utils/money';
 import { ACC_TYPES } from '../../core/constants/index';
 import MonthSelector from '../shared/components/MonthSelector';
 import Modal from '../shared/components/Modal';
@@ -8,13 +9,21 @@ import AccountDetail from './components/AccountDetail';
 import AccountForm from './components/AccountForm';
 
 export default function AccountsView({
-  accounts, members, transactions, categories, cards, onAdd, onEdit, onDelete,
+  accounts, members, categories, cards, onAdd, onEdit, onDelete,
   onEditTx, onDeleteTx, onUpdateStatus, notify, transactionsReloadGeneration, activeMonth, setActiveMonth,
 }) {
   const [showForm, setShowForm]             = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [f, setF]                           = useState({});
   const [deleteTarget, setDeleteTarget]     = useState(null);
+
+  const selectedId = selectedAccount?.id;
+  useEffect(() => {
+    if (selectedId == null) return;
+    const fresh = accounts.find(x => String(x.id) === String(selectedId));
+    if (fresh) setSelectedAccount(fresh);
+    else setSelectedAccount(null);
+  }, [accounts, selectedId]);
 
   const openNew = () => {
     setF({ bank: 'Nubank', agency: '', accountNumber: '', initialBalance: '' });
@@ -26,15 +35,9 @@ export default function AccountsView({
     setShowForm(false);
   };
 
-  const calcBalance = acc => {
-    const base  = Number(acc.balance) || 0;
-    const delta = transactions
-      .filter(t => t.accountId === acc.id && t.status === 'paid')
-      .reduce((s, t) => s + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0);
-    return base + delta;
-  };
+  /** Saldo exibido no cartão / cabeçalho: valor da conta retornado pela API (não calculado pelo período local). */
+  const accountBalance = acc => parseMoneyAmount(acc?.balance ?? acc?.Balance);
 
-  const totalBalance = accounts.reduce((s, a) => s + calcBalance(a), 0);
   const select = a => setSelectedAccount(sel => sel?.id === a.id ? null : a);
 
   const confirmDeleteAccount = () => {
@@ -66,7 +69,7 @@ export default function AccountsView({
                 <div key={a.id} style={{ flex: '0 0 calc(25% - 10.5px)', minWidth: 180 }}>
                   <AccountTile
                     account={a}
-                    balance={calcBalance(a)}
+                    balance={accountBalance(a)}
                     members={members}
                     selected={selectedAccount?.id === a.id}
                     onSelect={() => select(a)}
@@ -87,8 +90,8 @@ export default function AccountsView({
                     {ACC_TYPES[selectedAccount.type] || selectedAccount.type}
                     {selectedAccount.bank ? ' · ' + selectedAccount.bank : ''}
                     {' · Saldo: '}
-                    <span style={{ fontWeight: 700, color: calcBalance(selectedAccount) >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                      {R$(calcBalance(selectedAccount))}
+                    <span style={{ fontWeight: 700, color: accountBalance(selectedAccount) >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                      {R$(accountBalance(selectedAccount))}
                     </span>
                   </p>
                 </div>
@@ -96,6 +99,7 @@ export default function AccountsView({
               </div>
               <AccountDetail
                 account={selectedAccount}
+                accountLedgerBalance={accountBalance(selectedAccount)}
                 transactionsReloadGeneration={transactionsReloadGeneration}
                 categories={categories}
                 members={members}

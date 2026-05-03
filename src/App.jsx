@@ -80,7 +80,7 @@ export default function App() {
                                     {...cardOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth}
                                     notify={notify} loadTransactions={loadTx} />,
-    accounts:     <AccountsView     accounts={accounts} members={members} transactions={transactions} categories={categories} cards={cards}
+    accounts:     <AccountsView     accounts={accounts} members={members} categories={categories} cards={cards}
                                     {...accOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete} onUpdateStatus={txOps.onUpdateStatus}
                                     notify={notify} transactionsReloadGeneration={transactionsReloadGeneration}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
