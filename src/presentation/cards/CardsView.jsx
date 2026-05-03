@@ -3,15 +3,16 @@ import { curMonth } from '../../core/utils/format';
 import { COLORS, FLAGS } from '../../core/constants/index';
 import { uid } from '../../core/utils/format';
 import MonthSelector from '../shared/components/MonthSelector';
+import Modal from '../shared/components/Modal';
 import CardTile from './components/CardTile';
 import CardDetail from './components/CardDetail';
 import CardForm from './components/CardForm';
 
-export default function CardsView({ cards, members, transactions, categories, accounts, onAdd, onEdit, onDelete, onEditTx, onDeleteTx, activeMonth, setActiveMonth }) {
+export default function CardsView({ cards, members, transactions, categories, accounts, onAdd, onEdit, onDelete, onEditTx, onDeleteTx, activeMonth, setActiveMonth, notify, loadTransactions }) {
   const [showForm, setShowForm]         = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [f, setF]                       = useState({});
-  const [closedFaturas, setClosedFaturas] = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const openNew = () => {
     setF({ name: '', flag: 'visa', lastDigits: '', limit: '', closingDay: '', dueDay: '', color: COLORS[0], memberId: members[0]?.id || '', accountId: accounts[0]?.id || '' });
@@ -33,10 +34,12 @@ export default function CardsView({ cards, members, transactions, categories, ac
 
   const select = c => setSelectedCard(sel => sel?.id === c.id ? null : c);
 
-  const handleCloseFatura = (cardId, month) =>
-    setClosedFaturas(prev => ({ ...prev, [`${cardId}_${month}`]: true }));
-
-  const isFaturaClosed = (cardId, month) => !!closedFaturas[`${cardId}_${month}`];
+  const confirmDeleteCard = () => {
+    if (!deleteTarget) return;
+    onDelete(deleteTarget.id);
+    if (selectedCard?.id === deleteTarget.id) setSelectedCard(null);
+    setDeleteTarget(null);
+  };
 
   return (
     <div>
@@ -65,7 +68,7 @@ export default function CardsView({ cards, members, transactions, categories, ac
                     selected={selectedCard?.id === c.id}
                     onSelect={() => select(c)}
                     onEdit={() => { setF(c); setShowForm(true); }}
-                    onDelete={() => onDelete(c.id)}
+                    onDelete={() => setDeleteTarget({ id: c.id, name: c.name })}
                   />
                 </div>
               ))}
@@ -92,9 +95,9 @@ export default function CardsView({ cards, members, transactions, categories, ac
                 cards={cards}
                 onEditTx={onEditTx}
                 onDeleteTx={onDeleteTx}
-                isFaturaClosed={m => isFaturaClosed(selectedCard.id, m)}
-                onCloseFatura={m => handleCloseFatura(selectedCard.id, m)}
                 activeMonth={activeMonth}
+                notify={notify}
+                loadTransactions={loadTransactions}
               />
             </div>
           )}
@@ -110,6 +113,19 @@ export default function CardsView({ cards, members, transactions, categories, ac
           onSave={save}
           onClose={() => setShowForm(false)}
         />
+      )}
+
+      {deleteTarget && (
+        <Modal title="Excluir cartão?" onClose={() => setDeleteTarget(null)}>
+          <p style={{ marginBottom: 18, lineHeight: 1.5, color: 'var(--muted)' }}>
+            Tem certeza que deseja excluir o cartão <strong style={{ color: 'var(--text)' }}>{deleteTarget.name}</strong>?
+            Esta ação não pode ser desfeita.
+          </p>
+          <div className="flex jce gap2" style={{ gap: 8 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setDeleteTarget(null)}>Cancelar</button>
+            <button type="button" className="btn btn-danger" onClick={confirmDeleteCard}>Excluir</button>
+          </div>
+        </Modal>
       )}
     </div>
   );
