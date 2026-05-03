@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useReducer } from 'react';
 import { getHouseholdId, setHouseholdId } from '../../data/http/client';
 import * as householdRepo    from '../../data/repositories/householdRepository';
 import * as accountRepo      from '../../data/repositories/accountRepository';
@@ -12,6 +12,8 @@ import {
 } from '../mappers';
 
 export function useAppData(notify) {
+  const [transactionsReloadGeneration, bumpTransactionsReload] = useReducer(x => x + 1, 0);
+
   const [loading,      setLoading]      = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [accounts,     setAccounts]     = useState([]);
@@ -23,6 +25,7 @@ export function useAppData(notify) {
   const loadTx = useCallback(async () => {
     const raw = await txRepo.listTransactions();
     setTransactions((raw || []).map(normalizeTransaction));
+    bumpTransactionsReload();
   }, []);
 
   const loadAcc = useCallback(async () => {
@@ -67,6 +70,7 @@ export function useAppData(notify) {
       setCategories((cats || []).map(normalizeCategory));
       setCards((cds       || []).map(normalizeCard).filter(Boolean));
       setTransactions((txs || []).map(normalizeTransaction));
+      bumpTransactionsReload();
       setMembers((profs   || []).map(normalizeProfile).filter(Boolean));
     } catch (e) {
       notify('Erro ao carregar dados: ' + e.message, 'error');
@@ -112,10 +116,11 @@ export function useAppData(notify) {
     onUpdateStatus: async (id, uiStatus) => {
       try {
         const msg = await txRepo.patchTransactionStatus(id, uiStatus);
-        await loadTx();
+        setTransactions(prev => prev.map(t => String(t.id) === String(id) ? { ...t, status: uiStatus } : t));
         notify(msg);
       } catch (e) {
         notify(e.message, 'error');
+        throw e;
       }
     },
   };
@@ -257,6 +262,7 @@ export function useAppData(notify) {
 
   return {
     loading, transactions, accounts, categories, cards, members,
+    transactionsReloadGeneration,
     loadAll, loadTx, clearData,
     txOps, accOps, catOps, cardOps, mbrOps,
   };
