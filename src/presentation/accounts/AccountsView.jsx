@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { R$ } from '../../core/utils/format';
 import { ACC_TYPES } from '../../core/constants/index';
 import MonthSelector from '../shared/components/MonthSelector';
+import Modal from '../shared/components/Modal';
 import AccountTile from './components/AccountTile';
 import AccountDetail from './components/AccountDetail';
 import AccountForm from './components/AccountForm';
@@ -10,6 +11,7 @@ export default function AccountsView({ accounts, members, transactions, categori
   const [showForm, setShowForm]             = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [f, setF]                           = useState({});
+  const [deleteTarget, setDeleteTarget]     = useState(null);
 
   const openNew = () => {
     setF({ bank: 'Nubank', agency: '', accountNumber: '', initialBalance: '' });
@@ -31,6 +33,13 @@ export default function AccountsView({ accounts, members, transactions, categori
 
   const totalBalance = accounts.reduce((s, a) => s + calcBalance(a), 0);
   const select = a => setSelectedAccount(sel => sel?.id === a.id ? null : a);
+
+  const confirmDeleteAccount = () => {
+    if (!deleteTarget) return;
+    onDelete(deleteTarget.id);
+    if (selectedAccount?.id === deleteTarget.id) setSelectedAccount(null);
+    setDeleteTarget(null);
+  };
 
   return (
     <div>
@@ -59,7 +68,7 @@ export default function AccountsView({ accounts, members, transactions, categori
                     selected={selectedAccount?.id === a.id}
                     onSelect={() => select(a)}
                     onEdit={() => { setF(a); setShowForm(true); }}
-                    onDelete={() => onDelete(a.id)}
+                    onDelete={() => setDeleteTarget({ id: a.id, name: a.name })}
                   />
                 </div>
               ))}
@@ -100,6 +109,19 @@ export default function AccountsView({ accounts, members, transactions, categori
 
       {showForm && (
         <AccountForm f={f} onChange={setF} onSave={save} onClose={() => setShowForm(false)} />
+      )}
+
+      {deleteTarget && (
+        <Modal title="Excluir conta?" onClose={() => setDeleteTarget(null)}>
+          <p style={{ marginBottom: 18, lineHeight: 1.5, color: 'var(--muted)' }}>
+            Tem certeza que deseja excluir a conta <strong style={{ color: 'var(--text)' }}>{deleteTarget.name}</strong>?
+            Esta ação não pode ser desfeita.
+          </p>
+          <div className="flex jce gap2" style={{ gap: 8 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setDeleteTarget(null)}>Cancelar</button>
+            <button type="button" className="btn btn-danger" onClick={confirmDeleteAccount}>Excluir</button>
+          </div>
+        </Modal>
       )}
     </div>
   );
