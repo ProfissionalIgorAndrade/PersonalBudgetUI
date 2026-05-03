@@ -325,8 +325,8 @@ export default function CardDetail({
         members={members}
         accounts={accounts}
         cards={cards}
-        onEdit={onEditTx}
-        onDelete={onDeleteTx}
+        onEdit={faturaStatus === 'paga' ? undefined : onEditTx}
+        onDelete={faturaStatus === 'paga' ? undefined : onDeleteTx}
         hideCols={['card']}
         emptyMsg="Nenhum lançamento neste mês"
       />
