@@ -6,10 +6,19 @@ import TxForm from './TxForm';
 const NUM = { fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' };
 
 const STATUS = {
-  paid:      <span className="badge badge-green">✓ Pago</span>,
+  paid:      <span className="badge badge-green">✓ Completo</span>,
   pending:   <span className="badge badge-yellow">⏳ Pendente</span>,
   cancelled: <span className="badge badge-muted">✕ Cancelado</span>,
 };
+
+function isCreditCardTx(t) {
+  return !!(t?.paymentMethod === 'CreditCard' || (t?.cardId && String(t.cardId).trim()));
+}
+
+/** Editar/excluir apenas para Pendente — Completo ou Cancelado não exibe ações na coluna. */
+function allowsEditDeleteActions(t) {
+  return t?.status === 'pending';
+}
 
 const REC = {
   fixed:       <span className="badge badge-teal">Fixo</span>,
@@ -32,6 +41,7 @@ export default function TxTable({
   cards = [],
   onEdit,
   onDelete,
+  onUpdateStatus,
   hideCols = [],
   emptyMsg = 'Nenhum lançamento encontrado',
 }) {
@@ -41,8 +51,12 @@ export default function TxTable({
   const [page,       setPage]       = useState(1);
   const [editingTx,  setEditingTx]  = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
+  const [busyStatusId, setBusyStatusId] = useState(null);
 
-  useEffect(() => { setPage(1); }, [rows]);
+  /** Stable across refetches (same txn set → same key); changes when filters/CRUD alter which rows belong in the table. */
+  const paginationIdentityKey = useMemo(() => rows.map(r => String(r.id)).sort().join('|'), [rows]);
+
+  useEffect(() => { setPage(1); }, [paginationIdentityKey]);
 
   const show = col => !hideCols.includes(col);
 
@@ -74,6 +88,16 @@ export default function TxTable({
   const balance    = totalIn - totalOut;
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paginated  = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(p => Math.min(p, totalPages));
+  }, [totalPages]);
+
+  const runStatusChange = (t, next) => {
+    if (!onUpdateStatus || next === t.status) return;
+    setBusyStatusId(t.id);
+    Promise.resolve(onUpdateStatus(t.id, next)).finally(() => setBusyStatusId(null));
+  };
 
   const Th = ({ col, children, style }) => (
     <th
@@ -119,7 +143,7 @@ export default function TxTable({
               {show('recurrence') && <Th col="recurrence">Recorrência</Th>}
               <Th col="status">Status</Th>
               <Th col="amount" style={{ textAlign: 'right' }}>Valor</Th>
-              <th className="csv-col-act"></th>
+              <th className="csv-col-act" scope="col">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -167,14 +191,35 @@ export default function TxTable({
                     </td>
                   )}
                   {show('recurrence') && <td>{REC[t.recurrence] ?? REC.none}</td>}
-                  <td>{STATUS[t.status] ?? <span className="badge badge-muted">{t.status}</span>}</td>
+                  <td style={{ verticalAlign: 'middle' }}>
+                    {onUpdateStatus && !isCreditCardTx(t) ? (
+                      <select
+                        className="form-select"
+                        aria-label={`Status — ${t.description || 'lançamento'}`}
+                        style={{ minWidth: 122, padding: '5px 8px', fontSize: 11 }}
+                        value={t.status === 'paid' || t.status === 'pending' || t.status === 'cancelled' ? t.status : 'pending'}
+                        disabled={busyStatusId === t.id}
+                        onChange={e => runStatusChange(t, e.target.value)}
+                      >
+                        <option value="pending">Pendente</option>
+                        <option value="paid">Completo</option>
+                        <option value="cancelled">Cancelado</option>
+                      </select>
+                    ) : (
+                      STATUS[t.status] ?? <span className="badge badge-muted">{t.status}</span>
+                    )}
+                  </td>
                   <td className="csv-col-val" style={{ color: isIncome ? 'var(--green)' : isExpense ? 'var(--red)' : 'var(--text)', ...NUM }}>
                     {isIncome ? '+' : isExpense ? '−' : ''}{R$(t.amount)}
                   </td>
                   <td className="csv-col-act">
                     <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
-                      {onEdit   && <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setEditingTx(t)} title="Editar">✏️</button>}
-                      {onDelete && <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setConfirmDel(t)} title="Excluir">🗑️</button>}
+                      {onEdit && allowsEditDeleteActions(t) && (
+                        <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setEditingTx(t)} title="Editar">✏️</button>
+                      )}
+                      {onDelete && allowsEditDeleteActions(t) && (
+                        <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setConfirmDel(t)} title="Excluir">🗑️</button>
+                      )}
                     </div>
                   </td>
                 </tr>
