@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from '../../core/utils/apiErrors';
+
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 export const getToken        = () => localStorage.getItem('pb_jwt');
@@ -26,8 +28,10 @@ async function request(path, opts = {}) {
   catch { body = { success: false, message: `HTTP ${res.status}`, data: null }; }
 
   if (!body.success) {
-    const err = new Error(body.message || `Erro ${res.status}`);
+    const raw = body.message || `Erro ${res.status}`;
+    const err = new Error(formatApiErrorMessage(raw));
     err.status = res.status;
+    err.apiMessage = raw;
     throw err;
   }
   return body.data;
