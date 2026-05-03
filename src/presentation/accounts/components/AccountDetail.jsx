@@ -4,7 +4,7 @@ import TxTable from '../../transactions/components/TxTable';
 
 const NUM = { fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' };
 
-export default function AccountDetail({ account, transactions, categories, members, accounts, cards, onEditTx, onDeleteTx, activeMonth }) {
+export default function AccountDetail({ account, transactions, categories, members, accounts, cards, onEditTx, onDeleteTx, onUpdateStatus, activeMonth }) {
   const accTx   = transactions.filter(t => t.accountId === account.id);
   const monthTx = accTx.filter(t => t.date?.startsWith(activeMonth));
 
@@ -37,6 +37,7 @@ export default function AccountDetail({ account, transactions, categories, membe
         cards={cards}
         onEdit={onEditTx}
         onDelete={onDeleteTx}
+        onUpdateStatus={onUpdateStatus}
         hideCols={['account']}
         emptyMsg="Nenhum lançamento neste mês"
       />

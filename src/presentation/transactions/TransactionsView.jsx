@@ -6,7 +6,7 @@ import TxTable from './components/TxTable';
 
 const EMPTY = { type: 'all', memberId: 'all', recurrence: 'all', status: 'all', cardId: 'all', accountId: 'all', categoryId: 'all', search: '' };
 
-export default function TransactionsView({ data, onAdd, onEdit, onDelete, activeMonth, setActiveMonth }) {
+export default function TransactionsView({ data, onAdd, onEdit, onDelete, onUpdateStatus, activeMonth, setActiveMonth }) {
   const { transactions, categories, members, accounts, cards } = data;
   const [newModal, setNewModal] = useState(false);
   const [filter, setFilter]     = useState(EMPTY);
@@ -76,7 +76,7 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, active
           </select>
           <select className="form-select" style={sel()} value={filter.status} onChange={set('status')}>
             <option value="all">Todos os status</option>
-            <option value="paid">✅ Pago</option>
+            <option value="paid">✅ Completo</option>
             <option value="pending">⏳ Pendente</option>
             <option value="cancelled">❌ Cancelado</option>
           </select>
@@ -115,6 +115,7 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, active
           cards={cards}
           onEdit={onEdit}
           onDelete={onDelete}
+          onUpdateStatus={onUpdateStatus}
         />
       </div>
 
