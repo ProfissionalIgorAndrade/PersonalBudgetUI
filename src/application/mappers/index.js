@@ -1,3 +1,5 @@
+import { COLORS, FLAGS } from '../../core/constants/index';
+
 /* ─── Enum conversions ──────────────────────────────────────── */
 export const TYPE_TO_API    = { income: 'Income', expense: 'Expense' };
 export const TYPE_FROM_API  = { Income: 'income', Expense: 'expense' };
@@ -38,6 +40,7 @@ function removeVisual(key, id) {
 
 export const catVisuals    = { load: () => loadVisuals('pb_cat_visuals'),    save: (id, d) => saveVisual('pb_cat_visuals', id, d),    remove: (id) => removeVisual('pb_cat_visuals', id) };
 export const memberVisuals = { load: () => loadVisuals('pb_member_visuals'), save: (id, d) => saveVisual('pb_member_visuals', id, d), remove: (id) => removeVisual('pb_member_visuals', id) };
+export const cardVisuals   = { load: () => loadVisuals('pb_card_visuals'),   save: (id, d) => saveVisual('pb_card_visuals', id, d),   remove: (id) => removeVisual('pb_card_visuals', id) };
 
 /* ─── Normalizers ───────────────────────────────────────────── */
 export function normalizeAccount(a) {
@@ -91,17 +94,61 @@ export function normalizeProfile(p) {
   };
 }
 
+function normalizeCardHex(color) {
+  if (color == null || color === '') return COLORS[0];
+  let h = String(color).trim();
+  if (!h.startsWith('#')) h = `#${h}`;
+  if (/^#[0-9a-fA-F]{6}$/.test(h)) return h.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(h)) {
+    const r = h[1], g = h[2], b = h[3];
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+  }
+  return COLORS[0];
+}
+
+function normalizeCardFlag(c) {
+  const direct = c.flag;
+  if (direct && FLAGS[direct]) return direct;
+  const raw = c.flag ?? c.brand ?? c.Brand ?? c.cardBrand ?? '';
+  const s = String(raw).toLowerCase();
+  if (s.includes('master')) return 'master';
+  if (s.includes('elo')) return 'elo';
+  if (s.includes('amex') || s.includes('american')) return 'amex';
+  if (s.includes('hiper')) return 'hiper';
+  if (s.includes('visa')) return 'visa';
+  if (FLAGS[s]) return s;
+  return 'visa';
+}
+
 export function normalizeCard(c) {
+  if (!c || typeof c !== 'object') return null;
+  const id = c.id ?? c.Id;
+  const idKey = id != null ? String(id) : '';
+  const local = idKey ? cardVisuals.load()[idKey] || {} : {};
+
+  const colorRaw =
+    c.color ??
+    c.Color ??
+    c.themeColor ??
+    c.accentColor ??
+    c.hexColor;
+  const colorFromApi = normalizeCardHex(colorRaw);
+  const color =
+    local.color != null && local.color !== ''
+      ? normalizeCardHex(local.color)
+      : colorFromApi;
+
   return {
-    id:         c.id,
-    name:       c.name,
-    limit:      c.limit ?? 0,
-    closingDay: c.closingDay,
-    dueDay:     c.dueDay,
-    accountId:  c.accountId || '',
-    color:      '#818cf8',
-    flag:       'visa',
-    lastDigits: '',
+    id,
+    name:       (c.name ?? c.Name ?? '').trim() || 'Cartão',
+    limit:      Number(c.limit ?? c.Limit ?? 0),
+    closingDay: Number(c.closingDay ?? c.ClosingDay ?? 1),
+    dueDay:     Number(c.dueDay ?? c.DueDay ?? 10),
+    accountId:  String(c.accountId ?? c.AccountId ?? ''),
+    color,
+    flag:       normalizeCardFlag(c),
+    lastDigits: String(c.lastDigits ?? c.lastFourDigits ?? c.LastFourDigits ?? '').replace(/\D/g, '').slice(-4),
+    memberId:   String(c.memberId ?? c.attributionProfileId ?? c.MemberId ?? c.ProfileId ?? ''),
   };
 }
 

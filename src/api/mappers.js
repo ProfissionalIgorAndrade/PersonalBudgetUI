@@ -77,19 +77,7 @@ export function normalizeProfile(p) {
   };
 }
 
-export function normalizeCard(c) {
-  return {
-    id:         c.id,
-    name:       c.name,
-    limit:      c.limit ?? 0,
-    closingDay: c.closingDay,
-    dueDay:     c.dueDay,
-    accountId:  c.accountId || '',
-    color:      '#818cf8',
-    flag:       'visa',
-    lastDigits: '',
-  };
-}
+export { normalizeCard } from '../application/mappers/index';
 
 export function normalizeTransaction(t) {
   const isTransfer = t.paymentMethod === 'Transfer';
