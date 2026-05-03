@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { R$ } from '../../../core/utils/format';
+import { normalizeTransaction } from '../../../application/mappers';
 import TxTable from '../../transactions/components/TxTable';
 import * as cardRepo from '../../../data/repositories/cardRepository';
 
@@ -29,6 +30,38 @@ function unwrapStatementPayload(raw) {
     }
   }
   return raw;
+}
+
+/** Transactions embedded in GetStatement response (ASP.NET casing / nesting tolerant). */
+function extractStatementTransactions(raw) {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw !== 'object') return [];
+
+  const tryLists = (...cands) => {
+    for (const c of cands) if (Array.isArray(c) && c.length) return c;
+    return [];
+  };
+
+  const direct = tryLists(raw.transactions, raw.Transactions);
+  if (direct.length) return direct;
+
+  const flat = unwrapStatementPayload(raw);
+  const fromFlat = tryLists(
+    flat.transactions, flat.Transactions,
+    flat.transactionDtos, flat.TransactionDtos,
+    flat.items, flat.Items,
+  );
+  if (fromFlat.length) return fromFlat;
+
+  for (const k of ['statement', 'Statement', 'creditCardStatement', 'CreditCardStatement']) {
+    const inner = raw[k];
+    if (inner && typeof inner === 'object') {
+      const t = inner.transactions ?? inner.Transactions ?? inner.transactionDtos ?? inner.TransactionDtos;
+      if (Array.isArray(t) && t.length) return t;
+    }
+  }
+  return [];
 }
 
 function normalizeStatementData(data) {
@@ -103,9 +136,28 @@ function normalizeStatementData(data) {
   return { statementId: statementId ?? null, isClosed, isPaid };
 }
 
+function applyPayloadToStatementState(data, setStatement, setStatementTxs) {
+  const meta = normalizeStatementData(data);
+  const rawList = extractStatementTransactions(data);
+  const txs = (rawList || []).map(normalizeTransaction).filter(Boolean);
+  setStatement({
+    loading: false,
+    error: null,
+    statementId: meta.statementId,
+    isClosed: meta.isClosed,
+    isPaid: meta.isPaid,
+  });
+  setStatementTxs(txs);
+}
+
 export default function CardDetail({
-  card, transactions, categories, members, accounts, cards,
-  onEditTx, onDeleteTx,
+  card,
+  categories,
+  members,
+  accounts,
+  cards,
+  onEditTx,
+  onDeleteTx,
   activeMonth,
   notify = () => {},
   loadTransactions = async () => {},
@@ -123,8 +175,14 @@ export default function CardDetail({
   const monthStr = activeMonth || currentFatMonth;
   const [fatY, fatM] = monthStr.split('-').map(Number);
 
-  const cardTx = transactions.filter(t => t.cardId === card.id && t.type === 'expense' && t.status !== 'cancelled');
-  const selTx  = cardTx.filter(t => t.date?.startsWith(monthStr));
+  const [statementTxs, setStatementTxs] = useState([]);
+
+  /* Período da fatura ≠ mês-calendário da data da compra (ex.: fecha dia 28 → 29/05 entra na fatura de junho).
+     Confiamos na lista retornada pelo statement (month/year); não filtramos por ano-mês do lançamento. */
+  const selTx = useMemo(
+    () => statementTxs.filter(t => t.type === 'expense' && t.status !== 'cancelled'),
+    [statementTxs],
+  );
 
   const total   = selTx.reduce((s, t) => s + Number(t.amount), 0);
   const paid    = selTx.filter(t => t.status === 'paid').reduce((s, t) => s + Number(t.amount), 0);
@@ -148,30 +206,23 @@ export default function CardDetail({
 
   const refetchStatement = useCallback(async () => {
     const data = await cardRepo.getStatement(card.id, fatM, fatY);
-    setStatement(prev => ({
-      ...prev,
-      loading: false,
-      error: null,
-      ...normalizeStatementData(data),
-    }));
+    applyPayloadToStatementState(data, setStatement, setStatementTxs);
   }, [card.id, fatM, fatY]);
 
   useEffect(() => {
     if (!card?.id || !monthStr) {
       setStatement(s => ({ ...s, loading: false }));
-      return;
+      setStatementTxs([]);
+      return undefined;
     }
     let cancelled = false;
     setStatement(s => ({ ...s, loading: true, error: null }));
+    setStatementTxs([]);
     (async () => {
       try {
         const data = await cardRepo.getStatement(card.id, fatM, fatY);
         if (cancelled) return;
-        setStatement({
-          loading: false,
-          error: null,
-          ...normalizeStatementData(data),
-        });
+        applyPayloadToStatementState(data, setStatement, setStatementTxs);
       } catch (e) {
         if (cancelled) return;
         setStatement({
@@ -181,10 +232,11 @@ export default function CardDetail({
           isClosed: false,
           isPaid: false,
         });
+        setStatementTxs([]);
       }
     })();
     return () => { cancelled = true; };
-  }, [card.id, monthStr]);
+  }, [card.id, monthStr, fatM, fatY]);
 
   const apiPaid = statement.isPaid;
   const apiClosed = statement.isClosed;
@@ -303,7 +355,7 @@ export default function CardDetail({
       <div className="summary-grid" style={{ marginBottom: 18 }}>
         <div className="summary-box">
           <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Total da Fatura</div>
-          <div style={{ fontSize: 20, fontWeight: 800, ...NUM }}>{R$(total)}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, ...NUM }}>{statement.loading ? '—' : R$(total)}</div>
         </div>
         <div className="summary-box">
           <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Vencimento</div>
@@ -311,11 +363,11 @@ export default function CardDetail({
         </div>
         <div className="summary-box">
           <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Pago</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--green)', ...NUM }}>{R$(paid)}</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--green)', ...NUM }}>{statement.loading ? '—' : R$(paid)}</div>
         </div>
         <div className="summary-box">
           <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Pendente</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: pending > 0 ? 'var(--yellow)' : 'var(--muted)', ...NUM }}>{R$(pending)}</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: pending > 0 ? 'var(--yellow)' : 'var(--muted)', ...NUM }}>{statement.loading ? '—' : R$(pending)}</div>
         </div>
       </div>
 
@@ -328,7 +380,7 @@ export default function CardDetail({
         onEdit={faturaStatus === 'paga' ? undefined : onEditTx}
         onDelete={faturaStatus === 'paga' ? undefined : onDeleteTx}
         hideCols={['card']}
-        emptyMsg="Nenhum lançamento neste mês"
+        emptyMsg={statement.loading ? 'Carregando…' : statement.error ? 'Não foi possível carregar a fatura' : 'Nenhum lançamento neste mês'}
       />
     </div>
   );

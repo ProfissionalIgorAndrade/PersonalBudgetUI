@@ -88,7 +88,6 @@ export default function CardsView({ cards, members, transactions, categories, ac
               </div>
               <CardDetail
                 card={selectedCard}
-                transactions={transactions}
                 categories={categories}
                 members={members}
                 accounts={accounts}
