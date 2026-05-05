@@ -117,6 +117,13 @@ export function useAppData(notify) {
         else notify('Lançamento removido');
       } catch (e) { notify(e.message, 'error'); }
     },
+    onBatchDelete: async (ids) => {
+      try {
+        await txRepo.batchDelete(ids);
+        await loadTx();
+        notify(`${ids.length} lançamento(s) removido(s)`);
+      } catch (e) { notify(e.message, 'error'); }
+    },
     onUpdateStatus: async (id, uiStatus) => {
       try {
         const msg = await txRepo.patchTransactionStatus(id, uiStatus);
