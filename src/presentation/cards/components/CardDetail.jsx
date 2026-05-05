@@ -380,7 +380,7 @@ export default function CardDetail({
         onEdit={faturaStatus === 'paga' ? undefined : onEditTx}
         onDelete={faturaStatus === 'paga' ? undefined : onDeleteTx}
         onBatchDelete={faturaStatus === 'paga' ? undefined : onBatchDeleteTx}
-        hideCols={['card', 'type']}
+        hideCols={['card']}
         emptyMsg={statement.loading ? 'Carregando…' : statement.error ? 'Não foi possível carregar a fatura' : 'Nenhum lançamento neste mês'}
       />
     </div>
