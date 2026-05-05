@@ -70,9 +70,9 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onUpda
           </select>
           <select className="form-select" style={sel()} value={filter.recurrence} onChange={set('recurrence')}>
             <option value="all">Todas recorrências</option>
-            <option value="fixed">🔄 Fixo</option>
-            <option value="variable">📊 Variável</option>
-            <option value="installment">📦 Parcelado</option>
+            <option value="variable">Variável</option>
+            <option value="fixed">Fixa</option>
+            <option value="installment">Parcelada</option>
           </select>
           <select className="form-select" style={sel()} value={filter.status} onChange={set('status')}>
             <option value="all">Todos os status</option>
@@ -127,7 +127,7 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onUpda
             members={members}
             accounts={accounts}
             cards={cards}
-            onSave={tx => { onAdd(tx); setNewModal(false); }}
+            onSave={tx => { onAdd(tx); }}
             onClose={() => setNewModal(false)}
           />
         </Modal>

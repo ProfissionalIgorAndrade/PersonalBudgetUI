@@ -21,9 +21,9 @@ function allowsEditDeleteActions(t) {
 }
 
 const REC = {
-  fixed:       <span className="badge badge-teal">Fixo</span>,
   variable:    <span className="badge badge-blue">Variável</span>,
-  installment: <span className="badge badge-blue">Parc.</span>,
+  fixed:       <span className="badge badge-teal">Fixa</span>,
+  installment: <span className="badge badge-purple">Parcelada</span>,
   split:       <span className="badge badge-muted">Dividido</span>,
   none:        <span style={{ color: 'var(--muted)', fontSize: 11 }}>—</span>,
 };
