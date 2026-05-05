@@ -11,11 +11,16 @@ const STATUS = {
   cancelled: <span className="badge badge-muted">✕ Cancelado</span>,
 };
 
+const TYPE_BADGE = {
+  income:   <span className="badge badge-green">Receita</span>,
+  expense:  <span className="badge badge-red">Despesa</span>,
+  transfer: <span className="badge badge-muted">Transferência</span>,
+};
+
 function isCreditCardTx(t) {
   return !!(t?.paymentMethod === 'CreditCard' || (t?.cardId && String(t.cardId).trim()));
 }
 
-/** Editar/excluir apenas para Pendente — Completo ou Cancelado não exibe ações na coluna. */
 function allowsEditDeleteActions(t) {
   return t?.status === 'pending';
 }
@@ -41,22 +46,25 @@ export default function TxTable({
   cards = [],
   onEdit,
   onDelete,
+  onBatchDelete,
   onUpdateStatus,
   hideCols = [],
   emptyMsg = 'Nenhum lançamento encontrado',
 }) {
   const PAGE_SIZE = 15;
-  const [sortCol,    setSortCol]    = useState('date');
-  const [sortDir,    setSortDir]    = useState('desc');
-  const [page,       setPage]       = useState(1);
-  const [editingTx,  setEditingTx]  = useState(null);
-  const [confirmDel, setConfirmDel] = useState(null);
-  const [busyStatusId, setBusyStatusId] = useState(null);
+  const [sortCol,        setSortCol]        = useState('date');
+  const [sortDir,        setSortDir]        = useState('desc');
+  const [page,           setPage]           = useState(1);
+  const [editingTx,      setEditingTx]      = useState(null);
+  const [confirmDel,     setConfirmDel]     = useState(null);
+  const [deleting,       setDeleting]       = useState(false);
+  const [busyStatusId,   setBusyStatusId]   = useState(null);
+  const [selected,       setSelected]       = useState(new Set());
+  const [confirmBatch,   setConfirmBatch]   = useState(false);
+  const [batchDeleting,  setBatchDeleting]  = useState(false);
 
-  /** Stable across refetches (same txn set → same key); changes when filters/CRUD alter which rows belong in the table. */
   const paginationIdentityKey = useMemo(() => rows.map(r => String(r.id)).sort().join('|'), [rows]);
-
-  useEffect(() => { setPage(1); }, [paginationIdentityKey]);
+  useEffect(() => { setPage(1); setSelected(new Set()); }, [paginationIdentityKey]);
 
   const show = col => !hideCols.includes(col);
 
@@ -74,6 +82,7 @@ export default function TxTable({
       if (sortCol === 'member')     return members.find(m => m.id === t.memberId)?.name?.toLowerCase() || '';
       if (sortCol === 'status')     return t.status || '';
       if (sortCol === 'recurrence') return t.recurrence || '';
+      if (sortCol === 'type')       return t.type || '';
       return '';
     };
     return [...rows].sort((a, b) => {
@@ -83,20 +92,45 @@ export default function TxTable({
     });
   }, [rows, sortCol, sortDir, categories, members]);
 
-  const totalIn    = rows.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
-  const totalOut   = rows.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+  // Exclude cancelled from summary totals
+  const active     = rows.filter(t => t.status !== 'cancelled');
+  const totalIn    = active.filter(t => t.type === 'income').reduce((s, t)  => s + Number(t.amount), 0);
+  const totalOut   = active.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const balance    = totalIn - totalOut;
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paginated  = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => {
-    setPage(p => Math.min(p, totalPages));
-  }, [totalPages]);
+  useEffect(() => { setPage(p => Math.min(p, totalPages)); }, [totalPages]);
 
   const runStatusChange = (t, next) => {
     if (!onUpdateStatus || next === t.status) return;
     setBusyStatusId(t.id);
     Promise.resolve(onUpdateStatus(t.id, next)).finally(() => setBusyStatusId(null));
+  };
+
+  const toggleSelect = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const allPageSelected = paginated.length > 0 && paginated.every(t => selected.has(t.id));
+  const toggleSelectAll = () => {
+    if (allPageSelected) {
+      setSelected(prev => {
+        const next = new Set(prev);
+        paginated.forEach(t => next.delete(t.id));
+        return next;
+      });
+    } else {
+      setSelected(prev => {
+        const next = new Set(prev);
+        paginated.forEach(t => next.add(t.id));
+        return next;
+      });
+    }
   };
 
   const Th = ({ col, children, style }) => (
@@ -114,6 +148,16 @@ export default function TxTable({
       {/* ── Summary bar ──────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 12px', background: 'var(--surface2)', borderRadius: '10px 10px 0 0', border: '1px solid var(--border)', borderBottom: 'none', flexWrap: 'wrap' }}>
         <span className="txxs tmuted" style={{ marginRight: 'auto' }}>{sorted.length} registro(s)</span>
+        {onBatchDelete && selected.size > 0 && (
+          <button
+            type="button"
+            className="btn btn-danger"
+            style={{ fontSize: 12, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 6 }}
+            onClick={() => setConfirmBatch(true)}
+          >
+            🗑️ Excluir selecionados ({selected.size})
+          </button>
+        )}
         <span style={{ fontSize: 12 }}>
           Receitas: <strong style={{ color: 'var(--green)', ...NUM }}>+{R$(totalIn)}</strong>
         </span>
@@ -133,8 +177,19 @@ export default function TxTable({
         <table className="csv-table">
           <thead>
             <tr>
+              {onBatchDelete && (
+                <th style={{ width: 36, textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={allPageSelected}
+                    onChange={toggleSelectAll}
+                    title="Selecionar página"
+                  />
+                </th>
+              )}
               <th className="csv-col-n">#</th>
               <Th col="date">Data</Th>
+              {show('type')       && <Th col="type">Tipo</Th>}
               <Th col="desc">Descrição</Th>
               <Th col="cat">Categoria</Th>
               {show('member')     && <Th col="member">Membro</Th>}
@@ -163,9 +218,19 @@ export default function TxTable({
               const isIncome  = t.type === 'income';
               const isExpense = t.type === 'expense';
               return (
-                <tr key={t.id}>
+                <tr key={t.id} style={selected.has(t.id) ? { background: 'color-mix(in srgb, var(--primary) 8%, transparent)' } : {}}>
+                  {onBatchDelete && (
+                    <td style={{ textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(t.id)}
+                        onChange={() => toggleSelect(t.id)}
+                      />
+                    </td>
+                  )}
                   <td className="csv-col-n">{rowNum}</td>
                   <td className="csv-col-date">{fdate(t.date)}</td>
+                  {show('type') && <td>{TYPE_BADGE[t.type] ?? <span className="tmuted">—</span>}</td>}
                   <td className="csv-col-desc">
                     <div style={{ fontWeight: 600, fontSize: 12 }}>{t.description}</div>
                     {t.installments && <div className="txxs tmuted">{t.installmentCurrent}/{t.installments}x</div>}
@@ -231,24 +296,13 @@ export default function TxTable({
 
       {totalPages > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
-          <button
-            className="btn btn-secondary"
-            style={{ padding: '4px 12px', fontSize: 12 }}
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >← Anterior</button>
-          <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 100, textAlign: 'center' }}>
-            Página {page} de {totalPages}
-          </span>
-          <button
-            className="btn btn-secondary"
-            style={{ padding: '4px 12px', fontSize: 12 }}
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-          >Próxima →</button>
+          <button className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: 12 }} onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>← Anterior</button>
+          <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 100, textAlign: 'center' }}>Página {page} de {totalPages}</span>
+          <button className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: 12 }} onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Próxima →</button>
         </div>
       )}
 
+      {/* Edit modal */}
       {editingTx && (
         <Modal title="Editar Lançamento" onClose={() => setEditingTx(null)} wide>
           <TxForm
@@ -257,22 +311,61 @@ export default function TxTable({
             members={members}
             accounts={accounts}
             cards={cards}
-            onSave={tx => { onEdit(tx); setEditingTx(null); }}
+            onSave={async tx => { await onEdit(tx); setEditingTx(null); }}
             onClose={() => setEditingTx(null)}
           />
         </Modal>
       )}
 
+      {/* Single delete confirm */}
       {confirmDel && (
-        <Modal title="Confirmar Exclusão" onClose={() => setConfirmDel(null)}>
+        <Modal title="Confirmar Exclusão" onClose={() => !deleting && setConfirmDel(null)}>
           <p style={{ marginBottom: 8, fontSize: 13, color: 'var(--muted)' }}>Deseja excluir este lançamento?</p>
           <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{confirmDel.description}</div>
             <div className="txxs tmuted" style={{ marginTop: 4 }}>{fdate(confirmDel.date)} · {R$(confirmDel.amount)}</div>
           </div>
           <div className="flex jce gap2" style={{ gap: 8 }}>
-            <button className="btn btn-secondary" onClick={() => setConfirmDel(null)}>Cancelar</button>
-            <button className="btn btn-danger" onClick={() => { onDelete(confirmDel.id); setConfirmDel(null); }}>🗑️ Excluir</button>
+            <button className="btn btn-secondary" disabled={deleting} onClick={() => setConfirmDel(null)}>Cancelar</button>
+            <button
+              className="btn btn-danger"
+              disabled={deleting}
+              onClick={async () => {
+                setDeleting(true);
+                try { await onDelete(confirmDel.id); setConfirmDel(null); }
+                finally { setDeleting(false); }
+              }}
+            >
+              {deleting ? '⏳ Excluindo…' : '🗑️ Excluir'}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Batch delete confirm */}
+      {confirmBatch && (
+        <Modal title="Confirmar Exclusão em Lote" onClose={() => !batchDeleting && setConfirmBatch(false)}>
+          <p style={{ marginBottom: 16, fontSize: 13, color: 'var(--muted)' }}>
+            Deseja excluir <strong>{selected.size}</strong> lançamento(s) selecionado(s)? Esta ação não pode ser desfeita.
+          </p>
+          <div className="flex jce gap2" style={{ gap: 8 }}>
+            <button className="btn btn-secondary" disabled={batchDeleting} onClick={() => setConfirmBatch(false)}>Cancelar</button>
+            <button
+              className="btn btn-danger"
+              disabled={batchDeleting}
+              onClick={async () => {
+                setBatchDeleting(true);
+                try {
+                  await onBatchDelete(Array.from(selected));
+                  setSelected(new Set());
+                  setConfirmBatch(false);
+                } finally {
+                  setBatchDeleting(false);
+                }
+              }}
+            >
+              {batchDeleting ? '⏳ Excluindo…' : `🗑️ Excluir ${selected.size} lançamento(s)`}
+            </button>
           </div>
         </Modal>
       )}
