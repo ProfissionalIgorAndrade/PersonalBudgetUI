@@ -255,11 +255,7 @@ export default function CardDetail({
     && !closing;
 
   const showPay =
-    apiClosed
-    && !apiPaid
-    && !allPaid
-    && pending > 0
-    && statement.statementId
+    faturaStatus === 'fechada'
     && !statement.loading
     && !paying;
 
@@ -282,7 +278,10 @@ export default function CardDetail({
   };
 
   const handlePay = async () => {
-    if (!statement.statementId) return;
+    if (!statement.statementId) {
+      notify('Não foi possível identificar a fatura.', 'error');
+      return;
+    }
     setPaying(true);
     try {
       await cardRepo.payStatement(card.id, statement.statementId);

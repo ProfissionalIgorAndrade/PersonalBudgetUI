@@ -10,6 +10,7 @@ import {
   normalizeTransaction, normalizeProfile,
   txToApi, CAT_TYPE_TO_API, catVisuals, memberVisuals, cardVisuals,
 } from '../mappers';
+import { describeCreateTransactionResponse } from '../createTransactionPayload';
 
 export function useAppData(notify) {
   const [transactionsReloadGeneration, bumpTransactionsReload] = useReducer(x => x + 1, 0);
@@ -87,9 +88,12 @@ export function useAppData(notify) {
   const txOps = {
     onAdd: async (tx) => {
       try {
-        await txRepo.createTransaction(txToApi(tx));
+        const data = await txRepo.createTransaction(txToApi(tx));
         await loadTx();
-        notify('Lançamento adicionado');
+        const outcome = describeCreateTransactionResponse(data);
+        if (outcome.kind === 'transfer') notify('Transferência registrada.');
+        else if (outcome.kind === 'transaction') notify('Lançamento adicionado.');
+        else notify('Operação concluída.');
       } catch (e) { notify(e.message, 'error'); }
     },
     onEdit: async (tx) => {

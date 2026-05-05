@@ -1,5 +1,6 @@
 import { COLORS, FLAGS } from '../../core/constants/index';
 import { parseMoneyAmount } from '../../core/utils/money';
+import { buildCreateTransactionPayload } from '../createTransactionPayload';
 
 /* ─── Enum conversions ──────────────────────────────────────── */
 export const TYPE_TO_API    = { income: 'Income', expense: 'Expense' };
@@ -194,39 +195,5 @@ export function normalizeTransaction(t) {
 
 /* ─── Form → API body ───────────────────────────────────────── */
 export function txToApi(f) {
-  const isTransfer    = f.type === 'transfer';
-  const hasCard       = !!f.cardId && !isTransfer;
-  const paymentMethod = isTransfer ? 'Transfer' : hasCard ? 'CreditCard' : f.accountId ? 'Account' : 'Cash';
-
-  const body = {
-    type:                 isTransfer ? 'Expense' : (TYPE_TO_API[f.type] || 'Expense'),
-    frequency:            FREQ_TO_API[f.recurrence] || 'Variable',
-    paymentMethod,
-    amount:               Number(f.amount),
-    date:                 f.date,
-    description:          f.description,
-    categoryId:           (!isTransfer && f.categoryId) ? f.categoryId : null,
-    attributionProfileId: f.memberId || null,
-    autoComplete:         f.status === 'paid',
-    status:               f.status === 'paid' ? null : (STATUS_TO_API[f.status] || null),
-  };
-
-  if (isTransfer) {
-    body.fromAccountId = f.originAccountId      || null;
-    body.toAccountId   = f.destinationAccountId || null;
-  } else if (hasCard) {
-    body.creditCardId = f.cardId;
-    body.accountId    = null;
-  } else {
-    body.accountId    = f.accountId || null;
-    body.creditCardId = null;
-  }
-
-  if (f.recurrence === 'installment' && f.installments) {
-    body.installmentCount = Number(f.installments);
-    body.totalAmount      = Number(f.amount) * Number(f.installments);
-    body.title            = f.description;
-  }
-
-  return body;
+  return buildCreateTransactionPayload(f);
 }
