@@ -26,6 +26,7 @@ export default function AccountDetail({
   cards,
   onEditTx,
   onDeleteTx,
+  onBatchDeleteTx,
   onUpdateStatus,
   activeMonth,
   notify,
@@ -117,6 +118,7 @@ export default function AccountDetail({
         cards={cards}
         onEdit={onEditTx}
         onDelete={onDeleteTx}
+        onBatchDelete={onBatchDeleteTx}
         onUpdateStatus={handleUpdateStatus}
         hideCols={['account']}
         emptyMsg={loadingTx ? 'Carregando…' : 'Nenhum lançamento neste mês'}

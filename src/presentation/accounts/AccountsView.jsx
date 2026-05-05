@@ -10,7 +10,7 @@ import AccountForm from './components/AccountForm';
 
 export default function AccountsView({
   accounts, members, categories, cards, onAdd, onEdit, onDelete,
-  onEditTx, onDeleteTx, onUpdateStatus, notify, transactionsReloadGeneration, activeMonth, setActiveMonth,
+  onEditTx, onDeleteTx, onBatchDeleteTx, onUpdateStatus, notify, transactionsReloadGeneration, activeMonth, setActiveMonth,
 }) {
   const [showForm, setShowForm]             = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -107,6 +107,7 @@ export default function AccountsView({
                 cards={cards}
                 onEditTx={onEditTx}
                 onDeleteTx={onDeleteTx}
+                onBatchDeleteTx={onBatchDeleteTx}
                 onUpdateStatus={onUpdateStatus}
                 notify={notify}
                 activeMonth={activeMonth}

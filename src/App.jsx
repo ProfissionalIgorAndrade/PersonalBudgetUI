@@ -77,11 +77,11 @@ export default function App() {
     dashboard:    <DashboardView    data={data} setView={setView} activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
     transactions: <TransactionsView data={data} {...txOps} activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
     cards:        <CardsView        cards={cards} members={members} transactions={transactions} categories={categories} accounts={accounts}
-                                    {...cardOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete}
+                                    {...cardOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete} onBatchDeleteTx={txOps.onBatchDelete}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth}
                                     notify={notify} loadTransactions={loadTx} />,
     accounts:     <AccountsView     accounts={accounts} members={members} categories={categories} cards={cards}
-                                    {...accOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete} onUpdateStatus={txOps.onUpdateStatus}
+                                    {...accOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete} onBatchDeleteTx={txOps.onBatchDelete} onUpdateStatus={txOps.onUpdateStatus}
                                     notify={notify} transactionsReloadGeneration={transactionsReloadGeneration}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
     members:      <MembersView      members={members} {...mbrOps} notify={notify} onLogout={handleLogout} />,

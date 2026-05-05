@@ -8,7 +8,7 @@ import CardTile from './components/CardTile';
 import CardDetail from './components/CardDetail';
 import CardForm from './components/CardForm';
 
-export default function CardsView({ cards, members, transactions, categories, accounts, onAdd, onEdit, onDelete, onEditTx, onDeleteTx, activeMonth, setActiveMonth, notify, loadTransactions }) {
+export default function CardsView({ cards, members, transactions, categories, accounts, onAdd, onEdit, onDelete, onEditTx, onDeleteTx, onBatchDeleteTx, activeMonth, setActiveMonth, notify, loadTransactions }) {
   const [showForm, setShowForm]         = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [f, setF]                       = useState({});
@@ -94,6 +94,7 @@ export default function CardsView({ cards, members, transactions, categories, ac
                 cards={cards}
                 onEditTx={onEditTx}
                 onDeleteTx={onDeleteTx}
+                onBatchDeleteTx={onBatchDeleteTx}
                 activeMonth={activeMonth}
                 notify={notify}
                 loadTransactions={loadTransactions}
