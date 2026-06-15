@@ -13,5 +13,5 @@ export const getStatement = (creditCardId, month, year, page) => {
   if (page != null && page !== '') p.set('page', String(page));
   return http.get(`/api/credit-cards/${encodeURIComponent(creditCardId)}/statement?${p}`);
 };
-export const closeStatement = (cid, sid) => http.post(`/api/credit-cards/${cid}/statements/${sid}/close`, {});
-export const payStatement   = (cid, sid) => http.post(`/api/credit-cards/${cid}/statements/${sid}/pay`, {});
+export const closeStatement = (cid, sid)           => http.post(`/api/credit-cards/${cid}/statements/${sid}/close`, {});
+export const payStatement   = (cid, sid, accountId) => http.post(`/api/credit-cards/${cid}/statements/${sid}/pay`, { accountId });

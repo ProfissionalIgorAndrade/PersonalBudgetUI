@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { R$ } from '../../../core/utils/format';
 import { normalizeTransaction } from '../../../application/mappers';
 import TxTable from '../../transactions/components/TxTable';
+import Modal from '../../shared/components/Modal';
 import * as cardRepo from '../../../data/repositories/cardRepository';
 
 const NUM = { fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' };
@@ -202,8 +203,10 @@ export default function CardDetail({
     isClosed: false,
     isPaid: false,
   });
-  const [closing, setClosing] = useState(false);
-  const [paying, setPaying]   = useState(false);
+  const [closing, setClosing]               = useState(false);
+  const [paying, setPaying]                 = useState(false);
+  const [showPayModal, setShowPayModal]     = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState('');
 
   const refetchStatement = useCallback(async () => {
     const data = await cardRepo.getStatement(card.id, fatM, fatY);
@@ -278,14 +281,24 @@ export default function CardDetail({
     }
   };
 
+  const openPayModal = () => {
+    setSelectedAccountId((accounts && accounts.length === 1) ? accounts[0].id : '');
+    setShowPayModal(true);
+  };
+
   const handlePay = async () => {
     if (!statement.statementId) {
       notify('Não foi possível identificar a fatura.', 'error');
       return;
     }
+    if (!selectedAccountId) {
+      notify('Selecione uma conta para pagar a fatura.', 'error');
+      return;
+    }
     setPaying(true);
+    setShowPayModal(false);
     try {
-      await cardRepo.payStatement(card.id, statement.statementId);
+      await cardRepo.payStatement(card.id, statement.statementId, selectedAccountId);
       notify('Fatura paga com sucesso.');
       await refetchStatement();
       await loadTransactions();
@@ -295,6 +308,9 @@ export default function CardDetail({
       setPaying(false);
     }
   };
+
+  const selectedAccount = (accounts || []).find(a => a.id === selectedAccountId);
+  const hasSufficientBalance = selectedAccount ? selectedAccount.balance >= total : true;
 
   return (
     <div>
@@ -343,7 +359,7 @@ export default function CardDetail({
               type="button"
               className="btn btn-primary"
               style={{ fontSize: 12, padding: '6px 14px' }}
-              onClick={handlePay}
+              onClick={openPayModal}
               disabled={paying}
             >
               {paying ? '⏳ Processando…' : '💳 Pagar Fatura'}
@@ -383,6 +399,87 @@ export default function CardDetail({
         hideCols={['card']}
         emptyMsg={statement.loading ? 'Carregando…' : statement.error ? 'Não foi possível carregar a fatura' : 'Nenhum lançamento neste mês'}
       />
+
+      {showPayModal && (
+        <Modal title="Pagar Fatura" onClose={() => setShowPayModal(false)}>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Valor da fatura</div>
+            <div style={{ fontSize: 22, fontWeight: 800, ...NUM }}>{R$(total)}</div>
+          </div>
+
+          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, color: 'var(--muted)', marginBottom: 10 }}>
+            Selecione a conta para débito
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+            {(accounts || []).filter(a => a.isActive !== false).map(acc => {
+              const isSelected = acc.id === selectedAccountId;
+              const sufficient = acc.balance >= total;
+              return (
+                <button
+                  key={acc.id}
+                  type="button"
+                  onClick={() => setSelectedAccountId(acc.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 14px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                    background: isSelected ? 'rgba(45,212,191,.12)' : 'var(--surface)',
+                    border: `1.5px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+                    transition: 'border-color .15s, background .15s',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                      background: acc.color || 'var(--primary)',
+                    }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{acc.name}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, ...NUM, color: sufficient ? 'var(--green)' : 'var(--red, #f87171)' }}>
+                      {R$(acc.balance)}
+                    </span>
+                    {!sufficient && (
+                      <span style={{ fontSize: 11, color: 'var(--red, #f87171)', fontWeight: 600 }}>
+                        saldo insuficiente
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+            {(!accounts || accounts.length === 0) && (
+              <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '12px 0' }}>
+                Nenhuma conta cadastrada.
+              </p>
+            )}
+          </div>
+
+          {selectedAccount && !hasSufficientBalance && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 8, marginBottom: 16,
+              background: 'rgba(248,113,113,.10)', border: '1px solid rgba(248,113,113,.3)',
+              fontSize: 13, color: 'var(--red, #f87171)', fontWeight: 600,
+            }}>
+              Saldo insuficiente: {R$(selectedAccount.balance)} disponível para pagar {R$(total)}.
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowPayModal(false)}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handlePay}
+              disabled={!selectedAccountId || !hasSufficientBalance}
+            >
+              Confirmar Pagamento
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
