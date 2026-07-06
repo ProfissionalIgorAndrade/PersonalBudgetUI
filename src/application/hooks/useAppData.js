@@ -98,12 +98,13 @@ export function useAppData(notify) {
     },
     onEdit: async (tx) => {
       try {
-        await txRepo.updateTransaction(tx.id, {
+        await txRepo.updateRecurringTransaction(tx.id, {
           amount:               tx.amount      || undefined,
           date:                 tx.date        || undefined,
           description:          tx.description || undefined,
           categoryId:           tx.categoryId  || undefined,
           attributionProfileId: tx.memberId    || undefined,
+          recurrenceEditMode:   tx.recurrenceEditMode ?? 1,
         });
         await loadTx();
         notify('Lançamento atualizado');
