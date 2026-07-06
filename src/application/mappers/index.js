@@ -189,6 +189,7 @@ export function normalizeTransaction(t) {
     cardId:        t.creditCardId || '',
     transferId:    t.transferId   || null,
     paymentMethod: t.paymentMethod,
+    recurrenceId:  t.recurrenceId ?? null,
     notes:         '',
   };
 }
