@@ -24,7 +24,7 @@ const emptyDraft = (members) => ({
 export default function TxForm({ tx, cats, members, accounts, cards, onSave, onClose }) {
   const isEdit = Boolean(tx?.id);
   const [submitError, setSubmitError] = useState('');
-  const [f, setF] = useState(tx || emptyDraft(members));
+  const [f, setF] = useState(tx ? { recurrenceEditMode: 1, ...tx } : emptyDraft(members));
 
   useEffect(() => {
     if (isEdit || f.type === 'transfer') return;
@@ -116,9 +116,10 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
   const showCategoryDateRow = f.type !== 'transfer';
   const showAccountCardRow = f.type !== 'transfer';
   const isInstallment = f.recurrence === 'installment' && f.type === 'expense';
-  const showFixedExtras = f.recurrence === 'fixed' && f.type !== 'transfer' && !isInstallment;
-  const showInstallmentExtras = isInstallment;
+  const showFixedExtras = !isEdit && f.recurrence === 'fixed' && f.type !== 'transfer' && !isInstallment;
+  const showInstallmentExtras = !isEdit && isInstallment;
   const cardDisabledByFixed = f.recurrence === 'fixed' && f.type !== 'transfer';
+  const showRecurrenceScope = isEdit && (f.recurrence === 'fixed' || f.recurrence === 'installment');
 
   return (
     <form onSubmit={onSubmit}>
@@ -212,7 +213,7 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
       )}
 
       {/* 4. Recorrência */}
-      {f.type !== 'transfer' && opts.length > 0 && (
+      {!isEdit && f.type !== 'transfer' && opts.length > 0 && (
         <div className="form-group">
           <label className="form-label">Recorrência</label>
           <select
@@ -330,6 +331,22 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
           style={{ resize: 'none', lineHeight: 1.5 }}
         />
       </div>
+
+      {/* Escopo da edição — para fixas e parceladas em modo edição */}
+      {showRecurrenceScope && (
+        <div className="form-group" style={{ marginTop: 8 }}>
+          <label className="form-label">Aplicar alteração em</label>
+          <select
+            className="form-select"
+            value={f.recurrenceEditMode ?? 1}
+            onChange={e => set('recurrenceEditMode', Number(e.target.value))}
+          >
+            <option value={1}>Este lançamento</option>
+            <option value={2}>Este lançamento e futuros</option>
+            <option value={3}>Todos os lançamentos</option>
+          </select>
+        </div>
+      )}
 
       <div className="flex jce gap2" style={{ gap: 8, marginTop: 8 }}>
         <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
