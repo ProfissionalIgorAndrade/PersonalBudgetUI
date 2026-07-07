@@ -57,6 +57,7 @@ export default function TxTable({
   const [page,           setPage]           = useState(1);
   const [editingTx,      setEditingTx]      = useState(null);
   const [confirmDel,     setConfirmDel]     = useState(null);
+  const [recurrenceDeleteMode, setRecurrenceDeleteMode] = useState(1);
   const [deleting,       setDeleting]       = useState(false);
   const [busyStatusId,   setBusyStatusId]   = useState(null);
   const [selected,       setSelected]       = useState(new Set());
@@ -101,6 +102,13 @@ export default function TxTable({
   const paginated  = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => { setPage(p => Math.min(p, totalPages)); }, [totalPages]);
+
+  useEffect(() => {
+    if (confirmDel) setRecurrenceDeleteMode(1);
+  }, [confirmDel]);
+
+  const showRecurrenceDeleteScope = confirmDel
+    && (confirmDel.recurrence === 'fixed' || confirmDel.recurrence === 'installment');
 
   const runStatusChange = (t, next) => {
     if (!onUpdateStatus || next === t.status) return;
@@ -325,6 +333,21 @@ export default function TxTable({
             <div style={{ fontWeight: 700, fontSize: 14 }}>{confirmDel.description}</div>
             <div className="txxs tmuted" style={{ marginTop: 4 }}>{fdate(confirmDel.date)} · {R$(confirmDel.amount)}</div>
           </div>
+          {showRecurrenceDeleteScope && (
+            <div className="form-group" style={{ marginBottom: 20 }}>
+              <label className="form-label">Aplicar exclusão em</label>
+              <select
+                className="form-select"
+                value={recurrenceDeleteMode}
+                onChange={e => setRecurrenceDeleteMode(Number(e.target.value))}
+                disabled={deleting}
+              >
+                <option value={1}>Este lançamento</option>
+                <option value={2}>Este lançamento e futuros</option>
+                <option value={3}>Todos os lançamentos</option>
+              </select>
+            </div>
+          )}
           <div className="flex jce gap2" style={{ gap: 8 }}>
             <button className="btn btn-secondary" disabled={deleting} onClick={() => setConfirmDel(null)}>Cancelar</button>
             <button
@@ -332,7 +355,13 @@ export default function TxTable({
               disabled={deleting}
               onClick={async () => {
                 setDeleting(true);
-                try { await onDelete(confirmDel.id); setConfirmDel(null); }
+                try {
+                  await onDelete(confirmDel.id, {
+                    recurrence: confirmDel.recurrence,
+                    recurrenceDeleteMode: showRecurrenceDeleteScope ? recurrenceDeleteMode : undefined,
+                  });
+                  setConfirmDel(null);
+                }
                 finally { setDeleting(false); }
               }}
             >
