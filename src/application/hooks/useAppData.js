@@ -110,12 +110,24 @@ export function useAppData(notify) {
         notify('Lançamento atualizado');
       } catch (e) { notify(e.message, 'error'); }
     },
-    onDelete: async (id) => {
+    onDelete: async (id, { recurrence, recurrenceDeleteMode } = {}) => {
       try {
-        const r = await txRepo.deleteTransaction(id);
+        const isRecurring = recurrence === 'fixed' || recurrence === 'installment';
+        const r = isRecurring
+          ? await txRepo.deleteRecurringTransaction(id, recurrenceDeleteMode ?? 1)
+          : await txRepo.deleteTransaction(id);
         await loadTx();
-        if (r?.skippedCount > 0) notify('Lançamento concluído não pode ser removido', 'error');
-        else notify('Lançamento removido');
+        if (isRecurring) {
+          const msg = r?.message?.trim();
+          notify(
+            msg || (r?.deletedCount === 0 ? 'Nenhuma transação foi excluída.' : 'Lançamento(s) removido(s).'),
+            r?.deletedCount === 0 ? 'error' : 'success',
+          );
+        } else if (r?.skippedCount > 0) {
+          notify('Lançamento concluído não pode ser removido', 'error');
+        } else {
+          notify('Lançamento removido');
+        }
       } catch (e) { notify(e.message, 'error'); }
     },
     onBatchDelete: async (ids) => {

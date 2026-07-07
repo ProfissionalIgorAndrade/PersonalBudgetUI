@@ -11,6 +11,12 @@ export const updateTransaction = (id, body)   => http.patch(`/api/transactions/$
 export const updateRecurringTransaction = (id, body) => http.patch(`/api/transactions/${id}/recurring`, body);
 export const deleteTransaction = (id)         => http.delete(`/api/transactions/${id}`);
 
+/** @param {1|2|3} recurrenceDeleteMode */
+export async function deleteRecurringTransaction(id, recurrenceDeleteMode) {
+  const { data, message } = await http.deleteEnvelope(`/api/transactions/${id}/recurring`, { recurrenceDeleteMode });
+  return { ...data, message };
+}
+
 /** @param {'pending'|'paid'|'cancelled'} uiStatus */
 export async function patchTransactionStatus(id, uiStatus) {
   const status = STATUS_TO_API[uiStatus];
