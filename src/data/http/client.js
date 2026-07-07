@@ -41,6 +41,28 @@ async function request(path, opts = {}) {
 /**
  * PATCH and return `{ data, message }` so callers can toast the ApiResponse message.
  */
+export async function deleteEnvelope(path, payload) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'DELETE',
+    body: JSON.stringify(payload),
+    headers: apiAuthHeaders(),
+  });
+  let body;
+  try { body = await res.json(); }
+  catch { body = { success: false, message: `HTTP ${res.status}`, data: null }; }
+
+  if (!body.success) {
+    const raw = body.message || `Erro ${res.status}`;
+    const err = new Error(formatApiErrorMessage(raw));
+    err.status = res.status;
+    err.apiMessage = raw;
+    throw err;
+  }
+
+  const msg = body.message != null ? String(body.message) : '';
+  return { data: body.data ?? null, message: msg };
+}
+
 export async function patchEnvelope(path, payload) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'PATCH',
@@ -70,4 +92,5 @@ export const http = {
   patch:  (path, body, h) => request(path, { method: 'PATCH',  body: JSON.stringify(body), headers: h }),
   delete: (path, body, h) => request(path, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined, headers: h }),
   patchEnvelope,
+  deleteEnvelope,
 };
