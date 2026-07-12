@@ -13,6 +13,14 @@ const STATUS_CFG = {
   paga:    { label: 'PAGA',    color: 'var(--green)',   bg: 'rgba(74,222,128,.08)',  border: 'rgba(74,222,128,.25)', dot: '#4ade80' },
 };
 
+const STATUS_OPTIONS = [
+  { value: 'Open',   label: 'Aberta'  },
+  { value: 'Closed', label: 'Fechada' },
+  { value: 'Paid',   label: 'Paga'    },
+];
+
+const FATURA_TO_API = { aberta: 'Open', fechada: 'Closed', paga: 'Paid' };
+
 function hasMeaningfulTimestamp(v) {
   if (v == null || v === '') return false;
   const s = String(v);
@@ -203,10 +211,12 @@ export default function CardDetail({
     isClosed: false,
     isPaid: false,
   });
-  const [closing, setClosing]               = useState(false);
-  const [paying, setPaying]                 = useState(false);
-  const [showPayModal, setShowPayModal]     = useState(false);
-  const [selectedAccountId, setSelectedAccountId] = useState('');
+
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [modalStatus, setModalStatus]         = useState('Open');
+  const [modalAccountId, setModalAccountId]   = useState('');
+  const [modalError, setModalError]           = useState('');
+  const [modalLoading, setModalLoading]       = useState(false);
 
   const refetchStatement = useCallback(async () => {
     const data = await cardRepo.getStatement(card.id, fatM, fatY);
@@ -242,75 +252,62 @@ export default function CardDetail({
     return () => { cancelled = true; };
   }, [card.id, monthStr, fatM, fatY]);
 
-  const apiPaid = statement.isPaid;
+  const apiPaid   = statement.isPaid;
   const apiClosed = statement.isClosed;
 
   let faturaStatus;
-  if (apiPaid || allPaid) faturaStatus = 'paga';
-  else if (apiClosed || isPast) faturaStatus = 'fechada';
-  else faturaStatus = 'aberta';
+  if (statement.statementId) {
+    if (apiPaid)   faturaStatus = 'paga';
+    else if (apiClosed) faturaStatus = 'fechada';
+    else           faturaStatus = 'aberta';
+  } else {
+    if (allPaid)   faturaStatus = 'paga';
+    else if (isPast) faturaStatus = 'fechada';
+    else           faturaStatus = 'aberta';
+  }
 
   const cfg = STATUS_CFG[faturaStatus];
 
-  const showClose =
-    faturaStatus === 'aberta'
-    && statement.statementId
-    && !statement.loading
-    && !closing;
+  const isOptionDisabled = (value) => {
+    if (value === FATURA_TO_API[faturaStatus]) return true;
+    if (faturaStatus === 'paga' && value === 'Open') return true;
+    return false;
+  };
 
-  const showPay =
-    faturaStatus === 'fechada'
-    && !statement.loading
-    && !paying;
+  const openStatusModal = () => {
+    const firstAvailable = STATUS_OPTIONS.find(opt => !isOptionDisabled(opt.value));
+    setModalStatus(firstAvailable?.value || 'Open');
+    setModalAccountId(card.accountId || '');
+    setModalError('');
+    setShowStatusModal(true);
+  };
 
-  const handleClose = async () => {
+  const handleStatusChange = async () => {
     if (!statement.statementId) {
-      notify('Não foi possível identificar a fatura.', 'error');
+      setModalError('Não foi possível identificar a fatura.');
       return;
     }
-    setClosing(true);
+    setModalLoading(true);
+    setModalError('');
     try {
-      await cardRepo.closeStatement(card.id, statement.statementId);
-      notify('Fatura marcada como fechada.');
+      await cardRepo.updateStatementStatus(
+        card.id,
+        statement.statementId,
+        modalStatus,
+        modalAccountId || null,
+      );
+      notify('Status da fatura atualizado.');
+      setShowStatusModal(false);
       await refetchStatement();
       await loadTransactions();
     } catch (e) {
-      notify(e.message, 'error');
+      setModalError(e.message);
     } finally {
-      setClosing(false);
+      setModalLoading(false);
     }
   };
 
-  const openPayModal = () => {
-    setSelectedAccountId((accounts && accounts.length === 1) ? accounts[0].id : '');
-    setShowPayModal(true);
-  };
-
-  const handlePay = async () => {
-    if (!statement.statementId) {
-      notify('Não foi possível identificar a fatura.', 'error');
-      return;
-    }
-    if (!selectedAccountId) {
-      notify('Selecione uma conta para pagar a fatura.', 'error');
-      return;
-    }
-    setPaying(true);
-    setShowPayModal(false);
-    try {
-      await cardRepo.payStatement(card.id, statement.statementId, selectedAccountId);
-      notify('Fatura paga com sucesso.');
-      await refetchStatement();
-      await loadTransactions();
-    } catch (e) {
-      notify(e.message, 'error');
-    } finally {
-      setPaying(false);
-    }
-  };
-
-  const selectedAccount = (accounts || []).find(a => a.id === selectedAccountId);
-  const hasSufficientBalance = selectedAccount ? selectedAccount.balance >= total : true;
+  const activeAccounts = (accounts || []).filter(a => a.isActive !== false);
 
   return (
     <div>
@@ -342,30 +339,24 @@ export default function CardDetail({
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          {showClose && (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ fontSize: 12, padding: '6px 14px' }}
-              onClick={handleClose}
-              disabled={closing}
-            >
-              {closing ? '⏳ Fechando…' : '🔒 Fechar Fatura'}
-            </button>
-          )}
-          {showPay && (
-            <button
-              type="button"
-              className="btn btn-primary"
-              style={{ fontSize: 12, padding: '6px 14px' }}
-              onClick={openPayModal}
-              disabled={paying}
-            >
-              {paying ? '⏳ Processando…' : '💳 Pagar Fatura'}
-            </button>
-          )}
-        </div>
+
+        {statement.statementId && !statement.loading && (
+          <button
+            type="button"
+            onClick={openStatusModal}
+            title="Alterar status da fatura"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: cfg.color, opacity: .7, padding: '4px 6px',
+              fontSize: 14, lineHeight: 1, borderRadius: 6,
+              transition: 'opacity .15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '.7'}
+          >
+            ✏️
+          </button>
+        )}
       </div>
 
       <div className="summary-grid" style={{ marginBottom: 18 }}>
@@ -400,82 +391,75 @@ export default function CardDetail({
         emptyMsg={statement.loading ? 'Carregando…' : statement.error ? 'Não foi possível carregar a fatura' : 'Nenhum lançamento neste mês'}
       />
 
-      {showPayModal && (
-        <Modal title="Pagar Fatura" onClose={() => setShowPayModal(false)}>
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Valor da fatura</div>
-            <div style={{ fontSize: 22, fontWeight: 800, ...NUM }}>{R$(total)}</div>
+      {showStatusModal && (
+        <Modal title="Alterar status da fatura" onClose={() => !modalLoading && setShowStatusModal(false)}>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, color: 'var(--muted)', marginBottom: 8 }}>
+              Status
+            </label>
+            <select
+              className="form-select"
+              value={modalStatus}
+              onChange={e => setModalStatus(e.target.value)}
+              disabled={modalLoading}
+              style={{ width: '100%' }}
+            >
+              {STATUS_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value} disabled={isOptionDisabled(opt.value)}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, color: 'var(--muted)', marginBottom: 10 }}>
-            Selecione a conta para débito
-          </div>
+          {modalStatus === 'Paid' && (
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, color: 'var(--muted)', marginBottom: 8 }}>
+                Conta de débito
+              </label>
+              <select
+                className="form-select"
+                value={modalAccountId}
+                onChange={e => setModalAccountId(e.target.value)}
+                disabled={modalLoading}
+                style={{ width: '100%' }}
+              >
+                <option value="">Conta padrão do cartão</option>
+                {activeAccounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name} — {R$(acc.balance)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-            {(accounts || []).filter(a => a.isActive !== false).map(acc => {
-              const isSelected = acc.id === selectedAccountId;
-              const sufficient = acc.balance >= total;
-              return (
-                <button
-                  key={acc.id}
-                  type="button"
-                  onClick={() => setSelectedAccountId(acc.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '10px 14px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
-                    background: isSelected ? 'rgba(45,212,191,.12)' : 'var(--surface)',
-                    border: `1.5px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
-                    transition: 'border-color .15s, background .15s',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                      background: acc.color || 'var(--primary)',
-                    }} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{acc.name}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, ...NUM, color: sufficient ? 'var(--green)' : 'var(--red, #f87171)' }}>
-                      {R$(acc.balance)}
-                    </span>
-                    {!sufficient && (
-                      <span style={{ fontSize: 11, color: 'var(--red, #f87171)', fontWeight: 600 }}>
-                        saldo insuficiente
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-            {(!accounts || accounts.length === 0) && (
-              <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '12px 0' }}>
-                Nenhuma conta cadastrada.
-              </p>
-            )}
-          </div>
-
-          {selectedAccount && !hasSufficientBalance && (
+          {modalError && (
             <div style={{
               padding: '10px 14px', borderRadius: 8, marginBottom: 16,
               background: 'rgba(248,113,113,.10)', border: '1px solid rgba(248,113,113,.3)',
               fontSize: 13, color: 'var(--red, #f87171)', fontWeight: 600,
             }}>
-              Saldo insuficiente: {R$(selectedAccount.balance)} disponível para pagar {R$(total)}.
+              {modalError}
             </div>
           )}
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowPayModal(false)}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowStatusModal(false)}
+              disabled={modalLoading}
+            >
               Cancelar
             </button>
             <button
               type="button"
               className="btn btn-primary"
-              onClick={handlePay}
-              disabled={!selectedAccountId || !hasSufficientBalance}
+              onClick={handleStatusChange}
+              disabled={modalLoading || isOptionDisabled(modalStatus)}
             >
-              Confirmar Pagamento
+              {modalLoading ? 'Salvando…' : 'Confirmar'}
             </button>
           </div>
         </Modal>
