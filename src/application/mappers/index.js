@@ -2,6 +2,21 @@ import { COLORS, FLAGS } from '../../core/constants/index';
 import { parseMoneyAmount } from '../../core/utils/money';
 import { buildCreateTransactionPayload } from '../createTransactionPayload';
 
+/* ─── Member lookup helper ──────────────────────────────────── */
+/** Encontra o perfil na lista de membros comparando por id ou userId (cobre variações de campo da API). */
+export function findMember(members, memberId) {
+  if (!memberId) return null;
+  const id = String(memberId);
+  return members.find(m => String(m.id) === id || String(m.userId ?? '') === id) ?? null;
+}
+
+/** Rótulo de exibição de conta: "Banco - Titular" (ou só "Banco" se sem titular). */
+export function accountLabel(account, members) {
+  const bank = BANK_LABELS[account.bank] || account.bank || 'Conta';
+  const mem  = findMember(members, account.memberId);
+  return mem ? `${bank} - ${mem.name}` : bank;
+}
+
 /* ─── Enum conversions ──────────────────────────────────────── */
 export const TYPE_TO_API    = { income: 'Income', expense: 'Expense' };
 export const TYPE_FROM_API  = { Income: 'income', Expense: 'expense' };
@@ -61,17 +76,29 @@ export const memberVisuals = { load: () => loadVisuals('pb_member_visuals'), sav
 export const cardVisuals   = { load: () => loadVisuals('pb_card_visuals'),   save: (id, d) => saveVisual('pb_card_visuals', id, d),   remove: (id) => removeVisual('pb_card_visuals', id) };
 
 /* ─── Normalizers ───────────────────────────────────────────── */
+function toStr(v) {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return String(v);
+  // .NET value object pattern: { value: "..." } or { $value: "..." }
+  if (typeof v === 'object') return String(v.value ?? v.Value ?? v.code ?? v.Code ?? '');
+  return '';
+}
+
 export function normalizeAccount(a) {
+  const rawNumber = a.accountNumber ?? a.AccountNumber ?? a.number ?? a.Number;
   return {
-    id:       a.id,
-    name:     `${BANK_LABELS[a.bank] || a.bank}${a.number ? ` ···${String(a.number).slice(-4)}` : ''}`,
-    bank:     a.bank,
-    agency:   a.agency || '',
-    number:   a.number || '',
-    balance:  parseMoneyAmount(a.balance ?? a.Balance),
-    color:    BANK_COLORS[a.bank] || '#2dd4bf',
-    type:     'checking',
-    isActive: a.isActive !== false,
+    id:            a.id,
+    name:          a.name || `${BANK_LABELS[a.bank] || a.bank}${rawNumber ? ` ···${toStr(rawNumber).slice(-4)}` : ''}`,
+    bank:          a.bank ?? a.Bank ?? '',
+    agency:        toStr(a.agency ?? a.Agency),
+    accountNumber: toStr(rawNumber),
+    number:        toStr(rawNumber),
+    balance:       parseMoneyAmount(a.balance ?? a.Balance),
+    color:         BANK_COLORS[a.bank ?? a.Bank] || '#2dd4bf',
+    type:          'checking',
+    isActive:      a.isActive !== false,
+    memberId:      String(a.memberId ?? a.MemberId ?? a.profileId ?? a.ProfileId ?? a.memberProfileId ?? a.attributionProfileId ?? '') || null,
   };
 }
 
@@ -103,7 +130,7 @@ export function normalizeProfile(p) {
   const uid = p.userId ?? p.UserId ?? null;
 
   return {
-    id,
+    id:     String(id),
     name:   (p.displayName ?? p.name ?? p.Name ?? '').trim() || 'Membro',
     emoji:  v.emoji || '👤',
     color:  v.color || '#2dd4bf',
@@ -166,7 +193,7 @@ export function normalizeCard(c) {
     color,
     flag:       normalizeCardFlag(c),
     lastDigits: String(c.lastDigits ?? c.lastFourDigits ?? c.LastFourDigits ?? '').replace(/\D/g, '').slice(-4),
-    memberId:   String(c.memberId ?? c.attributionProfileId ?? c.MemberId ?? c.ProfileId ?? ''),
+    memberId:   String(c.memberId ?? c.member?.id ?? c.member?.Id ?? c.attributionProfileId ?? c.MemberId ?? c.ProfileId ?? local.memberId ?? ''),
   };
 }
 
