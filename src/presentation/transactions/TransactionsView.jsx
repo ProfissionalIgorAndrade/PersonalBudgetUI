@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { accountLabel } from '../../application/mappers/index';
 import Modal from '../shared/components/Modal';
 import MonthSelector from '../shared/components/MonthSelector';
 import TxForm from './components/TxForm';
@@ -82,7 +83,7 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
           </select>
           <select className="form-select" style={sel()} value={filter.accountId} onChange={set('accountId')}>
             <option value="all">Todas as contas</option>
-            {accounts.map(a => <option key={a.id} value={a.id}>🏦 {a.name}</option>)}
+            {accounts.map(a => <option key={a.id} value={a.id}>{accountLabel(a, members)}</option>)}
           </select>
           <select className="form-select" style={sel()} value={filter.cardId} onChange={set('cardId')}>
             <option value="all">Todos os cartões</option>

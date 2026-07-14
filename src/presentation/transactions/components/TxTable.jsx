@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { R$, fdate } from '../../../core/utils/format';
+import { accountLabel } from '../../../application/mappers/index';
 import Modal from '../../shared/components/Modal';
 import TxForm from './TxForm';
 
@@ -255,7 +256,7 @@ export default function TxTable({
                   )}
                   {show('account') && (
                     <td style={{ fontSize: 11 }}>
-                      {acc ? <span style={{ color: 'var(--muted)' }}>🏦 {acc.name}</span> : <span className="tmuted">—</span>}
+                      {acc ? <span style={{ color: 'var(--muted)' }}>{accountLabel(acc, members)}</span> : <span className="tmuted">—</span>}
                     </td>
                   )}
                   {show('card') && (

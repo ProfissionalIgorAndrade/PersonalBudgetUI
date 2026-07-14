@@ -1,5 +1,6 @@
 import React from 'react';
 import { FLAGS, COLORS } from '../../../core/constants/index';
+import { accountLabel } from '../../../application/mappers/index';
 import CurrencyInput from '../../shared/components/CurrencyInput';
 import ColorPick from '../../shared/components/ColorPick';
 import Modal from '../../shared/components/Modal';
@@ -41,7 +42,7 @@ export default function CardForm({ f, members, accounts, onChange, onSave, onClo
         <label className="form-label">Conta para débito da fatura *</label>
         <select className="form-select" required value={f.accountId || ''} onChange={e => set('accountId', e.target.value)}>
           <option value="">— Selecione uma conta —</option>
-          {accounts.map(a => <option key={a.id} value={a.id}>🏦 {a.name}</option>)}
+          {accounts.map(a => <option key={a.id} value={a.id}>{accountLabel(a, members)}</option>)}
         </select>
       </div>
       <div className="grid-2">

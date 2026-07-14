@@ -1,6 +1,7 @@
 import React from 'react';
 import { R$ } from '../../../core/utils/format';
 import { FLAGS, CARD_GRADIENTS } from '../../../core/constants/index';
+import { findMember } from '../../../application/mappers/index';
 
 const NUM = { fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' };
 
@@ -19,7 +20,7 @@ const getGrad = c => {
 };
 
 export default function CardTile({ card, spent, members, selected, onSelect, onEdit, onDelete }) {
-  const mem    = members.find(m => m.id === card.memberId);
+  const mem    = findMember(members, card.memberId);
   const usePct = card.limit > 0 ? Math.min(spent / card.limit * 100, 100) : 0;
   return (
     <div style={{ borderRadius: 14, outline: selected ? '2px solid var(--primary)' : '2px solid transparent', outlineOffset: 3, transition: 'outline-color .2s' }}>
@@ -30,15 +31,15 @@ export default function CardTile({ card, spent, members, selected, onSelect, onE
       >
         <div>
           <div style={{ fontSize: 10, opacity: .6, marginBottom: 2 }}>{FLAGS[card.flag] || 'Cartão'}</div>
-          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15 }}>{card.name}</div>
+          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, marginBottom: mem ? 4 : 0 }}>{card.name}</div>
+          {mem && <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 13 }}>{mem.emoji} {mem.name}</div>}
         </div>
         <div>
           <div style={{ fontFamily: 'monospace', fontSize: 12, letterSpacing: 2, opacity: .8 }}>
             •••• •••• •••• {card.lastDigits || '????'}
           </div>
-          <div className="flex jcb" style={{ marginTop: 6, fontSize: 9, opacity: .65 }}>
+          <div style={{ marginTop: 6, fontSize: 9, opacity: .65 }}>
             <span>Fecha {card.closingDay || '?'} · Vence {card.dueDay || '?'}</span>
-            <span>{mem?.emoji} {mem?.name}</span>
           </div>
         </div>
         <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, opacity: .5, fontWeight: 600 }}>

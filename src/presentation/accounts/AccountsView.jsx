@@ -118,7 +118,7 @@ export default function AccountsView({
       )}
 
       {showForm && (
-        <AccountForm f={f} onChange={setF} onSave={save} onClose={() => setShowForm(false)} />
+        <AccountForm f={f} onChange={setF} onSave={save} onClose={() => setShowForm(false)} members={members} />
       )}
 
       {deleteTarget && (

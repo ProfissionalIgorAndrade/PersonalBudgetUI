@@ -159,6 +159,7 @@ export function useAppData(notify) {
           agency:         acc.agency         || '',
           accountNumber:  acc.accountNumber  || '',
           initialBalance: Number(acc.initialBalance || 0),
+          memberId:       acc.memberId,
         });
         await loadAcc();
         notify('Conta adicionada');
@@ -166,7 +167,12 @@ export function useAppData(notify) {
     },
     onEdit: async (acc) => {
       try {
-        await accountRepo.updateAccount(acc.id, { bank: acc.bank, agency: acc.agency || '', accountNumber: acc.accountNumber || '' });
+        await accountRepo.updateAccount(acc.id, {
+          bank:          acc.bank,
+          agency:        acc.agency         || '',
+          accountNumber: acc.accountNumber  || '',
+          memberId:      acc.memberId,
+        });
         await loadAcc();
         notify('Conta atualizada');
       } catch (e) { notify(e.message, 'error'); }
@@ -217,8 +223,8 @@ export function useAppData(notify) {
           memberId:   card.memberId || undefined,
         });
         const persistedId = created?.id ?? created?.Id ?? card.id;
-        if (persistedId != null && card.color)
-          cardVisuals.save(String(persistedId), { color: card.color });
+        if (persistedId != null)
+          cardVisuals.save(String(persistedId), { color: card.color, memberId: card.memberId || '' });
         await loadCards();
         notify('Cartão adicionado');
       } catch (e) { notify(e.message, 'error'); }
@@ -236,8 +242,7 @@ export function useAppData(notify) {
           lastDigits: card.lastDigits || '',
           memberId:   card.memberId || undefined,
         });
-        if (card.color != null && card.color !== '')
-          cardVisuals.save(String(card.id), { color: card.color });
+        cardVisuals.save(String(card.id), { color: card.color, memberId: card.memberId || '' });
         await loadCards();
         notify('Cartão atualizado');
       } catch (e) { notify(e.message, 'error'); }
