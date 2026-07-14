@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { R$ } from '../../../core/utils/format';
-import { normalizeTransaction } from '../../../application/mappers';
+import { normalizeTransaction, accountLabel } from '../../../application/mappers';
 import TxTable from '../../transactions/components/TxTable';
 import Modal from '../../shared/components/Modal';
 import * as cardRepo from '../../../data/repositories/cardRepository';
@@ -427,7 +427,7 @@ export default function CardDetail({
                 <option value="">Conta padrão do cartão</option>
                 {activeAccounts.map(acc => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.name} — {R$(acc.balance)}
+                    {accountLabel(acc, members)} — {R$(acc.balance)}
                   </option>
                 ))}
               </select>

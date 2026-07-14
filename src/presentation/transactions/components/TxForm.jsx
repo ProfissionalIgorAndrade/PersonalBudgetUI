@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { uid } from '../../../core/utils/format';
+import { accountLabel } from '../../../application/mappers/index';
 import CurrencyInput from '../../shared/components/CurrencyInput';
 import DateInput from '../../shared/components/DateInput';
 import { validateCreateTransactionDraft, resolveCreatePaymentArm } from '../../../application/createTransactionPayload';
@@ -199,14 +200,14 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
             <label className="form-label">Conta Origem *</label>
             <select className="form-select" required value={f.originAccountId} onChange={e => set('originAccountId', e.target.value)}>
               <option value="">— Selecione —</option>
-              {accounts.map(a => <option key={a.id} value={a.id}>🏦 {a.name}</option>)}
+              {accounts.map(a => <option key={a.id} value={a.id}>{accountLabel(a, members)}</option>)}
             </select>
           </div>
           <div className="form-group">
             <label className="form-label">Conta Destino *</label>
             <select className="form-select" required value={f.destinationAccountId} onChange={e => set('destinationAccountId', e.target.value)}>
               <option value="">— Selecione —</option>
-              {accounts.filter(a => a.id !== f.originAccountId).map(a => <option key={a.id} value={a.id}>🏦 {a.name}</option>)}
+              {accounts.filter(a => a.id !== f.originAccountId).map(a => <option key={a.id} value={a.id}>{accountLabel(a, members)}</option>)}
             </select>
           </div>
         </div>
@@ -264,7 +265,7 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
               style={isInstallment ? { opacity: 0.45, cursor: 'not-allowed' } : {}}
             >
               <option value="">— Nenhuma —</option>
-              {accounts.map(a => <option key={a.id} value={a.id}>🏦 {a.name}</option>)}
+              {accounts.map(a => <option key={a.id} value={a.id}>{accountLabel(a, members)}</option>)}
             </select>
           </div>
           <div className="form-group">
