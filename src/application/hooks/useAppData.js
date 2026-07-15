@@ -8,7 +8,7 @@ import * as txRepo           from '../../data/repositories/transactionRepository
 import {
   normalizeAccount, normalizeCategory, normalizeCard,
   normalizeTransaction, normalizeProfile,
-  txToApi, CAT_TYPE_TO_API, catVisuals, memberVisuals, cardVisuals,
+  txToApi, CAT_TYPE_TO_API,
 } from '../mappers';
 import { describeCreateTransactionResponse } from '../createTransactionPayload';
 
@@ -187,22 +187,20 @@ export function useAppData(notify) {
   const catOps = {
     onAdd: async (cat) => {
       try {
-        const r = await categoryRepo.createCategory({ name: cat.name, type: CAT_TYPE_TO_API[cat.type] || 'Expense' });
-        if (r?.id) catVisuals.save(r.id, { icon: cat.icon, color: cat.color });
+        await categoryRepo.createCategory({ name: cat.name, type: CAT_TYPE_TO_API[cat.type] || 'Expense', icon: cat.icon, color: cat.color });
         await loadCats();
         notify('Categoria adicionada');
       } catch (e) { notify(e.message, 'error'); }
     },
     onEdit: async (cat) => {
       try {
-        await categoryRepo.updateCategory(cat.id, { categoryId: cat.id, name: cat.name, type: CAT_TYPE_TO_API[cat.type] || 'Expense' });
-        catVisuals.save(cat.id, { icon: cat.icon, color: cat.color });
+        await categoryRepo.updateCategory(cat.id, { categoryId: cat.id, name: cat.name, type: CAT_TYPE_TO_API[cat.type] || 'Expense', icon: cat.icon, color: cat.color });
         await loadCats();
         notify('Categoria atualizada');
       } catch (e) { notify(e.message, 'error'); }
     },
     onDelete: async (id) => {
-      try { await categoryRepo.deleteCategory(id); catVisuals.remove(id); await loadCats(); notify('Categoria removida'); }
+      try { await categoryRepo.deleteCategory(id); await loadCats(); notify('Categoria removida'); }
       catch (e) { notify(e.message, 'error'); }
     },
   };
@@ -222,9 +220,6 @@ export function useAppData(notify) {
           lastDigits: card.lastDigits || '',
           memberId:   card.memberId || undefined,
         });
-        const persistedId = created?.id ?? created?.Id ?? card.id;
-        if (persistedId != null)
-          cardVisuals.save(String(persistedId), { color: card.color, memberId: card.memberId || '' });
         await loadCards();
         notify('Cartão adicionado');
       } catch (e) { notify(e.message, 'error'); }
@@ -242,7 +237,6 @@ export function useAppData(notify) {
           lastDigits: card.lastDigits || '',
           memberId:   card.memberId || undefined,
         });
-        cardVisuals.save(String(card.id), { color: card.color, memberId: card.memberId || '' });
         await loadCards();
         notify('Cartão atualizado');
       } catch (e) { notify(e.message, 'error'); }
@@ -250,7 +244,6 @@ export function useAppData(notify) {
     onDelete: async (id) => {
       try {
         await cardRepo.deleteCard(id);
-        cardVisuals.remove(String(id));
         await loadCards();
         notify('Cartão removido');
       }
@@ -262,16 +255,17 @@ export function useAppData(notify) {
   const mbrOps = {
     onAdd: async (m) => {
       try {
-        const r = await householdRepo.createProfile(getHouseholdId(), m.name);
-        if (r?.id) memberVisuals.save(r.id, { emoji: m.emoji, color: m.color });
+        await householdRepo.createProfile(getHouseholdId(), { displayName: m.name, emoji: m.emoji, color: m.color });
         await loadMembers();
         notify('Membro adicionado');
       } catch (e) { notify(e.message, 'error'); }
     },
     onEdit: async (m) => {
-      memberVisuals.save(m.id, { emoji: m.emoji, color: m.color });
-      setMembers(prev => prev.map(x => x.id === m.id ? { ...x, ...m } : x));
-      notify('Membro atualizado');
+      try {
+        await householdRepo.updateProfile(getHouseholdId(), m.id, { displayName: m.name, emoji: m.emoji, color: m.color });
+        await loadMembers();
+        notify('Membro atualizado');
+      } catch (e) { notify(e.message, 'error'); }
     },
     onDeleteProfile: async (removeProfileId, mergeIntoProfileId) => {
       try {
@@ -280,7 +274,6 @@ export function useAppData(notify) {
           removeProfileId,
           mergeIntoProfileId,
         );
-        memberVisuals.remove(removeProfileId);
         await loadMembers();
         notify('Perfil removido e dados migrados.');
       } catch (e) {

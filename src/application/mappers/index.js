@@ -57,23 +57,6 @@ export const BANK_COLORS = {
   Santander: '#cc0000', Bradesco: '#cc092f', Caixa: '#006f3d',
 };
 
-/* ─── Visual side-table helpers (localStorage) ──────────────── */
-function loadVisuals(key) {
-  try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
-}
-function saveVisual(key, id, data) {
-  const v = loadVisuals(key);
-  localStorage.setItem(key, JSON.stringify({ ...v, [id]: data }));
-}
-function removeVisual(key, id) {
-  const v = loadVisuals(key);
-  delete v[id];
-  localStorage.setItem(key, JSON.stringify(v));
-}
-
-export const catVisuals    = { load: () => loadVisuals('pb_cat_visuals'),    save: (id, d) => saveVisual('pb_cat_visuals', id, d),    remove: (id) => removeVisual('pb_cat_visuals', id) };
-export const memberVisuals = { load: () => loadVisuals('pb_member_visuals'), save: (id, d) => saveVisual('pb_member_visuals', id, d), remove: (id) => removeVisual('pb_member_visuals', id) };
-export const cardVisuals   = { load: () => loadVisuals('pb_card_visuals'),   save: (id, d) => saveVisual('pb_card_visuals', id, d),   remove: (id) => removeVisual('pb_card_visuals', id) };
 
 /* ─── Normalizers ───────────────────────────────────────────── */
 function toStr(v) {
@@ -103,13 +86,12 @@ export function normalizeAccount(a) {
 }
 
 export function normalizeCategory(c) {
-  const v = catVisuals.load()[c.id] || {};
   return {
     id:    c.id,
     name:  c.name,
     type:  CAT_TYPE_FROM_API[c.type] || 'expense',
-    icon:  v.icon  || '📦',
-    color: v.color || '#2dd4bf',
+    icon:  c.icon  || c.Icon  || '📦',
+    color: c.color || c.Color || '#2dd4bf',
   };
 }
 
@@ -125,15 +107,13 @@ export function normalizeProfile(p) {
     ?? p.UserId;
   if (id == null || id === '') return null;
 
-  const idKey = String(id);
-  const v = memberVisuals.load()[idKey] || memberVisuals.load()[id] || {};
   const uid = p.userId ?? p.UserId ?? null;
 
   return {
     id:     String(id),
     name:   (p.displayName ?? p.name ?? p.Name ?? '').trim() || 'Membro',
-    emoji:  v.emoji || '👤',
-    color:  v.color || '#2dd4bf',
+    emoji:  p.emoji ?? p.Emoji ?? '👤',
+    color:  p.color ?? p.Color ?? '#2dd4bf',
     type:   p.kind ?? p.Kind ?? 'other',
     userId: uid,
   };
@@ -168,8 +148,6 @@ function normalizeCardFlag(c) {
 export function normalizeCard(c) {
   if (!c || typeof c !== 'object') return null;
   const id = c.id ?? c.Id;
-  const idKey = id != null ? String(id) : '';
-  const local = idKey ? cardVisuals.load()[idKey] || {} : {};
 
   const colorRaw =
     c.color ??
@@ -177,11 +155,6 @@ export function normalizeCard(c) {
     c.themeColor ??
     c.accentColor ??
     c.hexColor;
-  const colorFromApi = normalizeCardHex(colorRaw);
-  const color =
-    local.color != null && local.color !== ''
-      ? normalizeCardHex(local.color)
-      : colorFromApi;
 
   return {
     id,
@@ -190,10 +163,10 @@ export function normalizeCard(c) {
     closingDay: Number(c.closingDay ?? c.ClosingDay ?? 1),
     dueDay:     Number(c.dueDay ?? c.DueDay ?? 10),
     accountId:  String(c.accountId ?? c.AccountId ?? ''),
-    color,
+    color:      normalizeCardHex(colorRaw),
     flag:       normalizeCardFlag(c),
     lastDigits: String(c.lastDigits ?? c.lastFourDigits ?? c.LastFourDigits ?? '').replace(/\D/g, '').slice(-4),
-    memberId:   String(c.memberId ?? c.member?.id ?? c.member?.Id ?? c.attributionProfileId ?? c.MemberId ?? c.ProfileId ?? local.memberId ?? ''),
+    memberId:   String(c.memberId ?? c.member?.id ?? c.member?.Id ?? c.attributionProfileId ?? c.MemberId ?? c.ProfileId ?? ''),
   };
 }
 

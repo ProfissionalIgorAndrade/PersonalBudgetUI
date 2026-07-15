@@ -25,23 +25,6 @@ export const BANK_COLORS = {
   Santander: '#cc0000', Bradesco: '#cc092f', Caixa: '#006f3d',
 };
 
-/* ─── Visual side-table helpers (localStorage) ──────────────── */
-function loadVisuals(key) {
-  try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
-}
-function saveVisual(key, id, data) {
-  const v = loadVisuals(key);
-  localStorage.setItem(key, JSON.stringify({ ...v, [id]: data }));
-}
-function removeVisual(key, id) {
-  const v = loadVisuals(key);
-  delete v[id];
-  localStorage.setItem(key, JSON.stringify(v));
-}
-
-export const catVisuals    = { load: () => loadVisuals('pb_cat_visuals'),    save: (id, d) => saveVisual('pb_cat_visuals', id, d),    remove: (id) => removeVisual('pb_cat_visuals', id) };
-export const memberVisuals = { load: () => loadVisuals('pb_member_visuals'), save: (id, d) => saveVisual('pb_member_visuals', id, d), remove: (id) => removeVisual('pb_member_visuals', id) };
-
 /* ─── Normalizers ───────────────────────────────────────────── */
 export function normalizeAccount(a) {
   return {
@@ -58,23 +41,21 @@ export function normalizeAccount(a) {
 }
 
 export function normalizeCategory(c) {
-  const v = catVisuals.load()[c.id] || {};
   return {
     id:    c.id,
     name:  c.name,
     type:  CAT_TYPE_FROM_API[c.type] || 'expense',
-    icon:  v.icon  || '📦',
-    color: v.color || '#2dd4bf',
+    icon:  c.icon  || c.Icon  || '📦',
+    color: c.color || c.Color || '#2dd4bf',
   };
 }
 
 export function normalizeProfile(p) {
-  const v = memberVisuals.load()[p.id] || {};
   return {
     id:     p.id,
     name:   p.displayName,
-    emoji:  v.emoji || '👤',
-    color:  v.color || '#2dd4bf',
+    emoji:  p.emoji ?? p.Emoji ?? '👤',
+    color:  p.color ?? p.Color ?? '#2dd4bf',
     type:   p.kind  || 'other',
     userId: p.userId || null,
   };
