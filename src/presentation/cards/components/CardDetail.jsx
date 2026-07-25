@@ -379,14 +379,20 @@ export default function CardDetail({
       </div>
 
       <TxTable
-        rows={selTx}
+        rows={selTx.map(tx => ({
+          ...tx,
+          cardId:         tx.cardId         || String(card.id),
+          accountId:      '',
+          statementMonth: tx.statementMonth ?? fatM,
+          statementYear:  tx.statementYear  ?? fatY,
+        }))}
         categories={categories}
         members={members}
         accounts={accounts}
         cards={cards}
-        onEdit={faturaStatus === 'paga' ? undefined : onEditTx}
-        onDelete={faturaStatus === 'paga' ? undefined : onDeleteTx}
-        onBatchDelete={faturaStatus === 'paga' ? undefined : onBatchDeleteTx}
+        onEdit={faturaStatus === 'paga' ? undefined : async (...args) => { await onEditTx?.(...args); await refetchStatement(); }}
+        onDelete={faturaStatus === 'paga' ? undefined : async (...args) => { await onDeleteTx?.(...args); await refetchStatement(); }}
+        onBatchDelete={faturaStatus === 'paga' ? undefined : async (...args) => { await onBatchDeleteTx?.(...args); await refetchStatement(); }}
         hideCols={['card']}
         emptyMsg={statement.loading ? 'Carregando…' : statement.error ? 'Não foi possível carregar a fatura' : 'Nenhum lançamento neste mês'}
       />

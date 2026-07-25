@@ -9,10 +9,12 @@ import CardDetail from './components/CardDetail';
 import CardForm from './components/CardForm';
 
 export default function CardsView({ cards, members, transactions, categories, accounts, onAdd, onEdit, onDelete, onEditTx, onDeleteTx, onBatchDeleteTx, activeMonth, setActiveMonth, notify, loadTransactions }) {
-  const [showForm, setShowForm]         = useState(false);
-  const [selectedCard, setSelectedCard] = useState(null);
-  const [f, setF]                       = useState({});
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showForm, setShowForm]           = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState(null);
+  const [f, setF]                         = useState({});
+  const [deleteTarget, setDeleteTarget]   = useState(null);
+
+  const selectedCard = selectedCardId ? (cards.find(c => c.id === selectedCardId) ?? null) : null;
 
   const openNew = () => {
     setF({ name: '', flag: 'visa', lastDigits: '', limit: '', closingDay: '', dueDay: '', color: COLORS[0], memberId: members[0]?.id || '', accountId: accounts[0]?.id || '' });
@@ -32,12 +34,12 @@ export default function CardsView({ cards, members, transactions, categories, ac
       .reduce((s, t) => s + Number(t.amount), 0);
   };
 
-  const select = c => setSelectedCard(sel => sel?.id === c.id ? null : c);
+  const select = c => setSelectedCardId(id => id === c.id ? null : c.id);
 
   const confirmDeleteCard = () => {
     if (!deleteTarget) return;
     onDelete(deleteTarget.id);
-    if (selectedCard?.id === deleteTarget.id) setSelectedCard(null);
+    if (selectedCardId === deleteTarget.id) setSelectedCardId(null);
     setDeleteTarget(null);
   };
 
@@ -84,7 +86,7 @@ export default function CardsView({ cards, members, transactions, categories, ac
                     {FLAGS[selectedCard.flag] || 'Cartão'} · Fecha dia {selectedCard.closingDay || '?'} · Vence dia {selectedCard.dueDay || '?'}
                   </p>
                 </div>
-                <button className="btn-icon" onClick={() => setSelectedCard(null)}>✕</button>
+                <button className="btn-icon" onClick={() => setSelectedCardId(null)}>✕</button>
               </div>
               <CardDetail
                 card={selectedCard}
