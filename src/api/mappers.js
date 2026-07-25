@@ -64,25 +64,27 @@ export function normalizeProfile(p) {
 export { normalizeCard } from '../application/mappers/index';
 
 export function normalizeTransaction(t) {
-  const isTransfer = t.paymentMethod === 'Transfer';
+  const isTransfer = (t.paymentMethod ?? t.PaymentMethod) === 'Transfer';
   const dateStr    = t.date
     ? (typeof t.date === 'string' ? t.date.slice(0, 10) : new Date(t.date).toISOString().slice(0, 10))
     : '';
   return {
-    id:          t.id,
-    description: t.description,
-    amount:      t.amount,
-    date:        dateStr,
-    type:        isTransfer ? 'transfer' : (TYPE_FROM_API[t.type] || 'expense'),
-    status:      STATUS_FROM_API[t.status] || 'pending',
-    recurrence:  FREQ_FROM_API[t.frequency] || 'variable',
-    categoryId:  t.categoryId   || '',
-    memberId:    t.attributionProfileId || '',
-    accountId:   t.accountId    || '',
-    cardId:      t.creditCardId || '',
-    transferId:  t.transferId   || null,
-    paymentMethod: t.paymentMethod,
-    notes:       '',
+    id:             t.id               ?? t.Id,
+    description:    t.description      ?? t.Description      ?? '',
+    amount:         t.amount           ?? t.Amount           ?? 0,
+    date:           dateStr,
+    type:           isTransfer ? 'transfer' : (TYPE_FROM_API[t.type ?? t.Type] || 'expense'),
+    status:         STATUS_FROM_API[t.status ?? t.Status] || 'pending',
+    recurrence:     FREQ_FROM_API[t.frequency ?? t.Frequency] || 'variable',
+    categoryId:     t.categoryId           ?? t.CategoryId           ?? '',
+    memberId:       t.attributionProfileId  ?? t.AttributionProfileId ?? '',
+    accountId:      t.accountId            ?? t.AccountId            ?? '',
+    cardId:         t.creditCardId         ?? t.CreditCardId         ?? '',
+    transferId:     t.transferId           ?? t.TransferId           ?? null,
+    paymentMethod:  t.paymentMethod        ?? t.PaymentMethod,
+    statementMonth: t.statementMonth       ?? t.StatementMonth       ?? null,
+    statementYear:  t.statementYear        ?? t.StatementYear        ?? null,
+    notes:          '',
   };
 }
 
