@@ -105,6 +105,10 @@ export function validateCreateTransactionDraft(f) {
     if (!(nInst >= 2)) errors.push('Parcelamento exige duas ou mais parcelas.');
     const a = num(f.amount);
     if (!(a > 0)) errors.push('Informe o valor da parcela.');
+    const sm = Number(f.statementMonth);
+    const sy = Number(f.statementYear);
+    if (!sm || sm < 1 || sm > 12) errors.push('Selecione o mês da fatura.');
+    else if (!sy || sy < 2000)    errors.push('Selecione o ano da fatura.');
     return errors;
   }
 
@@ -113,6 +117,10 @@ export function validateCreateTransactionDraft(f) {
       errors.push('Recorrência Fixa é exclusiva de conta. Para cartão use Variável ou Parcelada.');
       return errors;
     }
+    const sm = Number(f.statementMonth);
+    const sy = Number(f.statementYear);
+    if (!sm || sm < 1 || sm > 12) errors.push('Selecione o mês da fatura.');
+    else if (!sy || sy < 2000)    errors.push('Selecione o ano da fatura.');
     const a = num(f.amount);
     if (!(a >= 0) || a < 0) errors.push('Informe um valor válido (≥ 0).');
     return errors;
@@ -177,6 +185,9 @@ export function buildCreateTransactionPayload(f) {
       creditCardId: f.cardId,
       accountId: null,
     };
+
+    body.statementMonth = Number(f.statementMonth);
+    body.statementYear  = Number(f.statementYear);
 
     if (recurrence === 'installment') {
       const n = Math.max(2, Math.floor(num(f.installments)));

@@ -15,3 +15,11 @@ export const getStatement = (creditCardId, month, year, page) => {
 };
 export const updateStatementStatus = (cid, sid, status, accountId) =>
   http.patch(`/api/credit-cards/${cid}/statements/${sid}/status`, { status, accountId: accountId || null });
+
+/** Busca fatura diretamente pelo statementId. */
+export const getStatementById = (creditCardId, statementId, page) => {
+  const base = `/api/credit-cards/${encodeURIComponent(creditCardId)}/statement/${encodeURIComponent(statementId)}`;
+  return page != null && page !== ''
+    ? http.get(`${base}?page=${page}`)
+    : http.get(base);
+};
