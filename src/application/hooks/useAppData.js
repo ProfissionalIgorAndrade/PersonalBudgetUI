@@ -98,14 +98,52 @@ export function useAppData(notify) {
     },
     onEdit: async (tx) => {
       try {
-        await txRepo.updateRecurringTransaction(tx.id, {
-          amount:               tx.amount      || undefined,
-          date:                 tx.date        || undefined,
-          description:          tx.description || undefined,
-          categoryId:           tx.categoryId  || undefined,
-          attributionProfileId: tx.memberId    || undefined,
-          recurrenceEditMode:   tx.recurrenceEditMode ?? 1,
-        });
+        const isInstallment = tx.recurrence === 'installment';
+        const isFixed       = tx.recurrence === 'fixed';
+        const editMode      = tx.recurrenceEditMode ?? 1;
+
+        if (isInstallment) {
+          if (editMode === 1) {
+            // Este lançamento apenas — endpoint único suporta campo + troca de fatura
+            await txRepo.updateTransaction(tx.id, {
+              amount:               tx.amount      || undefined,
+              date:                 tx.date        || undefined,
+              description:          tx.description || undefined,
+              categoryId:           tx.categoryId  || undefined,
+              attributionProfileId: tx.memberId    || undefined,
+              statementMonth:       tx.statementMonth || undefined,
+              statementYear:        tx.statementYear  || undefined,
+            });
+          } else {
+            // Este e futuros (2) ou Todos (3) — usar endpoint dedicado de parcelas
+            // Backend InstallmentEditMode: All=1, ThisAndFuture=2
+            const installmentEditMode = editMode === 3 ? 1 : 2;
+            await txRepo.updateInstallmentStatement(tx.id, {
+              statementMonth: tx.statementMonth,
+              statementYear:  tx.statementYear,
+              editMode:       installmentEditMode,
+            });
+          }
+        } else if (isFixed) {
+          await txRepo.updateRecurringTransaction(tx.id, {
+            amount:               tx.amount      || undefined,
+            date:                 tx.date        || undefined,
+            description:          tx.description || undefined,
+            categoryId:           tx.categoryId  || undefined,
+            attributionProfileId: tx.memberId    || undefined,
+            recurrenceEditMode:   editMode,
+          });
+        } else {
+          await txRepo.updateTransaction(tx.id, {
+            amount:               tx.amount      || undefined,
+            date:                 tx.date        || undefined,
+            description:          tx.description || undefined,
+            categoryId:           tx.categoryId  || undefined,
+            attributionProfileId: tx.memberId    || undefined,
+            statementMonth:       tx.statementMonth || undefined,
+            statementYear:        tx.statementYear  || undefined,
+          });
+        }
         await loadTx();
         notify('Lançamento atualizado');
       } catch (e) { notify(e.message, 'error'); }

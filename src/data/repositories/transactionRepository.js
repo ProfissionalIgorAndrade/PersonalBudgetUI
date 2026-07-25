@@ -9,6 +9,7 @@ export const listTransactions  = (month, year) =>
 export const createTransaction = (body)       => http.post('/api/transactions', body);
 export const updateTransaction = (id, body)   => http.patch(`/api/transactions/${id}`, body);
 export const updateRecurringTransaction = (id, body) => http.patch(`/api/transactions/${id}/recurring`, body);
+export const updateInstallmentStatement = (id, body) => http.patch(`/api/transactions/${id}/installment-statement`, body);
 export const deleteTransaction = (id)         => http.delete(`/api/transactions/${id}`);
 
 /** @param {1|2|3} recurrenceDeleteMode */

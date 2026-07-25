@@ -5,22 +5,29 @@ import CurrencyInput from '../../shared/components/CurrencyInput';
 import DateInput from '../../shared/components/DateInput';
 import { validateCreateTransactionDraft, resolveCreatePaymentArm } from '../../../application/createTransactionPayload';
 
-const emptyDraft = (members) => ({
-  description: '',
-  amount: '',
-  date: new Date().toISOString().slice(0, 10),
-  type: 'expense',
-  categoryId: '',
-  memberId: members[0]?.id || '',
-  accountId: '', cardId: '',
-  originAccountId: '', destinationAccountId: '',
-  recurrence: 'variable', status: 'paid',
-  installments: '', repeatCount: '',
-  expirationDate: '',
-  installmentTitle: '',
-  totalInstallmentAmount: '',
-  notes: '',
-});
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+const emptyDraft = (members) => {
+  const now = new Date();
+  return {
+    description: '',
+    amount: '',
+    date: now.toISOString().slice(0, 10),
+    type: 'expense',
+    categoryId: '',
+    memberId: members[0]?.id || '',
+    accountId: '', cardId: '',
+    originAccountId: '', destinationAccountId: '',
+    recurrence: 'variable', status: 'paid',
+    installments: '', repeatCount: '',
+    expirationDate: '',
+    installmentTitle: '',
+    totalInstallmentAmount: '',
+    statementMonth: now.getMonth() + 1,
+    statementYear: now.getFullYear(),
+    notes: '',
+  };
+};
 
 export default function TxForm({ tx, cats, members, accounts, cards, onSave, onClose }) {
   const isEdit = Boolean(tx?.id);
@@ -113,6 +120,9 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
       setF(emptyDraft(members));
     }
   };
+
+  const thisYear = new Date().getFullYear();
+  const statementYearOpts = [thisYear - 1, thisYear, thisYear + 1, thisYear + 2];
 
   const showCategoryDateRow = f.type !== 'transfer';
   const showAccountCardRow = f.type !== 'transfer';
@@ -253,32 +263,37 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
       {showAccountCardRow && (
         <div className="grid-2">
           <div className="form-group">
-            <label className="form-label" style={isInstallment ? { opacity: 0.45 } : {}}>
+            <label className="form-label" style={(isInstallment || (isEdit && cardLocked)) ? { opacity: 0.45 } : {}}>
               Conta corrente {cardDisabledByFixed ? '*' : ''}
             </label>
             <select
               className="form-select"
               required={cardDisabledByFixed}
-              disabled={isInstallment}
+              disabled={isInstallment || (isEdit && cardLocked)}
               value={f.accountId}
               onChange={e => onAccountChange(e.target.value)}
-              style={isInstallment ? { opacity: 0.45, cursor: 'not-allowed' } : {}}
+              style={(isInstallment || (isEdit && cardLocked)) ? { opacity: 0.45, cursor: 'not-allowed' } : {}}
             >
               <option value="">— Nenhuma —</option>
               {accounts.map(a => <option key={a.id} value={a.id}>{accountLabel(a, members)}</option>)}
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label" style={cardDisabledByFixed ? { opacity: 0.45 } : {}}>
+            <label className="form-label" style={(cardDisabledByFixed || (isEdit && cardLocked)) ? { opacity: 0.45 } : {}}>
               Cartão de crédito {isInstallment ? '*' : ''}
+              {isEdit && cardLocked && (
+                <span style={{ fontSize: 10, color: 'var(--muted)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, padding: '1px 7px', fontWeight: 600, marginLeft: 6 }}>
+                  🔒
+                </span>
+              )}
             </label>
             <select
               className="form-select"
               required={isInstallment}
-              disabled={cardDisabledByFixed}
+              disabled={cardDisabledByFixed || (isEdit && cardLocked)}
               value={f.cardId}
               onChange={e => onCardChange(e.target.value)}
-              style={cardDisabledByFixed ? { opacity: 0.45, cursor: 'not-allowed' } : {}}
+              style={(cardDisabledByFixed || (isEdit && cardLocked)) ? { opacity: 0.55, cursor: 'not-allowed' } : {}}
             >
               <option value="">— Nenhum —</option>
               {cards.map(c => <option key={c.id} value={c.id}>💳 {c.name}</option>)}
@@ -287,7 +302,39 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
         </div>
       )}
 
-      {/* 7. Status */}
+      {/* 7. Fatura (somente cartão de crédito) */}
+      {cardLocked && (
+        <div className="form-group">
+          <label className="form-label">
+            Fatura *
+            {isEdit && (
+              <span style={{ fontSize: 10, color: 'var(--muted)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, padding: '1px 7px', fontWeight: 600, marginLeft: 6 }}>
+                altere para mover de fatura
+              </span>
+            )}
+          </label>
+          <div className="grid-2">
+            <select
+              className="form-select"
+              value={f.statementMonth || ''}
+              onChange={e => set('statementMonth', Number(e.target.value))}
+            >
+              <option value="">— Mês —</option>
+              {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+            </select>
+            <select
+              className="form-select"
+              value={f.statementYear || ''}
+              onChange={e => set('statementYear', Number(e.target.value))}
+            >
+              <option value="">— Ano —</option>
+              {statementYearOpts.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* 8. Status */}
       {f.type !== 'transfer' && (
         <div className="form-group">
           <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
