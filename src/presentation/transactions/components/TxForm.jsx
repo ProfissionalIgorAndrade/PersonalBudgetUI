@@ -4,8 +4,18 @@ import { accountLabel } from '../../../application/mappers/index';
 import CurrencyInput from '../../shared/components/CurrencyInput';
 import DateInput from '../../shared/components/DateInput';
 import { validateCreateTransactionDraft, resolveCreatePaymentArm } from '../../../application/createTransactionPayload';
+import { useLocalStorage } from '../../../core/hooks/useLocalStorage';
 
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// Campos que persistem entre lançamentos (excluídos: description, amount, categoryId, notes, status, installmentTitle, totalInstallmentAmount)
+const STICKY_KEYS = [
+  'type', 'memberId', 'accountId', 'cardId',
+  'originAccountId', 'destinationAccountId',
+  'recurrence', 'date',
+  'installments', 'repeatCount', 'expirationDate',
+  'statementMonth', 'statementYear',
+];
 
 const emptyDraft = (members) => {
   const now = new Date();
@@ -29,10 +39,19 @@ const emptyDraft = (members) => {
   };
 };
 
+const buildDraft = (members, sticky) => {
+  const base = emptyDraft(members);
+  if (!sticky) return base;
+  const overrides = {};
+  STICKY_KEYS.forEach(k => { if (sticky[k] !== undefined) overrides[k] = sticky[k]; });
+  return { ...base, ...overrides };
+};
+
 export default function TxForm({ tx, cats, members, accounts, cards, onSave, onClose }) {
   const isEdit = Boolean(tx?.id);
   const [submitError, setSubmitError] = useState('');
-  const [f, setF] = useState(tx ? { recurrenceEditMode: 1, ...tx } : emptyDraft(members));
+  const [stickyConfig, setStickyConfig] = useLocalStorage('pb_tx_last_config', null);
+  const [f, setF] = useState(() => tx ? { recurrenceEditMode: 1, ...tx } : buildDraft(members, stickyConfig));
 
   useEffect(() => {
     if (isEdit || f.type === 'transfer') return;
@@ -116,8 +135,10 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
 
     onSave({ ...f, id: f.id || uid(), amount: amountNum });
     if (!isEdit) {
+      const nextSticky = Object.fromEntries(STICKY_KEYS.map(k => [k, f[k]]));
+      setStickyConfig(nextSticky);
       setSubmitError('');
-      setF(emptyDraft(members));
+      setF(buildDraft(members, nextSticky));
     }
   };
 
