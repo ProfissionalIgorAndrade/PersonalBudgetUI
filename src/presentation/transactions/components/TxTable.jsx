@@ -243,7 +243,6 @@ export default function TxTable({
                   <td className="csv-col-desc">
                     <div style={{ fontWeight: 600, fontSize: 12 }}>{t.description}</div>
                     {t.installments && <div className="txxs tmuted">{t.installmentCurrent}/{t.installments}x</div>}
-                    {t.notes && <div className="txxs tmuted" style={{ fontStyle: 'italic' }}>{t.notes}</div>}
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     <span style={{ fontSize: 15, marginRight: 5 }}>{cat?.icon}</span>
@@ -293,6 +292,9 @@ export default function TxTable({
                       )}
                       {onDelete && allowsEditDeleteActions(t) && (
                         <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setConfirmDel(t)} title="Excluir">🗑️</button>
+                      )}
+                      {t.notes && (
+                        <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12, cursor: 'default' }} title={t.notes}>💬</button>
                       )}
                     </div>
                   </td>
