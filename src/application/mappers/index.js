@@ -192,7 +192,7 @@ export function normalizeTransaction(t) {
     recurrenceId:   t.recurrenceId        ?? t.RecurrenceId        ?? null,
     statementMonth: t.statementMonth      ?? t.StatementMonth      ?? null,
     statementYear:  t.statementYear       ?? t.StatementYear       ?? null,
-    notes:          '',
+    notes:          t.observations        ?? t.Observations        ?? '',
   };
 }
 

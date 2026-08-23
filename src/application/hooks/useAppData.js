@@ -113,6 +113,7 @@ export function useAppData(notify) {
               attributionProfileId: tx.memberId    || undefined,
               statementMonth:       tx.statementMonth || undefined,
               statementYear:        tx.statementYear  || undefined,
+              observations:         tx.notes ?? null,
             });
           } else {
             // Este e futuros (2) ou Todos (3) — usar endpoint dedicado de parcelas
@@ -132,6 +133,7 @@ export function useAppData(notify) {
             categoryId:           tx.categoryId  || undefined,
             attributionProfileId: tx.memberId    || undefined,
             recurrenceEditMode:   editMode,
+            observations:         tx.notes ?? null,
           });
         } else {
           await txRepo.updateTransaction(tx.id, {
@@ -142,6 +144,7 @@ export function useAppData(notify) {
             attributionProfileId: tx.memberId    || undefined,
             statementMonth:       tx.statementMonth || undefined,
             statementYear:        tx.statementYear  || undefined,
+            observations:         tx.notes ?? null,
           });
         }
         await loadTx();

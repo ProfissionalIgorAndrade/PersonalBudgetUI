@@ -151,6 +151,8 @@ export function buildCreateTransactionPayload(f) {
   const arm = resolveCreatePaymentArm(f);
   const recurrence = f.recurrence || 'variable';
 
+  const observations = (f.notes ?? '').trim() || null;
+
   if (isTransfer) {
     return {
       type: 'Expense',
@@ -167,6 +169,7 @@ export function buildCreateTransactionPayload(f) {
       creditCardId: null,
       autoComplete: false,
       status: null,
+      observations,
     };
   }
 
@@ -176,6 +179,7 @@ export function buildCreateTransactionPayload(f) {
     description: (f.description ?? '').trim(),
     categoryId: f.categoryId ? f.categoryId : null,
     attributionProfileId: f.memberId || null,
+    observations,
   };
 
   if (arm === 'creditCard') {
