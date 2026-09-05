@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { curMonth } from '../../core/utils/format';
 import { COLORS, FLAGS } from '../../core/constants/index';
+import { txBelongsToMonth } from '../../core/utils/billing';
 import { uid } from '../../core/utils/format';
 import MonthSelector from '../shared/components/MonthSelector';
 import Modal from '../shared/components/Modal';
@@ -30,7 +31,7 @@ export default function CardsView({ cards, members, transactions, categories, ac
   const cardSpend = id => {
     const m = curMonth();
     return transactions
-      .filter(t => t.cardId === id && t.date?.startsWith(m) && t.type === 'expense' && t.status !== 'cancelled')
+      .filter(t => t.cardId === id && txBelongsToMonth(t, m) && t.type === 'expense' && t.status !== 'cancelled')
       .reduce((s, t) => s + Number(t.amount), 0);
   };
 
