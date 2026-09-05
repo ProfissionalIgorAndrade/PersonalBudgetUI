@@ -27,3 +27,35 @@ export const getFaturaMonths = (closingDay, count = 6) => {
     return d.toISOString().slice(0, 7);
   });
 };
+
+/**
+ * Resolves the month (YYYY-MM) a transaction should be displayed under.
+ *
+ * Credit card transactions belong to their STATEMENT month, not to the month
+ * of the purchase date: a purchase made on the 25th on a card that closes on
+ * the 10th lands on the next month's statement and must be shown there.
+ *
+ * Every other transaction (account, transfer) follows its own date.
+ *
+ * @param {{cardId?: string, statementMonth?: number|null, statementYear?: number|null, date?: string}} t
+ * @returns {string|null} 'YYYY-MM', or null when it cannot be determined
+ */
+export const txDisplayMonth = (t) => {
+  if (!t) return null;
+  if (t.cardId && t.statementMonth && t.statementYear) {
+    return `${t.statementYear}-${String(t.statementMonth).padStart(2, '0')}`;
+  }
+  return t.date ? t.date.slice(0, 7) : null;
+};
+
+/**
+ * Tells whether a transaction belongs to the given month, honouring the
+ * statement month for credit card transactions.
+ *
+ * @param {object} t normalized transaction
+ * @param {string} ym month as 'YYYY-MM'
+ */
+export const txBelongsToMonth = (t, ym) => {
+  if (!ym) return true;
+  return txDisplayMonth(t) === ym;
+};
