@@ -393,7 +393,7 @@ export default function CardDetail({
         onEdit={faturaStatus === 'paga' ? undefined : async (...args) => { await onEditTx?.(...args); await refetchStatement(); }}
         onDelete={faturaStatus === 'paga' ? undefined : async (...args) => { await onDeleteTx?.(...args); await refetchStatement(); }}
         onBatchDelete={faturaStatus === 'paga' ? undefined : async (...args) => { await onBatchDeleteTx?.(...args); await refetchStatement(); }}
-        hideCols={['card']}
+        hideCols={['card', 'statement']}
         emptyMsg={statement.loading ? 'Carregando…' : statement.error ? 'Não foi possível carregar a fatura' : 'Nenhum lançamento neste mês'}
       />
 
