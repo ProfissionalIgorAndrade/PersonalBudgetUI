@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getLastEmail, setLastEmail } from '../../core/utils/lastEmail';
 
 const fadeUp         = { hidden: { opacity: 0, y: 20 },   visible: { opacity: 1, y: 0,  transition: { duration: 0.45, ease: [0.4,0,0.2,1] } } };
 const slideLeft      = { hidden: { opacity: 0, x: -32 },  visible: { opacity: 1, x: 0,  transition: { duration: 0.55, ease: [0.4,0,0.2,1] } } };
@@ -11,7 +12,7 @@ const fieldSlide     = { initial: { opacity: 0, height: 0 }, animate: { opacity:
 
 export default function AuthView({ onLogin, onSignup }) {
   const [tab,      setTab]      = useState('login');
-  const [form,     setForm]     = useState({ firstName: '', email: '', password: '', confirm: '' });
+  const [form,     setForm]     = useState({ firstName: '', email: getLastEmail(), password: '', confirm: '' });
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
   const [showPwd,  setShowPwd]  = useState(false);
@@ -23,7 +24,7 @@ export default function AuthView({ onLogin, onSignup }) {
 
   const handleLogin = async () => {
     if (!form.email.trim() || !form.password) return setError('Preencha todos os campos.');
-    try { await onLogin({ email: form.email.trim(), password: form.password }); }
+    try { await onLogin({ email: form.email.trim(), password: form.password }); setLastEmail(form.email.trim()); }
     catch (e) { setError(e.message || 'E-mail ou senha incorretos.'); }
   };
 
@@ -31,7 +32,7 @@ export default function AuthView({ onLogin, onSignup }) {
     if (!form.firstName.trim() || !form.email.trim() || !form.password) return setError('Preencha todos os campos.');
     if (form.password.length < 6) return setError('A senha deve ter pelo menos 6 caracteres.');
     if (form.password !== form.confirm) return setError('As senhas não coincidem.');
-    try { await onSignup({ firstName: form.firstName.trim(), email: form.email.trim(), password: form.password }); }
+    try { await onSignup({ firstName: form.firstName.trim(), email: form.email.trim(), password: form.password }); setLastEmail(form.email.trim()); }
     catch (e) { setError(e.message || 'Erro ao criar conta.'); }
   };
 
