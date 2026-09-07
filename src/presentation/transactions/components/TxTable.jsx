@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { R$, fdate } from '../../../core/utils/format';
+import { statementLabel } from '../../../core/utils/billing';
 import { accountLabel } from '../../../application/mappers/index';
 import Modal from '../../shared/components/Modal';
 import TxForm from './TxForm';
@@ -205,6 +206,7 @@ export default function TxTable({
               {show('member')     && <Th col="member">Membro</Th>}
               {show('account')    && <th>Conta</th>}
               {show('card')       && <th>Cartão</th>}
+              {show('statement') && <th title="Fatura em que o lançamento entra">Fatura</th>}
               {show('recurrence') && <Th col="recurrence">Recorrência</Th>}
               <Th col="status">Status</Th>
               <Th col="amount" style={{ textAlign: 'right' }}>Valor</Th>
@@ -262,6 +264,13 @@ export default function TxTable({
                   {show('card') && (
                     <td style={{ fontSize: 11 }}>
                       {crd ? <span style={{ color: 'var(--muted)' }}>💳 {crd.name}</span> : <span className="tmuted">—</span>}
+                    </td>
+                  )}
+                  {show('statement') && (
+                    <td style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
+                      {statementLabel(t)
+                        ? <span style={{ color: 'var(--muted)' }}>🧾 {statementLabel(t)}</span>
+                        : <span className="tmuted">—</span>}
                     </td>
                   )}
                   {show('recurrence') && <td>{REC[t.recurrence] ?? REC.none}</td>}
