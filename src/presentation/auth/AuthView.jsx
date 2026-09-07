@@ -96,20 +96,20 @@ export default function AuthView({ onLogin, onSignup }) {
               {tab === 'register' && (
                 <motion.div key="firstName-field" className="form-group" {...fieldSlide} style={{ overflow: 'hidden' }}>
                   <label className="form-label">Nome</label>
-                  <input className="form-input" value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="Seu nome" autoComplete="given-name" autoFocus />
+                  <input className="form-input" name="name" id="auth-name" value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="Seu nome" autoComplete="given-name" autoFocus />
                 </motion.div>
               )}
             </AnimatePresence>
 
             <div className="form-group">
               <label className="form-label">E-mail</label>
-              <input className="form-input" type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="seuemail@exemplo.com" autoComplete="email" autoFocus={tab === 'login'} />
+              <input className="form-input" type="email" name="username" id="auth-email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="seuemail@exemplo.com" autoComplete="username" autoFocus={tab === 'login'} />
             </div>
 
             <div className="form-group">
               <label className="form-label">Senha</label>
               <div style={{ position: 'relative' }}>
-                <input className="form-input" type={showPwd ? 'text' : 'password'} value={form.password} onChange={e => set('password', e.target.value)} placeholder={tab === 'register' ? 'Mínimo 6 caracteres' : '••••••••'} autoComplete={tab === 'login' ? 'current-password' : 'new-password'} style={{ paddingRight: 42 }} />
+                <input className="form-input" type={showPwd ? 'text' : 'password'} name="password" id="auth-password" value={form.password} onChange={e => set('password', e.target.value)} placeholder={tab === 'register' ? 'Mínimo 6 caracteres' : '••••••••'} autoComplete={tab === 'login' ? 'current-password' : 'new-password'} style={{ paddingRight: 42 }} />
                 <button type="button" onClick={() => setShowPwd(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--muted)', padding: 2 }} tabIndex={-1} aria-label={showPwd ? 'Ocultar senha' : 'Mostrar senha'}>{showPwd ? '🙈' : '👁'}</button>
               </div>
             </div>
@@ -119,7 +119,7 @@ export default function AuthView({ onLogin, onSignup }) {
                 <motion.div key="confirm-field" className="form-group" {...fieldSlide} style={{ overflow: 'hidden' }}>
                   <label className="form-label">Confirmar Senha</label>
                   <div style={{ position: 'relative' }}>
-                    <input className="form-input" type={showConf ? 'text' : 'password'} value={form.confirm} onChange={e => set('confirm', e.target.value)} placeholder="Repita a senha" autoComplete="new-password" style={{ paddingRight: 42 }} />
+                    <input className="form-input" type={showConf ? 'text' : 'password'} name="confirm-password" id="auth-confirm-password" value={form.confirm} onChange={e => set('confirm', e.target.value)} placeholder="Repita a senha" autoComplete="new-password" style={{ paddingRight: 42 }} />
                     <button type="button" onClick={() => setShowConf(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--muted)', padding: 2 }} tabIndex={-1}>{showConf ? '🙈' : '👁'}</button>
                   </div>
                 </motion.div>
