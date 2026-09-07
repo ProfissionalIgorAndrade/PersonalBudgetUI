@@ -11,3 +11,7 @@ export async function login({ email, password }) {
   if (data?.token) setToken(data.token);
   return data;
 }
+
+export async function changePassword({ currentPassword, newPassword }) {
+  return http.post('/api/authentication/change-password', { currentPassword, newPassword });
+}
