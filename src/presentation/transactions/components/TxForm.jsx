@@ -47,22 +47,14 @@ const buildDraft = (members, sticky) => {
   return { ...base, ...overrides };
 };
 
-const PAYMENT_LABELS = {
-  CreditCard: 'Cartão de crédito',
-  Transfer: 'Transferência',
-  Debit: 'Débito',
-  Cash: 'Dinheiro',
-  Pix: 'Pix',
-};
-
-export default function TxForm({ tx, cats, members, accounts, cards, onSave, onClose, readOnly = false }) {
+export default function TxForm({ tx, cats, members, accounts, cards, onSave, onClose }) {
   const isEdit = Boolean(tx?.id);
   const [submitError, setSubmitError] = useState('');
   const [stickyConfig, setStickyConfig] = useLocalStorage('pb_tx_last_config', null);
   const [f, setF] = useState(() => tx ? { recurrenceEditMode: 1, ...tx } : buildDraft(members, stickyConfig));
 
   useEffect(() => {
-    if (readOnly || isEdit || f.type === 'transfer') return;
+    if (isEdit || f.type === 'transfer') return;
     setF(p => {
       const armNow = resolveCreatePaymentArm(p);
       if (armNow === 'creditCard') {
@@ -123,7 +115,6 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
   const opts = recurrenceOpts();
 
   const onSubmit = (e) => {
-    if (readOnly) { e.preventDefault(); return; }
     e.preventDefault();
     setSubmitError('');
     if (!isEdit) {
@@ -164,12 +155,6 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
 
   return (
     <form onSubmit={onSubmit}>
-      {/* A disabled fieldset neutralises every descendant control at once, so a
-          new field added later is read-only by default instead of by omission. */}
-      <fieldset
-        disabled={readOnly}
-        style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}
-      >
       {submitError && (
         <div style={{
           marginBottom: 14,
@@ -182,31 +167,6 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
           lineHeight: 1.45,
         }}>
           {submitError}
-        </div>
-      )}
-
-      {readOnly && (
-        <div style={{
-          marginBottom: 14,
-          padding: '10px 12px',
-          borderRadius: 10,
-          background: 'var(--surface2)',
-          border: '1px solid var(--border)',
-          fontSize: 12,
-          lineHeight: 1.6,
-          color: 'var(--muted)',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-          gap: '2px 16px',
-        }}>
-          <span><strong>Pagamento:</strong> {PAYMENT_LABELS[f.paymentMethod] ?? f.paymentMethod ?? '—'}</span>
-          {f.statementMonth && f.statementYear && (
-            <span><strong>Fatura:</strong> {String(f.statementMonth).padStart(2, '0')}/{f.statementYear}</span>
-          )}
-          {f.recurrenceId && (
-            <span><strong>Grupo de recorrência:</strong> {String(f.recurrenceId).slice(0, 8)}</span>
-          )}
-          <span><strong>ID:</strong> {String(f.id ?? '').slice(0, 8)}</span>
         </div>
       )}
 
@@ -457,17 +417,9 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
         </div>
       )}
 
-      </fieldset>
-
       <div className="flex jce gap2" style={{ gap: 8, marginTop: 8 }}>
-        {readOnly ? (
-          <button type="button" className="btn btn-primary" onClick={onClose}>Fechar</button>
-        ) : (
-          <>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn btn-primary">💾 Salvar</button>
-          </>
-        )}
+        <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
+        <button type="submit" className="btn btn-primary">💾 Salvar</button>
       </div>
     </form>
   );
