@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { accountLabel } from '../../application/mappers/index';
 import Modal from '../shared/components/Modal';
 import MonthSelector from '../shared/components/MonthSelector';
-import { txBelongsToMonth } from '../../core/utils/billing';
 import TxForm from './components/TxForm';
 import TxTable from './components/TxTable';
 
@@ -20,7 +19,7 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
   const isFiltered = Object.entries(filter).some(([k, v]) => v !== (k === 'search' ? '' : 'all'));
 
   const filtered = useMemo(() => transactions.filter(t => {
-    if (!txBelongsToMonth(t, activeMonth)) return false;
+    if (activeMonth && !t.date?.startsWith(activeMonth)) return false;
     if (filter.type       !== 'all' && t.type       !== filter.type)       return false;
     if (filter.memberId   !== 'all' && t.memberId   !== filter.memberId)   return false;
     if (filter.recurrence !== 'all' && t.recurrence !== filter.recurrence) return false;

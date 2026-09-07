@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { R$, curMonth, monthLabel } from '../../core/utils/format';
-import { txBelongsToMonth } from '../../core/utils/billing';
 import { useLocalStorage } from '../../core/hooks/useLocalStorage';
 import MonthSelector from '../shared/components/MonthSelector';
 import SummaryCards           from './components/SummaryCards';
@@ -45,7 +44,7 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
   const now   = new Date();
 
   /* ── Calculations ───────────────────────────────────────────── */
-  const mTx     = transactions.filter(t => txBelongsToMonth(t, month));
+  const mTx     = transactions.filter(t => t.date?.startsWith(month));
   const totalIn  = mTx.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const totalOut = mTx.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const balance  = totalIn - totalOut;
@@ -64,14 +63,14 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
 
   const months6  = Array.from({ length: 6 }, (_, i) => { const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1); return d.toISOString().slice(0, 7); });
   const mLabels  = months6.map(monthLabel);
-  const mIn      = months6.map(m => transactions.filter(t => txBelongsToMonth(t, m) && t.type === 'income').reduce((s, t) => s + Number(t.amount), 0));
-  const mOut     = months6.map(m => transactions.filter(t => txBelongsToMonth(t, m) && t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0));
+  const mIn      = months6.map(m => transactions.filter(t => t.date?.startsWith(m) && t.type === 'income').reduce((s, t) => s + Number(t.amount), 0));
+  const mOut     = months6.map(m => transactions.filter(t => t.date?.startsWith(m) && t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0));
 
   const recent       = [...transactions].sort((a, b) => b.date?.localeCompare(a.date)).slice(0, 6);
   const pendingFixed = transactions.filter(t => t.recurrence === 'fixed' && t.status === 'pending').slice(0, 4);
 
   const faturasData  = (cards || []).map(card => {
-    const spent = transactions.filter(t => t.cardId === card.id && txBelongsToMonth(t, month) && t.type === 'expense' && t.status !== 'cancelled').reduce((s, t) => s + Number(t.amount), 0);
+    const spent = transactions.filter(t => t.cardId === card.id && t.date?.startsWith(month) && t.type === 'expense' && t.status !== 'cancelled').reduce((s, t) => s + Number(t.amount), 0);
     return { ...card, spent };
   }).filter(c => c.spent > 0);
   const totalFaturas = faturasData.reduce((s, c) => s + c.spent, 0);
