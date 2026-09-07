@@ -4,7 +4,7 @@ import {
   listInvitesForMe,
   listPendingInvitesSent,
   acceptInvite,
-} from '../../../data/repositories/householdRepository';
+} from '../../../api/households';
 import { getHouseholdId } from '../../../data/http/client';
 
 function Section({ title, children }) {
