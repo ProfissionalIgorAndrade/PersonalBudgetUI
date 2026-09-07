@@ -57,6 +57,7 @@ export default function TxTable({
   const [sortDir,        setSortDir]        = useState('desc');
   const [page,           setPage]           = useState(1);
   const [editingTx,      setEditingTx]      = useState(null);
+  const [detailTx,       setDetailTx]       = useState(null);
   const [confirmDel,     setConfirmDel]     = useState(null);
   const [recurrenceDeleteMode, setRecurrenceDeleteMode] = useState(1);
   const [deleting,       setDeleting]       = useState(false);
@@ -293,8 +294,9 @@ export default function TxTable({
                       {onDelete && allowsEditDeleteActions(t) && (
                         <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setConfirmDel(t)} title="Excluir">🗑️</button>
                       )}
+                      <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setDetailTx(t)} title="Detalhes">🔍</button>
                       {t.notes && (
-                        <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12, cursor: 'default' }} title={t.notes}>💬</button>
+                        <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setDetailTx(t)} title="Ver observações">💬</button>
                       )}
                     </div>
                   </td>
@@ -324,6 +326,22 @@ export default function TxTable({
             cards={cards}
             onSave={async tx => { await onEdit(tx); setEditingTx(null); }}
             onClose={() => setEditingTx(null)}
+          />
+        </Modal>
+      )}
+
+      {/* Details modal (read-only) */}
+      {detailTx && (
+        <Modal title="Detalhes do Lançamento" onClose={() => setDetailTx(null)} wide>
+          <TxForm
+            tx={detailTx}
+            cats={categories}
+            members={members}
+            accounts={accounts}
+            cards={cards}
+            onSave={() => {}}
+            onClose={() => setDetailTx(null)}
+            readOnly
           />
         </Modal>
       )}
