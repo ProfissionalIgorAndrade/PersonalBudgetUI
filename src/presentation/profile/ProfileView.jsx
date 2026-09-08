@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLocalStorage } from '../../core/hooks/useLocalStorage';
 import ProfileHero from './components/ProfileHero';
 import ProfileForm from './components/ProfileForm';
+import ChangePasswordModal from './components/ChangePasswordModal';
 
 const EMPTY_PROFILE = {
   firstName: '', lastName: '', nickname: '', email: '', phone: '',
@@ -12,7 +13,7 @@ const EMPTY_PROFILE = {
   notifications: true,
 };
 
-export default function ProfileView({ authSession = {} }) {
+export default function ProfileView({ authSession = {}, notify }) {
   const defaultProfile = {
     ...EMPTY_PROFILE,
     firstName: authSession.displayName || authSession.firstName || '',
@@ -21,6 +22,7 @@ export default function ProfileView({ authSession = {} }) {
   const [profile, setProfile] = useLocalStorage('pb_profile', defaultProfile);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft]     = useState(null);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const openEdit  = () => { setDraft({ ...profile, address: { ...(profile.address || {}) } }); setEditing(true); };
   const save      = () => { setProfile(draft); setEditing(false); setDraft(null); };
@@ -37,7 +39,10 @@ export default function ProfileView({ authSession = {} }) {
           <p className="page-sub">Gerencie suas informações</p>
         </div>
         {!editing && (
-          <button className="btn btn-primary" onClick={openEdit}>✏️ Editar Perfil</button>
+          <div className="flex" style={{ gap: 8 }}>
+            <button className="btn btn-secondary" onClick={() => setChangingPassword(true)}>🔒 Alterar Senha</button>
+            <button className="btn btn-primary" onClick={openEdit}>✏️ Editar Perfil</button>
+          </div>
         )}
       </div>
 
@@ -54,6 +59,13 @@ export default function ProfileView({ authSession = {} }) {
           onEdit={openEdit}
         />
       </div>
+
+      {changingPassword && (
+        <ChangePasswordModal
+          onClose={() => setChangingPassword(false)}
+          onSuccess={() => notify?.('Senha alterada com sucesso.', 'success')}
+        />
+      )}
     </div>
   );
 }

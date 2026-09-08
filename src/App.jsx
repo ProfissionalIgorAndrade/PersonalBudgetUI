@@ -86,7 +86,7 @@ export default function App() {
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
     members:      <MembersView      members={members} {...mbrOps} notify={notify} onLogout={handleLogout} />,
     categories:   <CategoriesView   categories={categories} {...catOps} />,
-    profile:      <ProfileView      authSession={authSession} />,
+    profile:      <ProfileView      authSession={authSession} notify={notify} />,
   };
 
   return (
