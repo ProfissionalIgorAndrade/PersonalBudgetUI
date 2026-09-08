@@ -405,16 +405,41 @@ canvas { max-height: 220px; }
 /* ═══════════════════════════════════════════════════════════════
    COLOR PICKER
 ═══════════════════════════════════════════════════════════════ */
-.color-opts { display: flex; gap: 8px; flex-wrap: wrap; }
+.color-opts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+  gap: 8px;
+  max-width: 460px;
+}
 .color-opt {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   cursor: pointer;
-  border: 3px solid transparent;
-  transition: all var(--t);
+  border: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  transition: transform var(--t), box-shadow var(--t);
+  /* Hairline keeps pale swatches from bleeding into the surface. */
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
 }
-.color-opt.sel { border-color: var(--white); transform: scale(1.2); }
+.color-opt:hover { transform: scale(1.12); }
+.color-opt:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14),
+              0 0 0 2px var(--surface), 0 0 0 4px var(--primary);
+}
+/* Gap ring in the surface colour, then a bright ring: reads on a pale
+   swatch and a deep one alike, unlike a plain white border. */
+.color-opt.sel {
+  transform: scale(1.14);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text);
+}
 
 /* ═══════════════════════════════════════════════════════════════
    CREDIT CARD VISUAL
