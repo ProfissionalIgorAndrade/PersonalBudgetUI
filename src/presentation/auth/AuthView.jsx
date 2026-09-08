@@ -10,7 +10,7 @@ const featureItem    = { hidden: { opacity: 0, x: -12 },  visible: { opacity: 1,
 const logoSpring     = { hidden: { scale: 0.7, opacity: 0 }, visible: { scale: 1, opacity: 1, transition: { type: 'spring', stiffness: 280, damping: 22, delay: 0.2 } } };
 const fieldSlide     = { initial: { opacity: 0, height: 0 }, animate: { opacity: 1, height: 'auto', transition: { duration: 0.24, ease: [0.4,0,0.2,1] } }, exit: { opacity: 0, height: 0, transition: { duration: 0.18, ease: [0.4,0,0.2,1] } } };
 
-export default function AuthView({ onLogin, onSignup }) {
+export default function AuthView({ onLogin, onSignup, notice = '', onDismissNotice }) {
   const [tab,      setTab]      = useState('login');
   const [form,     setForm]     = useState({ firstName: '', email: getLastEmail(), password: '', confirm: '' });
   const [error,    setError]    = useState('');
@@ -18,7 +18,7 @@ export default function AuthView({ onLogin, onSignup }) {
   const [showPwd,  setShowPwd]  = useState(false);
   const [showConf, setShowConf] = useState(false);
 
-  const set = (k, v) => { setForm(p => ({ ...p, [k]: v })); setError(''); };
+  const set = (k, v) => { setForm(p => ({ ...p, [k]: v })); setError(''); onDismissNotice?.(); };
 
   const switchTab = (t) => { setTab(t); setError(''); setForm({ firstName: '', email: '', password: '', confirm: '' }); setShowPwd(false); setShowConf(false); };
 
@@ -125,6 +125,12 @@ export default function AuthView({ onLogin, onSignup }) {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {notice && !error && (
+              <div className="auth-error" role="status" style={{ borderColor: 'var(--border)' }}>
+                {notice}
+              </div>
+            )}
 
             <AnimatePresence>
               {error && (
