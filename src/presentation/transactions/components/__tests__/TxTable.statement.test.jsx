@@ -86,3 +86,30 @@ describe('TxTable statement column', () => {
     expect(firstRow).toBe(headers);
   });
 });
+
+// Regression for the reported case: an instalment dated 01/09 that belongs to
+// the October statement was listed under September.
+describe('October statement, September purchase date', () => {
+  const octTx = {
+    ...cardTx,
+    id: 'cccccccc-1111-2222-3333-444444444444',
+    description: 'Seguro Carro - Tokio Marine Auto (2/9)',
+    date: '2026-09-01',
+    statementMonth: 10,
+    statementYear: 2026,
+  };
+
+  it('is not listed under September', () => {
+    expect(txBelongsToMonth(octTx, '2026-09')).toBe(false);
+  });
+
+  it('is listed under October', () => {
+    expect(txBelongsToMonth(octTx, '2026-10')).toBe(true);
+  });
+
+  it('still shows its own purchase date, not the statement date', () => {
+    render(<TxTable {...props} rows={[octTx]} />);
+    expect(screen.getByText('01/09/2026')).toBeTruthy();
+    expect(screen.getByText('10/2026', { exact: false })).toBeTruthy();
+  });
+});
