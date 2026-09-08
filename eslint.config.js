@@ -37,6 +37,8 @@ export default [
         URL: 'readonly', URLSearchParams: 'readonly', Blob: 'readonly',
         FileReader: 'readonly', ResizeObserver: 'readonly',
         Intl: 'readonly', crypto: 'readonly', alert: 'readonly',
+        atob: 'readonly', btoa: 'readonly', CustomEvent: 'readonly',
+        Event: 'readonly', CustomEventInit: 'readonly',
         confirm: 'readonly', prompt: 'readonly',
       },
     },
