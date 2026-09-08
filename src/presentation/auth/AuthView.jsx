@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getLastEmail, setLastEmail } from '../../core/utils/lastEmail';
 
 const fadeUp         = { hidden: { opacity: 0, y: 20 },   visible: { opacity: 1, y: 0,  transition: { duration: 0.45, ease: [0.4,0,0.2,1] } } };
 const slideLeft      = { hidden: { opacity: 0, x: -32 },  visible: { opacity: 1, x: 0,  transition: { duration: 0.55, ease: [0.4,0,0.2,1] } } };
@@ -11,7 +12,7 @@ const fieldSlide     = { initial: { opacity: 0, height: 0 }, animate: { opacity:
 
 export default function AuthView({ onLogin, onSignup }) {
   const [tab,      setTab]      = useState('login');
-  const [form,     setForm]     = useState({ firstName: '', email: '', password: '', confirm: '' });
+  const [form,     setForm]     = useState({ firstName: '', email: getLastEmail(), password: '', confirm: '' });
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
   const [showPwd,  setShowPwd]  = useState(false);
@@ -23,7 +24,7 @@ export default function AuthView({ onLogin, onSignup }) {
 
   const handleLogin = async () => {
     if (!form.email.trim() || !form.password) return setError('Preencha todos os campos.');
-    try { await onLogin({ email: form.email.trim(), password: form.password }); }
+    try { await onLogin({ email: form.email.trim(), password: form.password }); setLastEmail(form.email.trim()); }
     catch (e) { setError(e.message || 'E-mail ou senha incorretos.'); }
   };
 
@@ -31,7 +32,7 @@ export default function AuthView({ onLogin, onSignup }) {
     if (!form.firstName.trim() || !form.email.trim() || !form.password) return setError('Preencha todos os campos.');
     if (form.password.length < 6) return setError('A senha deve ter pelo menos 6 caracteres.');
     if (form.password !== form.confirm) return setError('As senhas não coincidem.');
-    try { await onSignup({ firstName: form.firstName.trim(), email: form.email.trim(), password: form.password }); }
+    try { await onSignup({ firstName: form.firstName.trim(), email: form.email.trim(), password: form.password }); setLastEmail(form.email.trim()); }
     catch (e) { setError(e.message || 'Erro ao criar conta.'); }
   };
 
@@ -95,20 +96,20 @@ export default function AuthView({ onLogin, onSignup }) {
               {tab === 'register' && (
                 <motion.div key="firstName-field" className="form-group" {...fieldSlide} style={{ overflow: 'hidden' }}>
                   <label className="form-label">Nome</label>
-                  <input className="form-input" value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="Seu nome" autoComplete="given-name" autoFocus />
+                  <input className="form-input" name="name" id="auth-name" value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="Seu nome" autoComplete="given-name" autoFocus />
                 </motion.div>
               )}
             </AnimatePresence>
 
             <div className="form-group">
               <label className="form-label">E-mail</label>
-              <input className="form-input" type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="seuemail@exemplo.com" autoComplete="email" autoFocus={tab === 'login'} />
+              <input className="form-input" type="email" name="username" id="auth-email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="seuemail@exemplo.com" autoComplete="username" autoFocus={tab === 'login'} />
             </div>
 
             <div className="form-group">
               <label className="form-label">Senha</label>
               <div style={{ position: 'relative' }}>
-                <input className="form-input" type={showPwd ? 'text' : 'password'} value={form.password} onChange={e => set('password', e.target.value)} placeholder={tab === 'register' ? 'Mínimo 6 caracteres' : '••••••••'} autoComplete={tab === 'login' ? 'current-password' : 'new-password'} style={{ paddingRight: 42 }} />
+                <input className="form-input" type={showPwd ? 'text' : 'password'} name="password" id="auth-password" value={form.password} onChange={e => set('password', e.target.value)} placeholder={tab === 'register' ? 'Mínimo 6 caracteres' : '••••••••'} autoComplete={tab === 'login' ? 'current-password' : 'new-password'} style={{ paddingRight: 42 }} />
                 <button type="button" onClick={() => setShowPwd(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--muted)', padding: 2 }} tabIndex={-1} aria-label={showPwd ? 'Ocultar senha' : 'Mostrar senha'}>{showPwd ? '🙈' : '👁'}</button>
               </div>
             </div>
@@ -118,7 +119,7 @@ export default function AuthView({ onLogin, onSignup }) {
                 <motion.div key="confirm-field" className="form-group" {...fieldSlide} style={{ overflow: 'hidden' }}>
                   <label className="form-label">Confirmar Senha</label>
                   <div style={{ position: 'relative' }}>
-                    <input className="form-input" type={showConf ? 'text' : 'password'} value={form.confirm} onChange={e => set('confirm', e.target.value)} placeholder="Repita a senha" autoComplete="new-password" style={{ paddingRight: 42 }} />
+                    <input className="form-input" type={showConf ? 'text' : 'password'} name="confirm-password" id="auth-confirm-password" value={form.confirm} onChange={e => set('confirm', e.target.value)} placeholder="Repita a senha" autoComplete="new-password" style={{ paddingRight: 42 }} />
                     <button type="button" onClick={() => setShowConf(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--muted)', padding: 2 }} tabIndex={-1}>{showConf ? '🙈' : '👁'}</button>
                   </div>
                 </motion.div>
