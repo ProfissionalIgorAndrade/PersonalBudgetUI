@@ -123,6 +123,11 @@ export function useAppData(notify) {
               statementMonth: tx.statementMonth,
               statementYear:  tx.statementYear,
               editMode:       installmentEditMode,
+              // Without these the endpoint moved the statement and discarded
+              // everything else the user had edited, silently.
+              categoryId:           tx.categoryId || null,
+              attributionProfileId: tx.memberId   || null,
+              observations:         tx.notes ?? null,
             });
           }
         } else if (isFixed) {
