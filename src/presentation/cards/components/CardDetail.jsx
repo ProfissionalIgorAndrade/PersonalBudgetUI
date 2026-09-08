@@ -21,6 +21,22 @@ const STATUS_OPTIONS = [
 
 const FATURA_TO_API = { aberta: 'Open', fechada: 'Closed', paga: 'Paid' };
 
+/**
+ * Marcar uma fatura como paga está temporariamente desabilitado.
+ *
+ * O pagamento debita a conta, mas os lançamentos da fatura continuam
+ * contando como despesa, então o mesmo gasto entra duas vezes e os totais
+ * nunca fecham. O backend também recusa a transição (PersonalBudget#9).
+ *
+ * Reverter a fatura de paga para fechada ou aberta segue permitido, para
+ * quem já pagou conseguir desfazer.
+ *
+ * Para reativar: apagar esta constante e seus usos.
+ */
+const PAYMENT_DISABLED = true;
+const PAYMENT_DISABLED_NOTE =
+  'O pagamento de fatura está temporariamente desabilitado enquanto corrigimos a duplicidade de valores. A fatura pode ser fechada normalmente.';
+
 function hasMeaningfulTimestamp(v) {
   if (v == null || v === '') return false;
   const s = String(v);
@@ -271,6 +287,8 @@ export default function CardDetail({
   const isOptionDisabled = (value) => {
     if (value === FATURA_TO_API[faturaStatus]) return true;
     if (faturaStatus === 'paga' && value === 'Open') return true;
+    // Bloqueia entrar no estado pago, mas nunca sair dele.
+    if (PAYMENT_DISABLED && value === 'Paid' && faturaStatus !== 'paga') return true;
     return false;
   };
 
@@ -413,10 +431,23 @@ export default function CardDetail({
               {STATUS_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value} disabled={isOptionDisabled(opt.value)}>
                   {opt.label}
+                  {PAYMENT_DISABLED && opt.value === 'Paid' && faturaStatus !== 'paga'
+                    ? ' — indisponível'
+                    : ''}
                 </option>
               ))}
             </select>
           </div>
+
+          {PAYMENT_DISABLED && faturaStatus !== 'paga' && (
+            <div style={{
+              marginBottom: 16, padding: '10px 12px', borderRadius: 10,
+              background: 'var(--surface2)', border: '1px solid var(--border)',
+              fontSize: 12, lineHeight: 1.5, color: 'var(--muted)',
+            }}>
+              {PAYMENT_DISABLED_NOTE}
+            </div>
+          )}
 
           {modalStatus === 'Paid' && (
             <div style={{ marginBottom: 20 }}>
