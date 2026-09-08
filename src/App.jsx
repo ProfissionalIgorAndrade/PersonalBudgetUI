@@ -30,7 +30,7 @@ const pageVariants = {
 
 export default function App() {
   const { toast, notify, clearToast } = useNotify();
-  const { authSession, login, signup, logout } = useAuth();
+  const { authSession, login, signup, logout, expired, clearExpired } = useAuth();
   const {
     loading, transactions, savingsTransactions, accounts, categories, cards, members,
     transactionsReloadGeneration,
@@ -60,6 +60,8 @@ export default function App() {
     return (
       <>
         <AuthView
+          notice={expired ? 'Sua sessão expirou. Entre novamente para continuar.' : ''}
+          onDismissNotice={clearExpired}
           onLogin={async (creds) => {
             await login(creds);
           }}
