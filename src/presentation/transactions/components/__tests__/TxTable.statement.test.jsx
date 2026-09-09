@@ -143,3 +143,31 @@ describe('status column is not rendered', () => {
     expect(cells).toBe(headers);
   });
 });
+
+// Reported on the dashboard: card purchases entered for the July statement
+// did not show in July's category breakdown, because the dashboard filtered
+// on the purchase date while the card screen groups by statement.
+describe('dashboard aggregation buckets', () => {
+  const julyStatement = {
+    ...cardTx,
+    id: 'dddddddd-1111-2222-3333-444444444444',
+    description: 'Transporte',
+    date: '2026-06-25',      // comprado em junho
+    statementMonth: 7,        // faturado em julho
+    statementYear: 2026,
+  };
+
+  it('counts a June purchase on the July statement under July', () => {
+    expect(txBelongsToMonth(julyStatement, '2026-07')).toBe(true);
+  });
+
+  it('does not count it under June', () => {
+    expect(txBelongsToMonth(julyStatement, '2026-06')).toBe(false);
+  });
+
+  it('leaves an account expense in its own month', () => {
+    const rent = { ...accountTx, date: '2026-07-08' };
+    expect(txBelongsToMonth(rent, '2026-07')).toBe(true);
+    expect(txBelongsToMonth(rent, '2026-06')).toBe(false);
+  });
+});
