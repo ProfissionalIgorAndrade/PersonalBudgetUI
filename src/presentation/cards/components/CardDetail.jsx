@@ -358,23 +358,39 @@ export default function CardDetail({
           )}
         </div>
 
-        {statement.statementId && !statement.loading && (
+        {/* Antes, sem statementId o botão simplesmente não era renderizado, e o
+            controle sumia sem explicação em qualquer mês cuja fatura ainda não
+            existe. Agora ele aparece sempre e diz por que está indisponível. */}
+        {(() => {
+          const noStatement = !statement.statementId;
+          const busy = statement.loading;
+          const blocked = noStatement || busy;
+          const why = busy
+            ? 'Carregando a fatura…'
+            : noStatement
+              ? 'Ainda não existe fatura para este mês. Ela é criada no primeiro lançamento do cartão.'
+              : 'Alterar status da fatura';
+          return (
           <button
             type="button"
-            onClick={openStatusModal}
-            title="Alterar status da fatura"
+            onClick={blocked ? undefined : openStatusModal}
+            disabled={blocked}
+            title={why}
+            aria-label={why}
             style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: cfg.color, opacity: .7, padding: '4px 6px',
+              background: 'none', border: 'none',
+              cursor: blocked ? 'not-allowed' : 'pointer',
+              color: cfg.color, opacity: blocked ? .3 : .7, padding: '4px 6px',
               fontSize: 14, lineHeight: 1, borderRadius: 6,
               transition: 'opacity .15s',
             }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '.7'}
+            onMouseEnter={e => { if (!blocked) e.currentTarget.style.opacity = '1'; }}
+            onMouseLeave={e => { if (!blocked) e.currentTarget.style.opacity = '.7'; }}
           >
             ✏️
           </button>
-        )}
+          );
+        })()}
       </div>
 
       <div className="summary-grid" style={{ marginBottom: 18 }}>

@@ -79,6 +79,11 @@ export function validateCreateTransactionDraft(f) {
     return errors;
   }
 
+  // Transferências usam a categoria de sistema, resolvida no backend, e por
+  // isso saem acima. Todo o resto exige escolha explícita: o backend já
+  // recusava, e descobrir isso depois do envio é o pior momento possível.
+  if (!(f.categoryId ?? '').trim()) errors.push('Selecione uma categoria.');
+
   const hasC = !!(f.cardId ?? '').trim();
   const hasA = !!(f.accountId ?? '').trim();
   if (!hasC && !hasA) errors.push('Selecione a conta ou o cartão.');
