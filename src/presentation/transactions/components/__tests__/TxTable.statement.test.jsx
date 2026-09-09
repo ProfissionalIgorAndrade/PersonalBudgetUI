@@ -113,3 +113,33 @@ describe('October statement, September purchase date', () => {
     expect(screen.getByText('10/2026', { exact: false })).toBeTruthy();
   });
 });
+
+describe('status column is not rendered', () => {
+  const onUpdateStatus = () => {};
+
+  it('has no Status header', () => {
+    render(<TxTable {...props} onUpdateStatus={onUpdateStatus} />);
+    expect(screen.queryByText('Status')).toBeNull();
+  });
+
+  it('renders no status select, even when a handler is supplied', () => {
+    const { container } = render(<TxTable {...props} onUpdateStatus={onUpdateStatus} />);
+    const selects = [...container.querySelectorAll('select')]
+      .filter(s => (s.getAttribute('aria-label') || '').startsWith('Status'));
+    expect(selects).toEqual([]);
+  });
+
+  it('shows no status text either', () => {
+    render(<TxTable {...props} onUpdateStatus={onUpdateStatus} />);
+    for (const label of ['Pendente', 'Completo', 'Cancelado']) {
+      expect(screen.queryByText(label)).toBeNull();
+    }
+  });
+
+  it('keeps header and body cell counts aligned without it', () => {
+    const { container } = render(<TxTable {...props} onUpdateStatus={onUpdateStatus} />);
+    const headers = container.querySelectorAll('thead th').length;
+    const cells = container.querySelectorAll('tbody tr')[0].querySelectorAll('td').length;
+    expect(cells).toBe(headers);
+  });
+});
