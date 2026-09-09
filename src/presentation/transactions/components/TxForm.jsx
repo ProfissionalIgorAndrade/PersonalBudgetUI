@@ -28,7 +28,10 @@ const emptyDraft = (members) => {
     memberId: members[0]?.id || '',
     accountId: '', cardId: '',
     originAccountId: '', destinationAccountId: '',
-    recurrence: 'variable', status: 'paid',
+    // Um lançamento novo nasce pendente. 'paid' presumia que a pessoa já
+    // pagou no momento do cadastro, o que raramente é verdade e fazia o
+    // registro entrar como concluído sem ninguém escolher isso.
+    recurrence: 'variable', status: 'pending',
     installments: '', repeatCount: '',
     expirationDate: '',
     installmentTitle: '',

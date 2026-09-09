@@ -1,6 +1,21 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { R$, fdate } from '../../../core/utils/format';
 import { statementLabel } from '../../../core/utils/billing';
+
+/**
+ * A coluna de status está oculta em todas as tabelas.
+ *
+ * Enquanto a duplicidade de valores entre fatura e lançamento não estiver
+ * resolvida, o status exibido não corresponde à realidade financeira, e um
+ * controle que muda estado a partir de informação errada faz mais estrago do
+ * que a ausência dele.
+ *
+ * Oculta o cabeçalho, a célula e o próprio seletor, então não há como ver nem
+ * interagir. A rota de atualização no backend continua existindo e intocada.
+ *
+ * Para reativar: apagar esta constante e seus usos.
+ */
+const STATUS_COLUMN_ENABLED = false;
 import { accountLabel } from '../../../application/mappers/index';
 import Modal from '../../shared/components/Modal';
 import TxForm from './TxForm';
@@ -208,7 +223,7 @@ export default function TxTable({
               {show('card')       && <th>Cartão</th>}
               {show('statement') && <th title="Fatura em que o lançamento entra">Fatura</th>}
               {show('recurrence') && <Th col="recurrence">Recorrência</Th>}
-              <Th col="status">Status</Th>
+              {STATUS_COLUMN_ENABLED && <Th col="status">Status</Th>}
               <Th col="amount" style={{ textAlign: 'right' }}>Valor</Th>
               <th className="csv-col-act" scope="col">Ações</th>
             </tr>
@@ -274,6 +289,7 @@ export default function TxTable({
                     </td>
                   )}
                   {show('recurrence') && <td>{REC[t.recurrence] ?? REC.none}</td>}
+                  {STATUS_COLUMN_ENABLED && (
                   <td style={{ verticalAlign: 'middle' }}>
                     {onUpdateStatus && !isCreditCardTx(t) ? (
                       <select
@@ -292,6 +308,7 @@ export default function TxTable({
                       STATUS[t.status] ?? <span className="badge badge-muted">{t.status}</span>
                     )}
                   </td>
+                  )}
                   <td className="csv-col-val" style={{ color: isIncome ? 'var(--green)' : isExpense ? 'var(--red)' : 'var(--text)', ...NUM }}>
                     {isIncome ? '+' : isExpense ? '−' : ''}{R$(t.amount)}
                   </td>
