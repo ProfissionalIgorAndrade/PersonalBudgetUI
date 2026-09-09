@@ -132,6 +132,11 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
         setSubmitError(errs.join(' · '));
         return;
       }
+    } else if (f.type !== 'transfer' && !(f.categoryId ?? '').trim()) {
+      // A edição não passa pela validação completa, mas categoria é
+      // obrigatória nos dois fluxos.
+      setSubmitError('Selecione uma categoria.');
+      return;
     }
 
     let amountNum;
@@ -226,9 +231,15 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
         </div>
         {f.type !== 'transfer' && (
           <div className="form-group">
-            <label className="form-label">Categoria</label>
-            <select className="form-select" value={f.categoryId} onChange={e => set('categoryId', e.target.value)}>
-              <option value="">— Nenhuma —</option>
+            <label className="form-label">Categoria *</label>
+            <select
+              className="form-select"
+              value={f.categoryId}
+              onChange={e => set('categoryId', e.target.value)}
+              required
+              aria-invalid={!f.categoryId}
+            >
+              <option value="">— Selecione —</option>
               {filteredCats.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
             </select>
           </div>
