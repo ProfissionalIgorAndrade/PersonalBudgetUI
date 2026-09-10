@@ -3,13 +3,14 @@ import { R$ } from '../../core/utils/format';
 import { parseMoneyAmount } from '../../core/utils/money';
 import { ACC_TYPES } from '../../core/constants/index';
 import MonthSelector from '../shared/components/MonthSelector';
+import { txBelongsToMonth } from '../../core/utils/billing';
 import Modal from '../shared/components/Modal';
 import AccountTile from './components/AccountTile';
 import AccountDetail from './components/AccountDetail';
 import AccountForm from './components/AccountForm';
 
 export default function AccountsView({
-  accounts, members, categories, cards, onAdd, onEdit, onDelete,
+  accounts, members, categories, cards, transactions = [], onAdd, onEdit, onDelete,
   onEditTx, onDeleteTx, onBatchDeleteTx, onUpdateStatus, notify, transactionsReloadGeneration, activeMonth, setActiveMonth,
 }) {
   const [showForm, setShowForm]             = useState(false);
@@ -37,6 +38,24 @@ export default function AccountsView({
 
   /** Saldo exibido no cartão / cabeçalho: valor da conta retornado pela API (não calculado pelo período local). */
   const accountBalance = acc => parseMoneyAmount(acc?.balance ?? acc?.Balance);
+
+  /**
+   * Movimento da conta no mês em exibição, para o card dar uma prévia sem
+   * exigir clique — o mesmo papel que o total da fatura cumpre no cartão.
+   *
+   * O saldo acima vem da API e é acumulado; estes dois são do período.
+   */
+  const monthFlow = (accountId) => {
+    const rows = (transactions || []).filter(t =>
+      t.accountId === accountId &&
+      !t.cardId &&
+      t.status !== 'cancelled' &&
+      txBelongsToMonth(t, activeMonth));
+    const sum = (type) => rows
+      .filter(t => t.type === type)
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+    return { income: sum('income'), expense: sum('expense') };
+  };
 
   const select = a => setSelectedAccount(sel => sel?.id === a.id ? null : a);
 
@@ -70,6 +89,8 @@ export default function AccountsView({
                   <AccountTile
                     account={a}
                     balance={accountBalance(a)}
+                    flow={monthFlow(a.id)}
+                    monthLabel={activeMonth}
                     members={members}
                     selected={selectedAccount?.id === a.id}
                     onSelect={() => select(a)}

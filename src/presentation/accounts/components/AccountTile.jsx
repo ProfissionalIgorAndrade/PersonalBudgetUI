@@ -17,7 +17,13 @@ const getGrad = c => {
   catch { return 'linear-gradient(135deg, #1e293b, #0f172a)'; }
 };
 
-export default function AccountTile({ account, balance, members, selected, onSelect, onEdit, onDelete }) {
+const ymLabel = (ym) => {
+  if (!ym) return '';
+  const [y, m] = String(ym).split('-');
+  return `${m}/${y}`;
+};
+
+export default function AccountTile({ account, balance, flow, monthLabel, members, selected, onSelect, onEdit, onDelete }) {
   const mem = findMember(members, account.memberId);
 
   return (
@@ -51,6 +57,20 @@ export default function AccountTile({ account, balance, members, selected, onSel
       </div>
 
       <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px 10px' }}>
+        {/* Prévia do período, para o card responder sem exigir clique. O saldo
+            acima é acumulado e vem da API; estes dois são do mês exibido. */}
+        {flow && (
+          <div className="flex jcb aic" style={{ marginBottom: 8 }}>
+            <span className="txxs tmuted">
+              Movimento{monthLabel ? ` ${ymLabel(monthLabel)}` : ''}
+            </span>
+            <span style={{ ...NUM, fontSize: 11, fontWeight: 700 }}>
+              <span style={{ color: '#4ade80' }}>+{R$(flow.income)}</span>
+              <span className="tmuted">{'  ·  '}</span>
+              <span style={{ color: '#f87171' }}>-{R$(flow.expense)}</span>
+            </span>
+          </div>
+        )}
         <div className="flex jce" style={{ gap: 5 }}>
           <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onEdit}>✏️</button>
           <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onDelete}>🗑️</button>
