@@ -6,7 +6,7 @@ import * as categoryRepo     from '../../data/repositories/categoryRepository';
 import * as cardRepo         from '../../data/repositories/cardRepository';
 import * as txRepo           from '../../data/repositories/transactionRepository';
 import {
-  normalizeAccount, normalizeCategory, normalizeCard,
+  normalizeAccount, normalizeCategory, normalizeCard, sortCategories,
   normalizeTransaction, normalizeProfile,
   txToApi, CAT_TYPE_TO_API,
 } from '../mappers';
@@ -36,7 +36,7 @@ export function useAppData(notify) {
 
   const loadCats = useCallback(async () => {
     const raw = await categoryRepo.listCategories();
-    setCategories((raw || []).map(normalizeCategory));
+    setCategories(sortCategories((raw || []).map(normalizeCategory)));
   }, []);
 
   const loadCards = useCallback(async () => {
@@ -68,7 +68,7 @@ export function useAppData(notify) {
       ]);
 
       setAccounts((accs   || []).map(normalizeAccount));
-      setCategories((cats || []).map(normalizeCategory));
+      setCategories(sortCategories((cats || []).map(normalizeCategory)));
       setCards((cds       || []).map(normalizeCard).filter(Boolean));
       setTransactions((txs || []).map(normalizeTransaction));
       bumpTransactionsReload();

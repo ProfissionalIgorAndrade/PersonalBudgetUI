@@ -200,3 +200,16 @@ export function normalizeTransaction(t) {
 export function txToApi(f) {
   return buildCreateTransactionPayload(f);
 }
+
+/**
+ * Ordena categorias por nome, respeitando acentuação e maiúsculas do
+ * português — 'Água' antes de 'Assinaturas', 'Dízimo' entre 'Contas' e
+ * 'Educação'. Uma ordenação por código de caractere jogaria os acentuados
+ * para o fim da lista.
+ *
+ * Aplicada no carregamento, uma vez, para que toda tela que consome
+ * `categories` já receba a lista ordenada.
+ */
+export const sortCategories = (cats) =>
+  [...(cats || [])].sort((a, b) =>
+    (a?.name || '').localeCompare(b?.name || '', 'pt-BR', { sensitivity: 'base' }));
