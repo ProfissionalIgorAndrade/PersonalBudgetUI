@@ -19,7 +19,13 @@ const getGrad = c => {
   catch { return 'linear-gradient(135deg, #1e1b4b, #312e81)'; }
 };
 
-export default function CardTile({ card, spent, members, selected, onSelect, onEdit, onDelete }) {
+const monthLabel = (ym) => {
+  if (!ym) return '';
+  const [y, m] = String(ym).split('-');
+  return `${m}/${y}`;
+};
+
+export default function CardTile({ card, spent, statementMonth, members, selected, onSelect, onEdit, onDelete }) {
   const mem    = findMember(members, card.memberId);
   const usePct = card.limit > 0 ? Math.min(spent / card.limit * 100, 100) : 0;
   return (
@@ -47,9 +53,17 @@ export default function CardTile({ card, spent, members, selected, onSelect, onE
         </div>
       </div>
       <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px 10px' }}>
+        {/* Total da fatura em destaque: é o número que a pessoa vem buscar,
+            e antes só aparecia depois de clicar no cartão. */}
+        <div className="flex jcb aib" style={{ marginBottom: 6 }}>
+          <span className="txxs tmuted">
+            Fatura{statementMonth ? ` ${monthLabel(statementMonth)}` : ''}
+          </span>
+          <span style={{ ...NUM, fontSize: 16, fontWeight: 800 }}>{R$(spent)}</span>
+        </div>
         <div className="flex jcb aic" style={{ marginBottom: 4 }}>
-          <span className="txxs tmuted">Gasto este mês</span>
-          <span className="txxs tmuted" style={NUM}>{R$(spent)} / {R$(card.limit)}</span>
+          <span className="txxs tmuted">Limite</span>
+          <span className="txxs tmuted" style={NUM}>{R$(card.limit)}</span>
         </div>
         <div className="progress-bar" style={{ marginBottom: 8 }}>
           <div className="progress-fill" style={{

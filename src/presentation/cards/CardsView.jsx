@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { curMonth } from '../../core/utils/format';
 import { COLORS, FLAGS } from '../../core/constants/index';
+import { txBelongsToMonth } from '../../core/utils/billing';
 import { uid } from '../../core/utils/format';
 import MonthSelector from '../shared/components/MonthSelector';
 import Modal from '../shared/components/Modal';
@@ -27,10 +28,18 @@ export default function CardsView({ cards, members, transactions, categories, ac
     setShowForm(false);
   };
 
-  const cardSpend = id => {
-    const m = curMonth();
+  /**
+   * Total da fatura do cartão no mês em exibição.
+   *
+   * Usava curMonth() e ignorava o seletor de mês da própria tela: com
+   * Setembro selecionado, o card mostrava o gasto do mês corrente. E
+   * filtrava por data da compra, então divergia do total que a tela de
+   * fatura apresenta ao clicar no cartão.
+   */
+  const cardStatementTotal = id => {
+    const m = activeMonth || curMonth();
     return transactions
-      .filter(t => t.cardId === id && t.date?.startsWith(m) && t.type === 'expense' && t.status !== 'cancelled')
+      .filter(t => t.cardId === id && txBelongsToMonth(t, m) && t.type === 'expense' && t.status !== 'cancelled')
       .reduce((s, t) => s + Number(t.amount), 0);
   };
 
@@ -65,7 +74,8 @@ export default function CardsView({ cards, members, transactions, categories, ac
                 <div key={c.id} style={{ flex: '0 0 calc(25% - 10.5px)', minWidth: 180 }}>
                   <CardTile
                     card={c}
-                    spent={cardSpend(c.id)}
+                    spent={cardStatementTotal(c.id)}
+                    statementMonth={activeMonth || curMonth()}
                     members={members}
                     selected={selectedCard?.id === c.id}
                     onSelect={() => select(c)}
