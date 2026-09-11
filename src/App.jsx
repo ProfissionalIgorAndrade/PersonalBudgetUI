@@ -75,7 +75,8 @@ export default function App() {
 
   const views = {
     dashboard:    <DashboardView    data={data} setView={setView} activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
-    transactions: <TransactionsView data={data} {...txOps} activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
+    transactions: <TransactionsView data={data} {...txOps} activeMonth={activeMonth} setActiveMonth={setActiveMonth}
+                                    onImport={txOps.onImportOne} reloadTransactions={loadTx} />,
     cards:        <CardsView        cards={cards} members={members} transactions={transactions} categories={categories} accounts={accounts}
                                     {...cardOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete} onBatchDeleteTx={txOps.onBatchDelete}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth}

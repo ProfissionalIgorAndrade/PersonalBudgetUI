@@ -86,6 +86,18 @@ export function useAppData(notify) {
 
   /* ── Transaction CRUD ─────────────────────────────────────── */
   const txOps = {
+    /**
+     * Criação para importação em lote.
+     *
+     * Diferente de onAdd em dois pontos que importam num laço de dezenas de
+     * linhas: propaga o erro em vez de engolir num toast, para quem chama
+     * saber qual linha falhou; e não recarrega a lista a cada item, o que
+     * seriam 50 requisições extras. Quem importa recarrega uma vez no fim.
+     */
+    onImportOne: async (tx) => {
+      await txRepo.createTransaction(txToApi(tx));
+    },
+
     onAdd: async (tx) => {
       try {
         const data = await txRepo.createTransaction(txToApi(tx));
