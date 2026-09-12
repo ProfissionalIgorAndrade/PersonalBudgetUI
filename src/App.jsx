@@ -8,6 +8,7 @@ import { curMonth }          from './core/utils/format';
 import { useNotify }         from './application/hooks/useNotify';
 import { useAppData }        from './application/hooks/useAppData';
 import { useAuth }           from './application/hooks/useAuth';
+import { setOnUnauthorized } from './data/http/client';
 
 import Sidebar               from './presentation/shared/components/Sidebar';
 import Toast                 from './presentation/shared/components/Toast';
@@ -54,6 +55,10 @@ export default function App() {
     logout(clearData);
     setView('dashboard');
   };
+
+  useEffect(() => {
+    setOnUnauthorized(handleLogout);
+  }, []);
 
   if (!authSession) {
     return (

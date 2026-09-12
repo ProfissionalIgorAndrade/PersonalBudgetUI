@@ -10,6 +10,9 @@ export const setHouseholdId  = (id) => id
   ? localStorage.setItem('pb_household_id', id)
   : localStorage.removeItem('pb_household_id');
 
+let _onUnauthorized = null;
+export const setOnUnauthorized = (fn) => { _onUnauthorized = fn; };
+
 function apiAuthHeaders(extra = {}) {
   const token = getToken();
   const hid   = getHouseholdId();
@@ -33,6 +36,7 @@ async function request(path, opts = {}) {
     const err = new Error(formatApiErrorMessage(raw));
     err.status = res.status;
     err.apiMessage = raw;
+    if (res.status === 401) _onUnauthorized?.();
     throw err;
   }
   return body.data;
@@ -56,6 +60,7 @@ export async function deleteEnvelope(path, payload) {
     const err = new Error(formatApiErrorMessage(raw));
     err.status = res.status;
     err.apiMessage = raw;
+    if (res.status === 401) _onUnauthorized?.();
     throw err;
   }
 
@@ -78,6 +83,7 @@ export async function patchEnvelope(path, payload) {
     const err = new Error(formatApiErrorMessage(raw));
     err.status = res.status;
     err.apiMessage = raw;
+    if (res.status === 401) _onUnauthorized?.();
     throw err;
   }
 
