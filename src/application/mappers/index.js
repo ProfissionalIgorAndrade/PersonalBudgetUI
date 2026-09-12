@@ -17,6 +17,13 @@ export function accountLabel(account, members) {
   return mem ? `${bank} - ${mem.name}` : bank;
 }
 
+/** Rótulo de exibição de cartão: "Nome - Titular", espelhando accountLabel. */
+export function cardLabel(card, members) {
+  const name = card?.name || 'Cartão';
+  const mem  = findMember(members, card?.memberId);
+  return mem ? `${name} - ${mem.name}` : name;
+}
+
 /* ─── Enum conversions ──────────────────────────────────────── */
 export const TYPE_TO_API    = { income: 'Income', expense: 'Expense' };
 export const TYPE_FROM_API  = { Income: 'income', Expense: 'expense' };
@@ -210,6 +217,14 @@ export function txToApi(f) {
  * Aplicada no carregamento, uma vez, para que toda tela que consome
  * `categories` já receba a lista ordenada.
  */
-export const sortCategories = (cats) =>
-  [...(cats || [])].sort((a, b) =>
-    (a?.name || '').localeCompare(b?.name || '', 'pt-BR', { sensitivity: 'base' }));
+const byName = (a, b) =>
+  (a?.name || '').localeCompare(b?.name || '', 'pt-BR', { sensitivity: 'base' });
+
+export const sortCategories = (cats) => [...(cats || [])].sort(byName);
+
+/**
+ * Mesma ordenação para contas, cartões e membros: todo dropdown do app
+ * consome estas listas, então ordenar no carregamento cobre todos de uma vez
+ * — inclusive os que ainda não existem.
+ */
+export const sortByName = (list) => [...(list || [])].sort(byName);
