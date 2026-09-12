@@ -165,7 +165,6 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
   const showCategoryDateRow = f.type !== 'transfer';
   const showAccountCardRow = f.type !== 'transfer';
   const isInstallment = f.recurrence === 'installment' && f.type === 'expense';
-  const showFixedExtras = !isEdit && f.recurrence === 'fixed' && f.type !== 'transfer' && !isInstallment;
   const showInstallmentExtras = !isEdit && isInstallment;
   const cardDisabledByFixed = f.recurrence === 'fixed' && f.type !== 'transfer';
   const showRecurrenceScope = isEdit && (f.recurrence === 'fixed' || f.recurrence === 'installment');
@@ -311,13 +310,10 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
         </div>
       )}
 
-      {/* 5. Número de meses (Fixa) ou Quantidade de parcelas (Parcelada) */}
-      {showFixedExtras && (
-        <div className="form-group">
-          <label className="form-label">Número de meses *</label>
-          <input className="form-input" type="number" min="2" max="120" required placeholder="Ex: 12" value={f.repeatCount} onChange={e => set('repeatCount', e.target.value)} />
-        </div>
-      )}
+      {/* 5. Quantidade de parcelas (Parcelada).
+          Fixa não pergunta prazo: do ponto de vista de quem cadastra um
+          aluguel, fixa é fixa. A janela é resolvida em
+          createTransactionPayload. */}
       {showInstallmentExtras && (
         <div className="form-group">
           <label className="form-label">Quantidade de parcelas *</label>
