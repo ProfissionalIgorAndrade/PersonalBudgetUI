@@ -7,7 +7,7 @@ export default function CategoryForm({ f, onChange, onSave, onClose }) {
   const set = (k, v) => onChange({ ...f, [k]: v });
 
   return (
-    <Modal title={f.id ? 'Editar Categoria' : 'Nova Categoria'} onClose={onClose}>
+    <Modal title={f.id ? 'Editar Categoria' : 'Nova Categoria'} onClose={onClose} confirmOnOverlay>
       <div className="form-group">
         <label className="form-label">Nome</label>
         <input className="form-input" value={f.name || ''} onChange={e => set('name', e.target.value)} placeholder="Ex: Alimentação" />

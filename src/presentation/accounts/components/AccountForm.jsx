@@ -12,7 +12,7 @@ export default function AccountForm({ f, onChange, onSave, onClose, members }) {
   const canSave = !!f.memberId;
 
   return (
-    <Modal title={f.id ? 'Editar Conta' : 'Nova Conta'} onClose={onClose}>
+    <Modal title={f.id ? 'Editar Conta' : 'Nova Conta'} onClose={onClose} confirmOnOverlay>
       <div className="form-group">
         <label className="form-label">Banco *</label>
         <select className="form-select" value={f.bank || ''} onChange={e => set('bank', e.target.value)}>

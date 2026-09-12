@@ -343,7 +343,7 @@ export default function TxTable({
 
       {/* Edit modal */}
       {editingTx && (
-        <Modal title="Editar Lançamento" onClose={() => setEditingTx(null)} wide>
+        <Modal title="Editar Lançamento" onClose={() => setEditingTx(null)} wide confirmOnOverlay>
           <TxForm
             tx={editingTx}
             cats={categories}
