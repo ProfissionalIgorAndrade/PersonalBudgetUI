@@ -31,7 +31,7 @@ export default function MemberForm({ f, onChange, onSave, onClose }) {
   const selectTone = mod => set('emoji', baseEmoji + mod);
 
   return (
-    <Modal title={f.id ? 'Editar Membro' : 'Novo Membro'} onClose={onClose}>
+    <Modal title={f.id ? 'Editar Membro' : 'Novo Membro'} onClose={onClose} confirmOnOverlay>
       <div className="form-group">
         <label className="form-label">Nome</label>
         <input className="form-input" value={f.name || ''} onChange={e => set('name', e.target.value)} placeholder="João, Maria, Pedro..." />

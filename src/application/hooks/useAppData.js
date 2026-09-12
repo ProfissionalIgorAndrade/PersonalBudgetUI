@@ -6,7 +6,7 @@ import * as categoryRepo     from '../../data/repositories/categoryRepository';
 import * as cardRepo         from '../../data/repositories/cardRepository';
 import * as txRepo           from '../../data/repositories/transactionRepository';
 import {
-  normalizeAccount, normalizeCategory, normalizeCard, sortCategories,
+  normalizeAccount, normalizeCategory, normalizeCard, sortCategories, sortByName,
   normalizeTransaction, normalizeProfile,
   txToApi, CAT_TYPE_TO_API,
 } from '../mappers';
@@ -31,7 +31,7 @@ export function useAppData(notify) {
 
   const loadAcc = useCallback(async () => {
     const raw = await accountRepo.listAccounts();
-    setAccounts((raw || []).map(normalizeAccount));
+    setAccounts(sortByName((raw || []).map(normalizeAccount)));
   }, []);
 
   const loadCats = useCallback(async () => {
@@ -41,12 +41,12 @@ export function useAppData(notify) {
 
   const loadCards = useCallback(async () => {
     const raw = await cardRepo.listCards();
-    setCards((raw || []).map(normalizeCard).filter(Boolean));
+    setCards(sortByName((raw || []).map(normalizeCard).filter(Boolean)));
   }, []);
 
   const loadMembers = useCallback(async (hid) => {
     const raw = await householdRepo.listProfiles(hid || getHouseholdId());
-    setMembers((raw || []).map(normalizeProfile).filter(Boolean));
+    setMembers(sortByName((raw || []).map(normalizeProfile).filter(Boolean)));
   }, []);
 
   /* ── Bulk initial load ────────────────────────────────────── */
@@ -67,12 +67,12 @@ export function useAppData(notify) {
         householdRepo.listProfiles(hid),
       ]);
 
-      setAccounts((accs   || []).map(normalizeAccount));
+      setAccounts(sortByName((accs   || []).map(normalizeAccount)));
       setCategories(sortCategories((cats || []).map(normalizeCategory)));
-      setCards((cds       || []).map(normalizeCard).filter(Boolean));
+      setCards(sortByName((cds       || []).map(normalizeCard).filter(Boolean)));
       setTransactions((txs || []).map(normalizeTransaction));
       bumpTransactionsReload();
-      setMembers((profs   || []).map(normalizeProfile).filter(Boolean));
+      setMembers(sortByName((profs   || []).map(normalizeProfile).filter(Boolean)));
     } catch (e) {
       notify('Erro ao carregar dados: ' + e.message, 'error');
     } finally {

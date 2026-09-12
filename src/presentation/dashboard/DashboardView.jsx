@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { R$, curMonth, monthLabel } from '../../core/utils/format';
-import { txBelongsToMonth } from '../../core/utils/billing';
+import { txBelongsToMonth, statementNet } from '../../core/utils/billing';
 import { useLocalStorage } from '../../core/hooks/useLocalStorage';
 import MonthSelector from '../shared/components/MonthSelector';
 import SummaryCards           from './components/SummaryCards';
@@ -71,7 +71,7 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
   const pendingFixed = transactions.filter(t => t.recurrence === 'fixed' && t.status === 'pending').slice(0, 4);
 
   const faturasData  = (cards || []).map(card => {
-    const spent = transactions.filter(t => t.cardId === card.id && txBelongsToMonth(t, month) && t.type === 'expense' && t.status !== 'cancelled').reduce((s, t) => s + Number(t.amount), 0);
+    const spent = statementNet(transactions.filter(t => t.cardId === card.id && txBelongsToMonth(t, month)));
     return { ...card, spent };
   }).filter(c => c.spent > 0);
   const totalFaturas = faturasData.reduce((s, c) => s + c.spent, 0);

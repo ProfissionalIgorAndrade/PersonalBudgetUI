@@ -42,7 +42,7 @@ export default function ChangePasswordModal({ onClose, onSuccess }) {
   };
 
   return (
-    <Modal title="Alterar Senha" onClose={() => !saving && onClose()}>
+    <Modal title="Alterar Senha" onClose={() => !saving && onClose()} confirmOnOverlay>
       <form onSubmit={submit}>
         {error && (
           <div style={{

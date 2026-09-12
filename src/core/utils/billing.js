@@ -70,3 +70,22 @@ export const statementLabel = (t) => {
   if (!t?.cardId || !t.statementMonth || !t.statementYear) return null;
   return `${String(t.statementMonth).padStart(2, '0')}/${t.statementYear}`;
 };
+
+/**
+ * Valor líquido de um conjunto de lançamentos de fatura.
+ *
+ * Estorno é lançado como receita (type 'income') no mesmo cartão. Os totais
+ * filtravam apenas 'expense', então o estorno era simplesmente ignorado: a
+ * fatura continuava mostrando o valor cheio da compra que foi devolvida.
+ *
+ * Despesa soma, estorno subtrai, cancelado fica de fora.
+ */
+export const statementNet = (rows = []) =>
+  rows.reduce((sum, t) => {
+    if (!t || t.status === 'cancelled') return sum;
+    const amount = Number(t.amount) || 0;
+    return t.type === 'income' ? sum - amount : sum + amount;
+  }, 0);
+
+/** Lançamentos que compõem a fatura: tudo menos os cancelados. */
+export const statementRows = (rows = []) => rows.filter(t => t && t.status !== 'cancelled');

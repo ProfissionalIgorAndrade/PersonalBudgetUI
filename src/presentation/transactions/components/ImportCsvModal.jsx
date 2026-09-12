@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import Modal from '../../shared/components/Modal';
 import { R$ } from '../../../core/utils/format';
 import CurrencyInput from '../../shared/components/CurrencyInput';
+import { cardLabel } from '../../../application/mappers/index';
 import {
   buildTemplateCsv, parseImportCsv, validateImportRow, TEMPLATE_COLUMNS,
 } from '../../../core/utils/csvImport';
@@ -117,6 +118,8 @@ export default function ImportCsvModal({ cards, categories, members, onCreate, o
       title="Importar Lançamentos"
       onClose={step === 'running' ? () => {} : onClose}
       size={step === 'review' ? 'full' : 'wide'}
+      confirmOnOverlay={step === 'review' || step === 'target'}
+      confirmMessage="Descartar as linhas conferidas e fechar a importação?"
     >
       {step === 'upload' && (
         <div>
@@ -274,7 +277,7 @@ export default function ImportCsvModal({ cards, categories, members, onCreate, o
           <div className="form-group">
             <label className="form-label">Cartão de crédito *</label>
             <select className="form-select" value={cardId} onChange={e => setCardId(e.target.value)}>
-              {cards.map(c => <option key={c.id} value={c.id}>💳 {c.name}</option>)}
+              {cards.map(c => <option key={c.id} value={c.id}>💳 {cardLabel(c, members)}</option>)}
             </select>
           </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { accountLabel } from '../../application/mappers/index';
+import { accountLabel, cardLabel } from '../../application/mappers/index';
 import Modal from '../shared/components/Modal';
 import MonthSelector from '../shared/components/MonthSelector';
 import ImportCsvModal from './components/ImportCsvModal';
@@ -98,7 +98,7 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
           </select>
           <select className="form-select" style={sel()} value={filter.cardId} onChange={set('cardId')}>
             <option value="all">Todos os cartões</option>
-            {cards.map(c => <option key={c.id} value={c.id}>💳 {c.name}</option>)}
+            {cards.map(c => <option key={c.id} value={c.id}>💳 {cardLabel(c, members)}</option>)}
           </select>
           <select className="form-select" style={sel()} value={filter.categoryId} onChange={set('categoryId')}>
             <option value="all">Todas as categorias</option>
@@ -154,7 +154,7 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
 
 
       {newModal && (
-        <Modal title="Novo Lançamento" onClose={() => setNewModal(false)} wide>
+        <Modal title="Novo Lançamento" onClose={() => setNewModal(false)} wide confirmOnOverlay>
           <TxForm
             tx={null}
             cats={categories}
