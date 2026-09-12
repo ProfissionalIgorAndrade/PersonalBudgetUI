@@ -104,7 +104,15 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
     }));
   };
 
-  const filteredCats = cats.filter(c => (f.type === 'income' ? c.type === 'income' : c.type === 'expense'));
+  // Normalmente só as categorias do tipo escolhido. A já gravada entra
+  // junto mesmo quando o tipo diverge: reclassificar um estorno de despesa
+  // para receita não deve exigir criar uma categoria de receita antes, nem
+  // apagar em silêncio a que já estava lá.
+  const filteredCats = (() => {
+    const matching = cats.filter(c => (f.type === 'income' ? c.type === 'income' : c.type === 'expense'));
+    const current = cats.find(c => c.id === f.categoryId);
+    return current && !matching.some(c => c.id === current.id) ? [current, ...matching] : matching;
+  })();
   const arm = resolveCreatePaymentArm(f);
   const cardLocked = arm === 'creditCard';
 
