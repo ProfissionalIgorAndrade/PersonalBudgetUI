@@ -173,7 +173,11 @@ export function normalizeCard(c) {
     color:      normalizeCardHex(colorRaw),
     flag:       normalizeCardFlag(c),
     lastDigits: String(c.lastDigits ?? c.lastFourDigits ?? c.LastFourDigits ?? '').replace(/\D/g, '').slice(-4),
-    memberId:   String(c.memberId ?? c.member?.id ?? c.member?.Id ?? c.attributionProfileId ?? c.MemberId ?? c.ProfileId ?? ''),
+    // CreditCard não tem vínculo com perfil de membro no domínio - só UserId.
+    // Nenhuma das chaves procuradas antes existia na resposta, então memberId
+    // vinha sempre vazio e o dono nunca aparecia. findMember já casa por
+    // userId, então basta incluí-lo na cadeia.
+    memberId:   String(c.memberId ?? c.member?.id ?? c.member?.Id ?? c.attributionProfileId ?? c.MemberId ?? c.ProfileId ?? c.userId ?? c.UserId ?? ''),
   };
 }
 

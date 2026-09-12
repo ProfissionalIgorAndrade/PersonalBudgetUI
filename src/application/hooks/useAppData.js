@@ -8,7 +8,7 @@ import * as txRepo           from '../../data/repositories/transactionRepository
 import {
   normalizeAccount, normalizeCategory, normalizeCard, sortCategories, sortByName,
   normalizeTransaction, normalizeProfile,
-  txToApi, CAT_TYPE_TO_API,
+  txToApi, CAT_TYPE_TO_API, TYPE_TO_API,
 } from '../mappers';
 import { describeCreateTransactionResponse } from '../createTransactionPayload';
 
@@ -118,6 +118,9 @@ export function useAppData(notify) {
           if (editMode === 1) {
             // Este lançamento apenas — endpoint único suporta campo + troca de fatura
             await txRepo.updateTransaction(tx.id, {
+              // O backend aceita reclassificar receita/despesa; sem enviar o tipo,
+              // um estorno cadastrado como despesa ficava assim para sempre.
+              type:               TYPE_TO_API[tx.type] || undefined,
               amount:               tx.amount      || undefined,
               date:                 tx.date        || undefined,
               description:          tx.description || undefined,
@@ -139,6 +142,9 @@ export function useAppData(notify) {
           }
         } else if (isFixed) {
           await txRepo.updateRecurringTransaction(tx.id, {
+            // O backend aceita reclassificar receita/despesa; sem enviar o tipo,
+            // um estorno cadastrado como despesa ficava assim para sempre.
+            type:               TYPE_TO_API[tx.type] || undefined,
             amount:               tx.amount      || undefined,
             date:                 tx.date        || undefined,
             description:          tx.description || undefined,
@@ -149,6 +155,9 @@ export function useAppData(notify) {
           });
         } else {
           await txRepo.updateTransaction(tx.id, {
+            // O backend aceita reclassificar receita/despesa; sem enviar o tipo,
+            // um estorno cadastrado como despesa ficava assim para sempre.
+            type:               TYPE_TO_API[tx.type] || undefined,
             amount:               tx.amount      || undefined,
             date:                 tx.date        || undefined,
             description:          tx.description || undefined,
