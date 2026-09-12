@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { curMonth } from '../../core/utils/format';
 import { COLORS, FLAGS } from '../../core/constants/index';
-import { txBelongsToMonth } from '../../core/utils/billing';
+import { txBelongsToMonth, statementNet } from '../../core/utils/billing';
+import { cardLabel } from '../../application/mappers/index';
 import { uid } from '../../core/utils/format';
 import MonthSelector from '../shared/components/MonthSelector';
 import Modal from '../shared/components/Modal';
@@ -38,9 +39,7 @@ export default function CardsView({ cards, members, transactions, categories, ac
    */
   const cardStatementTotal = id => {
     const m = activeMonth || curMonth();
-    return transactions
-      .filter(t => t.cardId === id && txBelongsToMonth(t, m) && t.type === 'expense' && t.status !== 'cancelled')
-      .reduce((s, t) => s + Number(t.amount), 0);
+    return statementNet(transactions.filter(t => t.cardId === id && txBelongsToMonth(t, m)));
   };
 
   const select = c => setSelectedCardId(id => id === c.id ? null : c.id);
@@ -91,7 +90,7 @@ export default function CardsView({ cards, members, transactions, categories, ac
             <div className="detail-panel" style={{ marginTop: 16 }}>
               <div className="flex jcb aic" style={{ marginBottom: 18 }}>
                 <div>
-                  <h2 style={{ fontSize: 18, fontWeight: 800, fontFamily: 'Syne' }}>{selectedCard.name} — Faturas</h2>
+                  <h2 style={{ fontSize: 18, fontWeight: 800, fontFamily: 'Syne' }}>{cardLabel(selectedCard, members)} — Faturas</h2>
                   <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
                     {FLAGS[selectedCard.flag] || 'Cartão'} · Fecha dia {selectedCard.closingDay || '?'} · Vence dia {selectedCard.dueDay || '?'}
                   </p>

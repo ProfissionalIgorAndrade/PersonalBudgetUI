@@ -9,7 +9,7 @@ export default function CardForm({ f, members, accounts, onChange, onSave, onClo
   const set = (k, v) => onChange({ ...f, [k]: v });
 
   return (
-    <Modal title={f.id ? 'Editar Cartão' : 'Novo Cartão'} onClose={onClose}>
+    <Modal title={f.id ? 'Editar Cartão' : 'Novo Cartão'} onClose={onClose} confirmOnOverlay>
       <div className="form-group">
         <label className="form-label">Nome do Cartão</label>
         <input className="form-input" value={f.name || ''} onChange={e => set('name', e.target.value)} placeholder="Nubank, Inter, C6..." />

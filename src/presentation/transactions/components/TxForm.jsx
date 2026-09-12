@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { uid } from '../../../core/utils/format';
-import { accountLabel } from '../../../application/mappers/index';
+import { accountLabel, cardLabel } from '../../../application/mappers/index';
 import CurrencyInput from '../../shared/components/CurrencyInput';
 import DateInput from '../../shared/components/DateInput';
 import { validateCreateTransactionDraft, resolveCreatePaymentArm } from '../../../application/createTransactionPayload';
@@ -358,7 +358,7 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
               style={(cardDisabledByFixed || (isEdit && cardLocked)) ? { opacity: 0.55, cursor: 'not-allowed' } : {}}
             >
               <option value="">— Nenhum —</option>
-              {cards.map(c => <option key={c.id} value={c.id}>💳 {c.name}</option>)}
+              {cards.map(c => <option key={c.id} value={c.id}>💳 {cardLabel(c, members)}</option>)}
             </select>
           </div>
         </div>

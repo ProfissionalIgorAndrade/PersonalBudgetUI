@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { R$ } from '../../../core/utils/format';
+import { statementNet, statementRows } from '../../../core/utils/billing';
 import { normalizeTransaction, accountLabel } from '../../../application/mappers';
 import TxTable from '../../transactions/components/TxTable';
 import Modal from '../../shared/components/Modal';
@@ -206,13 +207,14 @@ export default function CardDetail({
   /* Período da fatura ≠ mês-calendário da data da compra (ex.: fecha dia 28 → 29/05 entra na fatura de junho).
      Confiamos na lista retornada pelo statement (month/year); não filtramos por ano-mês do lançamento. */
   const selTx = useMemo(
-    () => statementTxs.filter(t => t.type === 'expense' && t.status !== 'cancelled'),
+    () => statementRows(statementTxs),
     [statementTxs],
   );
 
-  const total   = selTx.reduce((s, t) => s + Number(t.amount), 0);
-  const paid    = selTx.filter(t => t.status === 'paid').reduce((s, t) => s + Number(t.amount), 0);
-  const pending = selTx.filter(t => t.status !== 'paid').reduce((s, t) => s + Number(t.amount), 0);
+  // Estorno subtrai em vez de ser ignorado — ver statementNet.
+  const total   = statementNet(selTx);
+  const paid    = statementNet(selTx.filter(t => t.status === 'paid'));
+  const pending = statementNet(selTx.filter(t => t.status !== 'paid'));
 
   const dueDate = new Date(fatY, fatM - 1, dueDay);
   const dueFmt  = dueDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
