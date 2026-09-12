@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { accountLabel } from '../../application/mappers/index';
 import Modal from '../shared/components/Modal';
 import MonthSelector from '../shared/components/MonthSelector';
+import ImportCsvModal from './components/ImportCsvModal';
 import { txBelongsToMonth } from '../../core/utils/billing';
 import TxForm from './components/TxForm';
 import TxTable from './components/TxTable';
@@ -9,9 +10,10 @@ import TxTable from './components/TxTable';
 const EMPTY = { type: 'all', memberId: 'all', recurrence: 'all', status: 'all', cardId: 'all', accountId: 'all', categoryId: 'all', search: '' };
 
 
-export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatchDelete, onUpdateStatus, activeMonth, setActiveMonth }) {
+export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatchDelete, onUpdateStatus, activeMonth, setActiveMonth, onImport, reloadTransactions }) {
   const { transactions, categories, members, accounts, cards } = data;
   const [newModal, setNewModal] = useState(false);
+  const [importModal, setImportModal] = useState(false);
   const [filter, setFilter]     = useState(EMPTY);
 
   const set = k => e => setFilter(f => ({ ...f, [k]: e.target.value }));
@@ -43,6 +45,14 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <MonthSelector month={activeMonth} onChange={setActiveMonth} />
+          <button
+            className="btn btn-secondary"
+            title="Importar lançamentos de cartão por CSV"
+            onClick={() => setImportModal(true)}
+            style={{ padding: '0 12px' }}
+          >
+            ⬆️
+          </button>
           <button className="btn btn-primary" onClick={() => setNewModal(true)}>+ Novo Lançamento</button>
         </div>
       </div>
@@ -122,6 +132,27 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
           onUpdateStatus={onUpdateStatus}
         />
       </div>
+
+      {importModal && (
+
+        <ImportCsvModal
+
+          cards={data.cards || []}
+
+          categories={data.categories || []}
+
+          members={data.members || []}
+
+          onCreate={onImport}
+
+          onDone={reloadTransactions}
+
+          onClose={() => setImportModal(false)}
+
+        />
+
+      )}
+
 
       {newModal && (
         <Modal title="Novo Lançamento" onClose={() => setNewModal(false)} wide>

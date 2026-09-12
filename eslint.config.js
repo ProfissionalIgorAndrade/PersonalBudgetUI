@@ -38,6 +38,7 @@ export default [
         FileReader: 'readonly', ResizeObserver: 'readonly',
         Intl: 'readonly', crypto: 'readonly', alert: 'readonly',
         atob: 'readonly', btoa: 'readonly', CustomEvent: 'readonly',
+        File: 'readonly', FileList: 'readonly', Blob: 'readonly',
         Event: 'readonly', CustomEventInit: 'readonly',
         confirm: 'readonly', prompt: 'readonly',
       },
