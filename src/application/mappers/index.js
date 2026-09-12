@@ -173,10 +173,6 @@ export function normalizeCard(c) {
     color:      normalizeCardHex(colorRaw),
     flag:       normalizeCardFlag(c),
     lastDigits: String(c.lastDigits ?? c.lastFourDigits ?? c.LastFourDigits ?? '').replace(/\D/g, '').slice(-4),
-    // CreditCard não tem vínculo com perfil de membro no domínio - só UserId.
-    // Nenhuma das chaves procuradas antes existia na resposta, então memberId
-    // vinha sempre vazio e o dono nunca aparecia. findMember já casa por
-    // userId, então basta incluí-lo na cadeia.
     memberId:   String(c.memberId ?? c.member?.id ?? c.member?.Id ?? c.attributionProfileId ?? c.MemberId ?? c.ProfileId ?? c.userId ?? c.UserId ?? ''),
   };
 }
@@ -191,7 +187,11 @@ export function normalizeTransaction(t) {
     description:    t.description   ?? t.Description   ?? '',
     amount:         t.amount        ?? t.Amount        ?? 0,
     date:           dateStr,
-    type:           isTransfer ? 'transfer' : (TYPE_FROM_API[t.type ?? t.Type] || 'expense'),
+    // StatementTransactionItemDto chama o campo de TransactionType, não Type.
+    // Sem esta chave a busca falhava e todo lançamento vindo da tela de fatura
+    // caía no fallback 'expense' - um estorno aparecia como despesa ali e como
+    // receita em Lançamentos, para a mesma linha.
+    type:           isTransfer ? 'transfer' : (TYPE_FROM_API[t.type ?? t.Type ?? t.transactionType ?? t.TransactionType] || 'expense'),
     status:         normalizeTransactionStatus(t.status ?? t.Status),
     recurrence:     FREQ_FROM_API[t.frequency ?? t.Frequency] || 'variable',
     categoryId:     t.categoryId          ?? t.CategoryId          ?? '',
