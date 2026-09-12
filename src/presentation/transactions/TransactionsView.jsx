@@ -49,9 +49,8 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
             className="btn btn-secondary"
             title="Importar lançamentos de cartão por CSV"
             onClick={() => setImportModal(true)}
-            style={{ padding: '0 12px' }}
           >
-            ⬆️
+            📥 Importar CSV
           </button>
           <button className="btn btn-primary" onClick={() => setNewModal(true)}>+ Novo Lançamento</button>
         </div>

@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import Modal from '../../shared/components/Modal';
 import { R$ } from '../../../core/utils/format';
+import CurrencyInput from '../../shared/components/CurrencyInput';
 import {
   buildTemplateCsv, parseImportCsv, validateImportRow, TEMPLATE_COLUMNS,
 } from '../../../core/utils/csvImport';
@@ -106,10 +107,17 @@ export default function ImportCsvModal({ cards, categories, members, onCreate, o
     onDone?.();
   };
 
-  const cellStyle = { fontSize: 11, padding: '4px 5px' };
+  // A escala de antes (11px, 4px de padding) vinha de um modal de 720px.
+  // Em tela cheia, alinha com a tabela de Lançamentos.
+  const cellStyle = { padding: '6px 8px' };
+  const fieldStyle = { fontSize: 12.5, padding: '7px 9px', width: '100%' };
 
   return (
-    <Modal title="Importar Lançamentos" onClose={step === 'running' ? () => {} : onClose} wide>
+    <Modal
+      title="Importar Lançamentos"
+      onClose={step === 'running' ? () => {} : onClose}
+      size={step === 'review' ? 'full' : 'wide'}
+    >
       {step === 'upload' && (
         <div>
           <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16, lineHeight: 1.5 }}>
@@ -159,25 +167,25 @@ export default function ImportCsvModal({ cards, categories, members, onCreate, o
             <span style={{ fontSize: 13, fontWeight: 800 }}>{R$(total)}</span>
           </div>
 
-          <div style={{ maxHeight: 380, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
+          <div style={{ maxHeight: '58vh', overflow: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
             <table className="csv-table" style={{ width: '100%' }}>
               <thead>
                 <tr>
-                  <th style={{ width: 30 }}>
+                  <th style={{ width: 38 }}>
                     <input
                       type="checkbox"
                       checked={rows.length > 0 && rows.every(r => r.selected)}
                       onChange={e => setRows(prev => prev.map(r => ({ ...r, selected: e.target.checked })))}
                     />
                   </th>
-                  <th style={{ width: 28 }}>#</th>
-                  <th>Descrição</th>
-                  <th style={{ width: 92 }}>Valor</th>
-                  <th style={{ width: 80 }}>Tipo</th>
-                  <th style={{ width: 120 }}>Data</th>
-                  <th style={{ width: 140 }}>Categoria</th>
-                  <th style={{ width: 130 }}>Membro</th>
-                  <th style={{ width: 150 }}>Observações</th>
+                  <th style={{ width: 44 }}>#</th>
+                  <th style={{ minWidth: 240 }}>Descrição</th>
+                  <th style={{ width: 130 }}>Valor</th>
+                  <th style={{ width: 118 }}>Tipo</th>
+                  <th style={{ width: 150 }}>Data</th>
+                  <th style={{ width: 190 }}>Categoria</th>
+                  <th style={{ width: 170 }}>Membro</th>
+                  <th style={{ minWidth: 200 }}>Observações</th>
                 </tr>
               </thead>
               <tbody>
@@ -190,26 +198,32 @@ export default function ImportCsvModal({ cards, categories, members, onCreate, o
                       </td>
                       <td style={{ ...cellStyle, color: 'var(--muted)' }}>{r.lineNumber}</td>
                       <td style={cellStyle}>
-                        <input className="form-input" style={{ fontSize: 11, padding: '4px 6px' }}
+                        <input className="form-input" style={fieldStyle}
                           value={r.description} onChange={e => setRow(r.key, { description: e.target.value })} />
                       </td>
                       <td style={cellStyle}>
-                        <input className="form-input" style={{ fontSize: 11, padding: '4px 6px' }}
-                          value={r.amount} onChange={e => setRow(r.key, { amount: e.target.value })} />
+                        <div className="flex aic" style={{ gap: 5 }}>
+                          <span className="tmuted" style={{ fontSize: 11 }}>R$</span>
+                          <CurrencyInput
+                            value={r.amount}
+                            onChange={v => setRow(r.key, { amount: v })}
+                            style={{ ...fieldStyle, textAlign: 'right' }}
+                          />
+                        </div>
                       </td>
                       <td style={cellStyle}>
-                        <select className="form-select" style={{ fontSize: 11, padding: '4px 6px' }}
+                        <select className="form-select" style={fieldStyle}
                           value={r.type} onChange={e => setRow(r.key, { type: e.target.value })}>
                           <option value="expense">Despesa</option>
                           <option value="income">Estorno</option>
                         </select>
                       </td>
                       <td style={cellStyle}>
-                        <input className="form-input" type="date" style={{ fontSize: 11, padding: '4px 6px' }}
+                        <input className="form-input" type="date" style={fieldStyle}
                           value={r.date} onChange={e => setRow(r.key, { date: e.target.value })} />
                       </td>
                       <td style={cellStyle}>
-                        <select className="form-select" style={{ fontSize: 11, padding: '4px 6px' }}
+                        <select className="form-select" style={fieldStyle}
                           value={r.categoryId} onChange={e => setRow(r.key, { categoryId: e.target.value })}>
                           <option value="">— Selecione —</option>
                           {categories.filter(c => c.type === (r.type === 'income' ? 'income' : 'expense'))
@@ -217,20 +231,20 @@ export default function ImportCsvModal({ cards, categories, members, onCreate, o
                         </select>
                       </td>
                       <td style={cellStyle}>
-                        <select className="form-select" style={{ fontSize: 11, padding: '4px 6px' }}
+                        <select className="form-select" style={fieldStyle}
                           value={r.memberId} onChange={e => setRow(r.key, { memberId: e.target.value })}>
                           <option value="">— Selecione —</option>
                           {members.map(m => <option key={m.id} value={m.id}>{m.emoji} {m.name}</option>)}
                         </select>
                       </td>
                       <td style={cellStyle}>
-                        <input className="form-input" style={{ fontSize: 11, padding: '4px 6px' }}
+                        <input className="form-input" style={fieldStyle}
                           value={r.notes} onChange={e => setRow(r.key, { notes: e.target.value })} />
                       </td>
                     </tr>
                     {r.selected && r.errors.length > 0 && (
                       <tr>
-                        <td colSpan={9} style={{ fontSize: 10, color: 'var(--red)', padding: '0 8px 6px 40px' }}>
+                        <td colSpan={9} style={{ fontSize: 11.5, color: 'var(--red)', padding: '2px 10px 8px 50px' }}>
                           {r.errors.join(' · ')}
                         </td>
                       </tr>

@@ -121,3 +121,40 @@ describe('progress reporting', () => {
     expect(seen.map(p => p.date)).toEqual(['2026-07-01', '2026-07-02', '2026-07-03']);
   });
 });
+
+describe('review layout', () => {
+  const openReview = async () => {
+    const utils = render(
+      <ImportCsvModal cards={cards} categories={categories} members={members}
+        onCreate={async () => {}} onClose={() => {}} />);
+    const file = new File([csv], 'fatura.csv', { type: 'text/csv' });
+    fireEvent.change(utils.container.querySelector('input[type="file"]'), { target: { files: [file] } });
+    await waitFor(() => screen.getByText(/3 linha\(s\)/));
+    return utils;
+  };
+
+  it('opens the review step at full width, not the 720px modal', async () => {
+    const { container } = await openReview();
+    expect(container.querySelector('.modal').className).toContain('modal-full');
+  });
+
+  it('keeps the narrower modal on the other steps', () => {
+    const { container } = render(
+      <ImportCsvModal cards={cards} categories={categories} members={members}
+        onCreate={async () => {}} onClose={() => {}} />);
+    expect(container.querySelector('.modal').className).toContain('modal-wide');
+  });
+
+  it('formats the amount as Brazilian currency', async () => {
+    const { container } = await openReview();
+    const values = [...container.querySelectorAll('input')].map(i => i.value);
+    // 10 / 20 / 30 in the fixture become 10,00 / 20,00 / 30,00
+    expect(values).toContain('10,00');
+    expect(values).toContain('20,00');
+  });
+
+  it('shows a R$ marker beside each amount', async () => {
+    const { container } = await openReview();
+    expect(container.textContent.match(/R\$/g).length).toBeGreaterThanOrEqual(3);
+  });
+});
