@@ -173,7 +173,10 @@ export function normalizeCard(c) {
     color:      normalizeCardHex(colorRaw),
     flag:       normalizeCardFlag(c),
     lastDigits: String(c.lastDigits ?? c.lastFourDigits ?? c.LastFourDigits ?? '').replace(/\D/g, '').slice(-4),
-    memberId:   String(c.memberId ?? c.member?.id ?? c.member?.Id ?? c.attributionProfileId ?? c.MemberId ?? c.ProfileId ?? c.userId ?? c.UserId ?? ''),
+    // Sem fallback para userId: ele identifica quem criou o cartão, não o
+    // membro a quem ele pertence. Resolver por ali mostrava "Igor" num cartão
+    // atribuído à Andreza, o que é pior do que não mostrar nada.
+    memberId:   String(c.memberId ?? c.MemberId ?? c.member?.id ?? c.member?.Id ?? c.attributionProfileId ?? c.AttributionProfileId ?? c.ProfileId ?? ''),
   };
 }
 
