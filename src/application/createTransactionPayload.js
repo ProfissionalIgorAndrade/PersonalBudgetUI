@@ -59,6 +59,19 @@ export function describeCreateTransactionResponse(data) {
  * Validates the transactional form-like object used by TxForm before POST.
  * @returns {string[]} human-readable errors (empty if valid)
  */
+/**
+ * Quantos meses um lançamento fixo materializa no cadastro.
+ *
+ * "Fixa" não existe como regra no domínio: são N linhas criadas de uma vez.
+ * Perguntar N ao usuário expunha esse detalhe — do ponto de vista dele, fixa
+ * é fixa e não tem prazo. A janela passa a ser fixa em 12 meses.
+ *
+ * PENDENTE: a série termina em silêncio ao fim da janela. Antes de julho de
+ * 2027 isso precisa de extensão automática, ou os lançamentos fixos vão
+ * simplesmente sumir sem aviso. Ver docs/recorrencia-fixa.md.
+ */
+export const FIXED_WINDOW_MONTHS = 12;
+
 export function validateCreateTransactionDraft(f) {
   const errors = [];
   const desc = (f.description ?? '').trim();
@@ -136,10 +149,6 @@ export function validateCreateTransactionDraft(f) {
   if (!(a >= 0) || a < 0) errors.push('Informe um valor válido (≥ 0).');
   if (errors.length) return errors;
 
-  if (recurrence === 'fixed') {
-    const reps = Math.floor(num(f.repeatCount));
-    if (!(reps >= 2)) errors.push('Recorrência Fixa exige pelo menos 2 meses.');
-  }
 
   return errors;
 }
@@ -226,9 +235,10 @@ export function buildCreateTransactionPayload(f) {
   };
 
   if (recurrence === 'fixed') {
-    const reps = Math.max(2, Math.floor(num(f.repeatCount)));
+    // repeatCount ainda é o contrato do backend; o que mudou é que ele deixa
+    // de vir do usuário.
     body.frequency = 'Fixed';
-    body.repeatCount = reps;
+    body.repeatCount = FIXED_WINDOW_MONTHS;
     body.amount = ROUND2(num(f.amount));
     const exp = (f.expirationDate ?? '').trim();
     if (exp) body.expirationDate = exp;
