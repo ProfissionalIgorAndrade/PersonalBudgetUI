@@ -7,7 +7,10 @@ export default function CategoryIncomeWidget({ categories, byIncCat, incCatKeys,
       <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, letterSpacing: '-0.2px' }}>Receitas por Categoria</h3>
       {incCatKeys.length === 0
         ? <p className="tmuted tsm" style={{ textAlign: 'center', padding: '12px 0' }}>Sem receitas este mês</p>
-        : incCatKeys.slice(0, 7).map(k => {
+        // Sem corte: o gráfico ao lado plota todas as categorias, e truncar
+        // aqui em 7 fazia as duas metades do mesmo dado discordarem, sem nada
+        // sinalizando que havia mais.
+        : incCatKeys.map(k => {
             const cat = categories.find(c => c.id === k);
             const pct = totalIn > 0 ? (byIncCat[k] / totalIn * 100).toFixed(0) : 0;
             return (
