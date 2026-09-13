@@ -273,6 +273,9 @@ export function useAppData(notify) {
       try {
         const created = await cardRepo.createCard({
           accountId:  card.accountId,
+          // Ausente até aqui: onEdit mandava memberId e onAdd não, então todo
+          // cartão nascia sem dono e só ganhava um se fosse editado depois.
+          memberId:   card.memberId || undefined,
           name:       card.name,
           limit:      Number(card.limit      || 0),
           closingDay: Number(card.closingDay || 1),
