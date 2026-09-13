@@ -9,6 +9,7 @@ import CashflowWidget         from './components/CashflowWidget';
 import DonutWidget             from './components/DonutWidget';
 import CategoryExpensesWidget  from './components/CategoryExpensesWidget';
 import CategoryIncomeWidget    from './components/CategoryIncomeWidget';
+import CategoryTrendWidget   from './components/CategoryTrendWidget';
 import FaturasWidget           from './components/FaturasWidget';
 import TipsWidget              from './components/TipsWidget';
 import RecentWidget            from './components/RecentWidget';
@@ -27,6 +28,7 @@ const DEFAULT_LAYOUT = [
   { id: 'donut',         label: 'Gráfico de Despesas',    icon: '🍩', col: 0, order: 1, visible: true },
   { id: 'cat-expenses',  label: 'Despesas por Categoria', icon: '📉', col: 0, order: 2, visible: true },
   { id: 'cat-income',    label: 'Receitas por Categoria', icon: '📈', col: 0, order: 3, visible: true },
+  { id: 'cat-trend',     label: 'Comparativo por Categoria', icon: '📊', col: 0, order: 4, visible: true },
   { id: 'faturas',       label: 'Total das Faturas',      icon: '💳', col: 1, order: 0, visible: true },
   { id: 'tips',          label: 'Dicas & Alertas',        icon: '💡', col: 1, order: 1, visible: true },
   { id: 'recent',        label: 'Últimos Lançamentos',    icon: '🕐', col: 1, order: 2, visible: true },
@@ -61,6 +63,42 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
   const byIncCat   = {};
   mTx.filter(t => t.type === 'income').forEach(t => { byIncCat[t.categoryId] = (byIncCat[t.categoryId] || 0) + Number(t.amount); });
   const incCatKeys = Object.keys(byIncCat).sort((a, b) => byIncCat[b] - byIncCat[a]);
+
+  // Comparativo por categoria: N meses terminando no mês exibido, para o
+  // widget acompanhar o seletor em vez de olhar sempre para hoje.
+  const [trendMonths, setTrendMonths] = useLocalStorage('pb_dash_trend_months', 3);
+  const TREND_COLORS = ['#3b82f6', '#f97316', '#22c55e', '#a78bfa', '#f43f5e', '#14b8a6'];
+  const trendKeys = Array.from({ length: trendMonths }, (_, i) => {
+    const [y, m] = month.split('-').map(Number);
+    const d = new Date(y, m - 1 - (trendMonths - 1 - i), 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const trendMonthsData = trendKeys.map((key, i) => ({
+    key, label: monthLabel(key), color: TREND_COLORS[i % TREND_COLORS.length],
+  }));
+  const trendRows = (() => {
+    const acc = {};
+    for (const key of trendKeys) {
+      for (const t of transactions) {
+        if (t.type !== 'expense' || t.status === 'cancelled') continue;
+        if (!txBelongsToMonth(t, key)) continue;
+        acc[t.categoryId] = acc[t.categoryId] || {};
+        acc[t.categoryId][key] = (acc[t.categoryId][key] || 0) + Number(t.amount || 0);
+      }
+    }
+    return Object.entries(acc)
+      .map(([id, values]) => {
+        const cat = categories.find(c => c.id === id);
+        return {
+          id,
+          name: cat?.name || 'Sem categoria',
+          icon: cat?.icon || '📦',
+          values,
+          total: Object.values(values).reduce((a, b) => a + b, 0),
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+  })();
 
   const months6  = Array.from({ length: 6 }, (_, i) => { const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1); return d.toISOString().slice(0, 7); });
   const mLabels  = months6.map(monthLabel);
@@ -137,6 +175,7 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
       case 'donut':        widget = <DonutWidget data={catData} labels={catLabels} colors={catColors} />; break;
       case 'cat-expenses': widget = <CategoryExpensesWidget categories={categories} byCat={byCat} catKeys={catKeys} totalOut={totalOut} />; break;
       case 'cat-income':   widget = <CategoryIncomeWidget categories={categories} byIncCat={byIncCat} incCatKeys={incCatKeys} totalIn={totalIn} />; break;
+      case 'cat-trend':    widget = <CategoryTrendWidget months={trendMonthsData} rows={trendRows} monthsCount={trendMonths} onChangeMonths={setTrendMonths} />; break;
       case 'faturas':      widget = <FaturasWidget faturasData={faturasData} totalFaturas={totalFaturas} />; break;
       case 'tips':         widget = <TipsWidget tips={tips} />; break;
       case 'recent':       widget = <RecentWidget recent={recent} categories={categories} onViewAll={() => setView('transactions')} />; break;
