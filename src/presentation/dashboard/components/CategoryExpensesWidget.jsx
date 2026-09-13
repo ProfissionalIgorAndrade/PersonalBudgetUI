@@ -7,7 +7,10 @@ export default function CategoryExpensesWidget({ categories, byCat, catKeys, tot
       <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, letterSpacing: '-0.2px' }}>Despesas por Categoria</h3>
       {catKeys.length === 0
         ? <p className="tmuted tsm" style={{ textAlign: 'center', padding: '12px 0' }}>Sem despesas este mês</p>
-        : catKeys.slice(0, 7).map(k => {
+        // Sem corte: o gráfico ao lado plota todas as categorias, e truncar
+        // aqui em 7 fazia as duas metades do mesmo dado discordarem, sem nada
+        // sinalizando que havia mais.
+        : catKeys.map(k => {
             const cat = categories.find(c => c.id === k);
             const pct = totalOut > 0 ? (byCat[k] / totalOut * 100).toFixed(0) : 0;
             return (
