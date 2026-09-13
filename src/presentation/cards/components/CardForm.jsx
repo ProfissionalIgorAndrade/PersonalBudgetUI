@@ -32,8 +32,18 @@ export default function CardForm({ f, members, accounts, onChange, onSave, onClo
           <CurrencyInput value={f.limit || ''} onChange={v => set('limit', v)} placeholder="5.000,00" />
         </div>
         <div className="form-group">
-          <label className="form-label">Membro</label>
-          <select className="form-select" value={f.memberId || ''} onChange={e => set('memberId', e.target.value)}>
+          <label className="form-label">Membro *</label>
+          {/* Sem a opção vazia, um cartão com memberId em branco exibia o
+              primeiro membro da lista como se estivesse selecionado, enquanto
+              o estado seguia vazio. Salvar não gravava nada e parecia ter
+              gravado - o campo mostrava um nome o tempo todo. */}
+          <select
+            className="form-select"
+            required
+            value={f.memberId || ''}
+            onChange={e => set('memberId', e.target.value)}
+          >
+            <option value="">— Selecione —</option>
             {members.map(m => <option key={m.id} value={m.id}>{m.emoji} {m.name}</option>)}
           </select>
         </div>
