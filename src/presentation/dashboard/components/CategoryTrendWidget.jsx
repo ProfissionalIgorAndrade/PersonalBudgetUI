@@ -17,6 +17,11 @@ export default function CategoryTrendWidget({ months, rows, monthsCount, onChang
   const series = months.map(m => ({ label: m.label, color: m.color, data: rows.map(r => r.values[m.key] ?? 0) }));
   const labels = rows.map(r => r.name);
 
+  // Mais generoso que antes: com 16 categorias o gráfico ficava espremido num
+  // card que tinha espaço de sobra. Cresce com a quantidade de categorias e
+  // para de crescer aos 620.
+  const chartHeight = Math.max(340, Math.min(rows.length * 34, 620));
+
   const tab = (id, icon, title) => (
     <button
       type="button"
@@ -60,7 +65,7 @@ export default function CategoryTrendWidget({ months, rows, monthsCount, onChang
           Sem despesas no período
         </p>
       ) : view === 'chart' ? (
-        <div style={{ height: Math.max(260, Math.min(rows.length * 26, 460)) }}>
+        <div style={{ height: chartHeight }}>
           <GroupedBars labels={labels} series={series} />
         </div>
       ) : (

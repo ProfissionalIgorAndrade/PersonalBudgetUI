@@ -11,6 +11,11 @@ vi.mock('../../../shared/components/charts/GroupedBars', () => ({
   ),
 }));
 
+// jsdom não implementa ResizeObserver, que o gráfico passou a observar.
+globalThis.ResizeObserver = globalThis.ResizeObserver || class {
+  observe() {} unobserve() {} disconnect() {}
+};
+
 afterEach(cleanup);
 
 const months = [
@@ -77,5 +82,29 @@ describe('CategoryTrendWidget', () => {
   it('shows an empty state with no rows', () => {
     render(widget({ rows: [] }));
     expect(screen.getByText(/Sem despesas no período/)).toBeTruthy();
+  });
+});
+
+describe('chart sizing', () => {
+  const sized = (n) => {
+    const many = Array.from({ length: n }, (_, i) => ({
+      id: `x${i}`, name: `Cat ${i}`, icon: '📦',
+      values: { '2026-07': 100, '2026-08': 100, '2026-09': 100 }, total: 300,
+    }));
+    const { container } = render(
+      <CategoryTrendWidget months={months} rows={many} monthsCount={3} onChangeMonths={() => {}} />);
+    return container.querySelector('[data-testid="chart"]').parentElement.style.height;
+  };
+
+  it('keeps a floor so a short list is not a sliver', () => {
+    expect(sized(3)).toBe('340px');
+  });
+
+  it('grows with the number of categories', () => {
+    expect(sized(16)).toBe('544px');
+  });
+
+  it('stops growing so the card cannot run away', () => {
+    expect(sized(40)).toBe('620px');
   });
 });
