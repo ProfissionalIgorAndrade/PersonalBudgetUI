@@ -405,29 +405,6 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
       )}
 
       {/* 8. Status */}
-      {f.type !== 'transfer' && (
-        <div className="form-group">
-          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            Status
-            {cardLocked && (
-              <span style={{ fontSize: 10, color: 'var(--muted)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, padding: '1px 7px', fontWeight: 600 }}>
-                🔒 Pendente para cartão
-              </span>
-            )}
-          </label>
-          <select
-            className="form-select"
-            value={cardLocked ? 'pending' : f.status}
-            onChange={e => !cardLocked && set('status', e.target.value)}
-            disabled={cardLocked}
-            style={cardLocked ? { opacity: 0.55, cursor: 'not-allowed' } : {}}
-          >
-            <option value="paid">✅ Pago/Recebido</option>
-            <option value="pending">⏳ Pendente</option>
-            <option value="cancelled">❌ Cancelado</option>
-          </select>
-        </div>
-      )}
 
       {/* 8. Membro */}
       <div className="form-group">

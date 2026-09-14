@@ -199,17 +199,6 @@ export function useAppData(notify) {
         notify(`${ids.length} lançamento(s) removido(s)`);
       } catch (e) { notify(e.message, 'error'); }
     },
-    onUpdateStatus: async (id, uiStatus) => {
-      try {
-        const msg = await txRepo.patchTransactionStatus(id, uiStatus);
-        setTransactions(prev => prev.map(t => String(t.id) === String(id) ? { ...t, status: uiStatus } : t));
-        await loadAcc();
-        notify(msg);
-      } catch (e) {
-        notify(e.message, 'error');
-        throw e;
-      }
-    },
   };
 
   /* ── Account CRUD ─────────────────────────────────────────── */

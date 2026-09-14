@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { R$ } from '../../../core/utils/format';
 import { statementNet, statementRows } from '../../../core/utils/billing';
-import { normalizeTransaction, accountLabel } from '../../../application/mappers';
+import { normalizeTransaction } from '../../../application/mappers';
 import TxTable from '../../transactions/components/TxTable';
-import Modal from '../../shared/components/Modal';
 import * as cardRepo from '../../../data/repositories/cardRepository';
 
 const NUM = { fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' };
@@ -13,30 +12,6 @@ const STATUS_CFG = {
   fechada: { label: 'FECHADA', color: 'var(--yellow)',  bg: 'rgba(251,191,36,.08)',  border: 'rgba(251,191,36,.25)', dot: '#fbbf24' },
   paga:    { label: 'PAGA',    color: 'var(--green)',   bg: 'rgba(74,222,128,.08)',  border: 'rgba(74,222,128,.25)', dot: '#4ade80' },
 };
-
-const STATUS_OPTIONS = [
-  { value: 'Open',   label: 'Aberta'  },
-  { value: 'Closed', label: 'Fechada' },
-  { value: 'Paid',   label: 'Paga'    },
-];
-
-const FATURA_TO_API = { aberta: 'Open', fechada: 'Closed', paga: 'Paid' };
-
-/**
- * Marcar uma fatura como paga está temporariamente desabilitado.
- *
- * O pagamento debita a conta, mas os lançamentos da fatura continuam
- * contando como despesa, então o mesmo gasto entra duas vezes e os totais
- * nunca fecham. O backend também recusa a transição (PersonalBudget#9).
- *
- * Reverter a fatura de paga para fechada ou aberta segue permitido, para
- * quem já pagou conseguir desfazer.
- *
- * Para reativar: apagar esta constante e seus usos.
- */
-const PAYMENT_DISABLED = true;
-const PAYMENT_DISABLED_NOTE =
-  'O pagamento de fatura está temporariamente desabilitado enquanto corrigimos a duplicidade de valores. A fatura pode ser fechada normalmente.';
 
 function hasMeaningfulTimestamp(v) {
   if (v == null || v === '') return false;
@@ -230,11 +205,6 @@ export default function CardDetail({
     isPaid: false,
   });
 
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [modalStatus, setModalStatus]         = useState('Open');
-  const [modalAccountId, setModalAccountId]   = useState('');
-  const [modalError, setModalError]           = useState('');
-  const [modalLoading, setModalLoading]       = useState(false);
 
   const refetchStatement = useCallback(async () => {
     const data = await cardRepo.getStatement(card.id, fatM, fatY);
@@ -286,48 +256,6 @@ export default function CardDetail({
 
   const cfg = STATUS_CFG[faturaStatus];
 
-  const isOptionDisabled = (value) => {
-    if (value === FATURA_TO_API[faturaStatus]) return true;
-    if (faturaStatus === 'paga' && value === 'Open') return true;
-    // Bloqueia entrar no estado pago, mas nunca sair dele.
-    if (PAYMENT_DISABLED && value === 'Paid' && faturaStatus !== 'paga') return true;
-    return false;
-  };
-
-  const openStatusModal = () => {
-    const firstAvailable = STATUS_OPTIONS.find(opt => !isOptionDisabled(opt.value));
-    setModalStatus(firstAvailable?.value || 'Open');
-    setModalAccountId(card.accountId || '');
-    setModalError('');
-    setShowStatusModal(true);
-  };
-
-  const handleStatusChange = async () => {
-    if (!statement.statementId) {
-      setModalError('Não foi possível identificar a fatura.');
-      return;
-    }
-    setModalLoading(true);
-    setModalError('');
-    try {
-      await cardRepo.updateStatementStatus(
-        card.id,
-        statement.statementId,
-        modalStatus,
-        modalAccountId || null,
-      );
-      notify('Status da fatura atualizado.');
-      setShowStatusModal(false);
-      await refetchStatement();
-      await loadTransactions();
-    } catch (e) {
-      setModalError(e.message);
-    } finally {
-      setModalLoading(false);
-    }
-  };
-
-  const activeAccounts = (accounts || []).filter(a => a.isActive !== false);
 
   return (
     <div>
@@ -359,40 +287,6 @@ export default function CardDetail({
             </span>
           )}
         </div>
-
-        {/* Antes, sem statementId o botão simplesmente não era renderizado, e o
-            controle sumia sem explicação em qualquer mês cuja fatura ainda não
-            existe. Agora ele aparece sempre e diz por que está indisponível. */}
-        {(() => {
-          const noStatement = !statement.statementId;
-          const busy = statement.loading;
-          const blocked = noStatement || busy;
-          const why = busy
-            ? 'Carregando a fatura…'
-            : noStatement
-              ? 'Ainda não existe fatura para este mês. Ela é criada no primeiro lançamento do cartão.'
-              : 'Alterar status da fatura';
-          return (
-          <button
-            type="button"
-            onClick={blocked ? undefined : openStatusModal}
-            disabled={blocked}
-            title={why}
-            aria-label={why}
-            style={{
-              background: 'none', border: 'none',
-              cursor: blocked ? 'not-allowed' : 'pointer',
-              color: cfg.color, opacity: blocked ? .3 : .7, padding: '4px 6px',
-              fontSize: 14, lineHeight: 1, borderRadius: 6,
-              transition: 'opacity .15s',
-            }}
-            onMouseEnter={e => { if (!blocked) e.currentTarget.style.opacity = '1'; }}
-            onMouseLeave={e => { if (!blocked) e.currentTarget.style.opacity = '.7'; }}
-          >
-            ✏️
-          </button>
-          );
-        })()}
       </div>
 
       <div className="summary-grid" style={{ marginBottom: 18 }}>
@@ -433,92 +327,6 @@ export default function CardDetail({
         emptyMsg={statement.loading ? 'Carregando…' : statement.error ? 'Não foi possível carregar a fatura' : 'Nenhum lançamento neste mês'}
       />
 
-      {showStatusModal && (
-        <Modal title="Alterar status da fatura" onClose={() => !modalLoading && setShowStatusModal(false)}>
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, color: 'var(--muted)', marginBottom: 8 }}>
-              Status
-            </label>
-            <select
-              className="form-select"
-              value={modalStatus}
-              onChange={e => setModalStatus(e.target.value)}
-              disabled={modalLoading}
-              style={{ width: '100%' }}
-            >
-              {STATUS_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value} disabled={isOptionDisabled(opt.value)}>
-                  {opt.label}
-                  {PAYMENT_DISABLED && opt.value === 'Paid' && faturaStatus !== 'paga'
-                    ? ' — indisponível'
-                    : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {PAYMENT_DISABLED && faturaStatus !== 'paga' && (
-            <div style={{
-              marginBottom: 16, padding: '10px 12px', borderRadius: 10,
-              background: 'var(--surface2)', border: '1px solid var(--border)',
-              fontSize: 12, lineHeight: 1.5, color: 'var(--muted)',
-            }}>
-              {PAYMENT_DISABLED_NOTE}
-            </div>
-          )}
-
-          {modalStatus === 'Paid' && (
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, color: 'var(--muted)', marginBottom: 8 }}>
-                Conta de débito
-              </label>
-              <select
-                className="form-select"
-                value={modalAccountId}
-                onChange={e => setModalAccountId(e.target.value)}
-                disabled={modalLoading}
-                style={{ width: '100%' }}
-              >
-                <option value="">Conta padrão do cartão</option>
-                {activeAccounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>
-                    {accountLabel(acc, members)} — {R$(acc.balance)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {modalError && (
-            <div style={{
-              padding: '10px 14px', borderRadius: 8, marginBottom: 16,
-              background: 'rgba(248,113,113,.10)', border: '1px solid rgba(248,113,113,.3)',
-              fontSize: 13, color: 'var(--red, #f87171)', fontWeight: 600,
-            }}>
-              {modalError}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setShowStatusModal(false)}
-              disabled={modalLoading}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleStatusChange}
-              disabled={modalLoading || isOptionDisabled(modalStatus)}
-            >
-              {modalLoading ? 'Salvando…' : 'Confirmar'}
-            </button>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

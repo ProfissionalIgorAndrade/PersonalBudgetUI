@@ -10,7 +10,7 @@ import TxTable from './components/TxTable';
 const EMPTY = { type: 'all', memberId: 'all', recurrence: 'all', status: 'all', cardId: 'all', accountId: 'all', categoryId: 'all', search: '' };
 
 
-export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatchDelete, onUpdateStatus, activeMonth, setActiveMonth, onImport, reloadTransactions }) {
+export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatchDelete, activeMonth, setActiveMonth, onImport, reloadTransactions }) {
   const { transactions, categories, members, accounts, cards } = data;
   const [newModal, setNewModal] = useState(false);
   const [importModal, setImportModal] = useState(false);
@@ -128,7 +128,6 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
           onEdit={onEdit}
           onDelete={onDelete}
           onBatchDelete={onBatchDelete}
-          onUpdateStatus={onUpdateStatus}
         />
       </div>
 
