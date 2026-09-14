@@ -2,41 +2,17 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { R$, fdate } from '../../../core/utils/format';
 import { statementLabel } from '../../../core/utils/billing';
 
-/**
- * A coluna de status está oculta em todas as tabelas.
- *
- * Enquanto a duplicidade de valores entre fatura e lançamento não estiver
- * resolvida, o status exibido não corresponde à realidade financeira, e um
- * controle que muda estado a partir de informação errada faz mais estrago do
- * que a ausência dele.
- *
- * Oculta o cabeçalho, a célula e o próprio seletor, então não há como ver nem
- * interagir. A rota de atualização no backend continua existindo e intocada.
- *
- * Para reativar: apagar esta constante e seus usos.
- */
-const STATUS_COLUMN_ENABLED = false;
 import { accountLabel } from '../../../application/mappers/index';
 import Modal from '../../shared/components/Modal';
 import TxForm from './TxForm';
 
 const NUM = { fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' };
 
-const STATUS = {
-  paid:      <span className="badge badge-green">✓ Completo</span>,
-  pending:   <span className="badge badge-yellow">⏳ Pendente</span>,
-  cancelled: <span className="badge badge-muted">✕ Cancelado</span>,
-};
-
 const TYPE_BADGE = {
   income:   <span className="badge badge-green">Receita</span>,
   expense:  <span className="badge badge-red">Despesa</span>,
   transfer: <span className="badge badge-muted">Transferência</span>,
 };
-
-function isCreditCardTx(t) {
-  return !!(t?.paymentMethod === 'CreditCard' || (t?.cardId && String(t.cardId).trim()));
-}
 
 function allowsEditDeleteActions(t) {
   return t?.status === 'pending';
@@ -64,7 +40,6 @@ export default function TxTable({
   onEdit,
   onDelete,
   onBatchDelete,
-  onUpdateStatus,
   hideCols = [],
   emptyMsg = 'Nenhum lançamento encontrado',
 }) {
@@ -77,7 +52,6 @@ export default function TxTable({
   const [confirmDel,     setConfirmDel]     = useState(null);
   const [recurrenceDeleteMode, setRecurrenceDeleteMode] = useState(1);
   const [deleting,       setDeleting]       = useState(false);
-  const [busyStatusId,   setBusyStatusId]   = useState(null);
   const [selected,       setSelected]       = useState(new Set());
   const [confirmBatch,   setConfirmBatch]   = useState(false);
   const [batchDeleting,  setBatchDeleting]  = useState(false);
@@ -128,11 +102,7 @@ export default function TxTable({
   const showRecurrenceDeleteScope = confirmDel
     && (confirmDel.recurrence === 'fixed' || confirmDel.recurrence === 'installment');
 
-  const runStatusChange = (t, next) => {
-    if (!onUpdateStatus || next === t.status) return;
-    setBusyStatusId(t.id);
-    Promise.resolve(onUpdateStatus(t.id, next)).finally(() => setBusyStatusId(null));
-  };
+
 
   const toggleSelect = (id) => {
     setSelected(prev => {
@@ -223,7 +193,6 @@ export default function TxTable({
               {show('card')       && <th>Cartão</th>}
               {show('statement') && <th title="Fatura em que o lançamento entra">Fatura</th>}
               {show('recurrence') && <Th col="recurrence">Recorrência</Th>}
-              {STATUS_COLUMN_ENABLED && <Th col="status">Status</Th>}
               <Th col="amount" style={{ textAlign: 'right' }}>Valor</Th>
               <th className="csv-col-act" scope="col">Ações</th>
             </tr>
@@ -289,26 +258,6 @@ export default function TxTable({
                     </td>
                   )}
                   {show('recurrence') && <td>{REC[t.recurrence] ?? REC.none}</td>}
-                  {STATUS_COLUMN_ENABLED && (
-                  <td style={{ verticalAlign: 'middle' }}>
-                    {onUpdateStatus && !isCreditCardTx(t) ? (
-                      <select
-                        className="form-select"
-                        aria-label={`Status — ${t.description || 'lançamento'}`}
-                        style={{ minWidth: 122, padding: '5px 8px', fontSize: 11 }}
-                        value={t.status === 'paid' || t.status === 'pending' || t.status === 'cancelled' ? t.status : 'pending'}
-                        disabled={busyStatusId === t.id}
-                        onChange={e => runStatusChange(t, e.target.value)}
-                      >
-                        <option value="pending">Pendente</option>
-                        <option value="paid">Completo</option>
-                        <option value="cancelled">Cancelado</option>
-                      </select>
-                    ) : (
-                      STATUS[t.status] ?? <span className="badge badge-muted">{t.status}</span>
-                    )}
-                  </td>
-                  )}
                   <td className="csv-col-val" style={{ color: isIncome ? 'var(--green)' : isExpense ? 'var(--red)' : 'var(--text)', ...NUM }}>
                     {isIncome ? '+' : isExpense ? '−' : ''}{R$(t.amount)}
                   </td>

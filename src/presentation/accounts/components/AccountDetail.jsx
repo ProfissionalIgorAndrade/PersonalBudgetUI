@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as accountRepo from '../../../data/repositories/accountRepository';
 import { normalizeTransaction } from '../../../application/mappers';
 import { R$ } from '../../../core/utils/format';
@@ -27,21 +27,12 @@ export default function AccountDetail({
   onEditTx,
   onDeleteTx,
   onBatchDeleteTx,
-  onUpdateStatus,
   activeMonth,
   notify,
 }) {
   const [monthTx, setMonthTx]     = useState([]);
   const [loadingTx, setLoadingTx] = useState(false);
 
-  const handleUpdateStatus = useCallback(async (id, uiStatus) => {
-    try {
-      await onUpdateStatus(id, uiStatus);
-      setMonthTx(prev => prev.map(t => String(t.id) === String(id) ? { ...t, status: uiStatus } : t));
-    } catch {
-      /* erro já tratado pelo useAppData */
-    }
-  }, [onUpdateStatus]);
 
   /* Refetch do mês após reload global; saldo da conta vem de `accounts` (atualizado no PATCH de status). */
   useEffect(() => {
@@ -119,7 +110,6 @@ export default function AccountDetail({
         onEdit={onEditTx}
         onDelete={onDeleteTx}
         onBatchDelete={onBatchDeleteTx}
-        onUpdateStatus={handleUpdateStatus}
         hideCols={['account']}
         emptyMsg={loadingTx ? 'Carregando…' : 'Nenhum lançamento neste mês'}
       />

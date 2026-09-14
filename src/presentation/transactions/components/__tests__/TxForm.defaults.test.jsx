@@ -1,47 +1,33 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { render, cleanup, fireEvent } from '@testing-library/react';
-import React from 'react';
-import TxForm from '../TxForm';
+import { describe, it, expect } from 'vitest';
+import { buildCreateTransactionPayload } from '../../../../application/createTransactionPayload';
 
-afterEach(cleanup);
-
-const props = {
-  cats: [{ id: 'c1', name: 'Moradia', icon: '🏠', type: 'expense' }],
-  members: [{ id: 'm1', name: 'Igor', emoji: '🧑' }],
-  accounts: [{ id: 'a1', name: 'Nubank', type: 'checking' }],
-  cards: [{ id: 'cc1', name: 'Inter Black', lastDigits: '4417' }],
-  onSave: () => {},
-  onClose: () => {},
+// The status select is gone from the form. What still matters is that a new
+// transaction reaches the API as Pending, since nothing can change it
+// afterwards any more.
+const draft = {
+  type: 'expense', description: 'Aluguel', date: '2026-09-05',
+  accountId: 'a1', cardId: '', amount: 4500, categoryId: 'c1', memberId: 'm1',
+  recurrence: 'variable', status: 'pending',
 };
 
-const statusSelect = (container) =>
-  [...container.querySelectorAll('select')].find(s =>
-    [...s.options].some(o => o.value === 'pending') &&
-    [...s.options].some(o => o.value === 'paid'));
-
-describe('TxForm defaults', () => {
-  it('opens a new transaction with status pending', () => {
-    const { container } = render(<TxForm {...props} />);
-    expect(statusSelect(container).value).toBe('pending');
+describe('new transactions are created pending', () => {
+  it('sends Pending for an account expense', () => {
+    expect(buildCreateTransactionPayload(draft).status).toBe('Pending');
   });
 
-  it('still opens pending after switching the type', () => {
-    const { container } = render(<TxForm {...props} />);
-    const typeSelect = [...container.querySelectorAll('select')]
-      .find(s => [...s.options].some(o => o.value === 'income'));
-    fireEvent.change(typeSelect, { target: { value: 'income' } });
-    expect(statusSelect(container).value).toBe('pending');
+  it('sends Pending for income too', () => {
+    expect(buildCreateTransactionPayload({ ...draft, type: 'income' }).status).toBe('Pending');
   });
 
-  it('keeps an existing transaction on its own status when editing', () => {
-    const tx = {
-      id: 'aaaaaaaa-1111-2222-3333-444444444444',
-      description: 'Aluguel', amount: 4739.53, date: '2026-07-08',
-      type: 'expense', status: 'paid', recurrence: 'fixed',
-      categoryId: 'c1', memberId: 'm1', accountId: 'a1', cardId: '',
-      paymentMethod: 'Account', notes: '',
-    };
-    const { container } = render(<TxForm {...props} tx={tx} />);
-    expect(statusSelect(container).value).toBe('paid');
+  // Card transactions send no status at all: the backend forces Pending for
+  // them, and sending one would be the client asserting something it does not
+  // decide.
+  it('leaves the status to the server for a card transaction', () => {
+    const card = { ...draft, accountId: '', cardId: 'cc1', statementMonth: 9, statementYear: 2026 };
+    expect(buildCreateTransactionPayload(card).status).toBeNull();
+  });
+
+  it('does not ask the API to auto-complete', () => {
+    expect(buildCreateTransactionPayload(draft).autoComplete).toBe(false);
   });
 });
