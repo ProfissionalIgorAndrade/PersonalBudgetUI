@@ -58,8 +58,21 @@ export default function GroupedBars({ labels, series }) {
         },
       },
     });
-    return () => ch.destroy();
+    // Largura do card muda com a sidebar e com o próprio redimensionamento da
+    // janela; sem isto o gráfico só acompanha o resize da window.
+    const ro = new ResizeObserver(() => ch.resize());
+    if (ref.current.parentElement) ro.observe(ref.current.parentElement);
+
+    return () => { ro.disconnect(); ch.destroy(); };
   }, [JSON.stringify(labels), JSON.stringify(series)]);
 
-  return <canvas ref={ref} />;
+  // O Chart.js responsivo dimensiona a partir do elemento pai. Sem um wrapper
+  // posicionado e um canvas que o preencha, ele calcula a altura uma vez e não
+  // reavalia - o gráfico ficava com uns 200px dentro de um container de 400 e
+  // o resto do card sobrava vazio.
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <canvas ref={ref} style={{ width: '100%', height: '100%', display: 'block' }} />
+    </div>
+  );
 }
