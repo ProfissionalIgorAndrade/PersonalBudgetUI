@@ -6,8 +6,10 @@ import CategoryTrendWidget from '../CategoryTrendWidget';
 // Chart.js needs a real canvas; the chart view is exercised through its
 // presence, not its pixels.
 vi.mock('../../../shared/components/charts/GroupedBars', () => ({
-  default: ({ labels, series }) => (
-    <div data-testid="chart" data-labels={labels.join('|')} data-series={series.map(s => `${s.label}:${s.data.join(',')}`).join('|')} />
+  default: ({ labels, series, height }) => (
+    <div data-testid="chart" data-height={height}
+      data-labels={labels.join('|')}
+      data-series={series.map(s => `${s.label}:${s.data.join(',')}`).join('|')} />
   ),
 }));
 
@@ -93,18 +95,18 @@ describe('chart sizing', () => {
     }));
     const { container } = render(
       <CategoryTrendWidget months={months} rows={many} monthsCount={3} onChangeMonths={() => {}} />);
-    return container.querySelector('[data-testid="chart"]').parentElement.style.height;
+    return container.querySelector('[data-testid="chart"]').dataset.height;
   };
 
   it('keeps a floor so a short list is not a sliver', () => {
-    expect(sized(3)).toBe('340px');
+    expect(sized(3)).toBe('340');
   });
 
   it('grows with the number of categories', () => {
-    expect(sized(16)).toBe('544px');
+    expect(sized(16)).toBe('544');
   });
 
   it('stops growing so the card cannot run away', () => {
-    expect(sized(40)).toBe('620px');
+    expect(sized(40)).toBe('620');
   });
 });

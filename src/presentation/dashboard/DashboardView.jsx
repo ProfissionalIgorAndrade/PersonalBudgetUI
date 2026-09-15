@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { R$, curMonth, monthLabel } from '../../core/utils/format';
 import { txBelongsToMonth, statementNet } from '../../core/utils/billing';
 import { useLocalStorage } from '../../core/hooks/useLocalStorage';
+import { reconcileLayout } from './layout';
 import MonthSelector from '../shared/components/MonthSelector';
 import SummaryCards           from './components/SummaryCards';
 import CashflowWidget         from './components/CashflowWidget';
@@ -39,7 +40,10 @@ const DEFAULT_LAYOUT = [
 
 export default function DashboardView({ data, setView, activeMonth, setActiveMonth }) {
   const { transactions, categories, members, cards } = data;
-  const [layout,        setLayout]        = useLocalStorage('pb_dash_layout', DEFAULT_LAYOUT);
+  const [storedLayout,  setLayout]        = useLocalStorage('pb_dash_layout', DEFAULT_LAYOUT);
+  // Nunca usar o layout salvo direto: ele pode ter id repetido, id de widget
+  // que não existe mais, ou não conhecer um widget novo.
+  const layout = useMemo(() => reconcileLayout(storedLayout, DEFAULT_LAYOUT), [storedLayout]);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [draftLayout,   setDraftLayout]   = useState(null);
 

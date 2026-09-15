@@ -8,7 +8,7 @@ import Chart from 'chart.js/auto';
  * o tempo é a série e a categoria é a posição, que é o que permite ver numa
  * olhada quais categorias subiram de um mês para o outro.
  */
-export default function GroupedBars({ labels, series }) {
+export default function GroupedBars({ labels, series, height = 340 }) {
   const ref = useRef();
 
   useEffect(() => {
@@ -66,13 +66,13 @@ export default function GroupedBars({ labels, series }) {
     return () => { ro.disconnect(); ch.destroy(); };
   }, [JSON.stringify(labels), JSON.stringify(series)]);
 
-  // O Chart.js responsivo dimensiona a partir do elemento pai. Sem um wrapper
-  // posicionado e um canvas que o preencha, ele calcula a altura uma vez e não
-  // reavalia - o gráfico ficava com uns 200px dentro de um container de 400 e
-  // o resto do card sobrava vazio.
+  // A altura vem em pixels direto no elemento que o Chart.js mede, sem
+  // intermediário em height: 100%. A tentativa anterior encadeava
+  // 100% -> 100% -> altura do pai, e o Chart media antes dessa cadeia
+  // resolver, ficando com uma fração do espaço.
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <canvas ref={ref} style={{ width: '100%', height: '100%', display: 'block' }} />
+    <div style={{ position: 'relative', width: '100%', height: `${height}px` }}>
+      <canvas ref={ref} />
     </div>
   );
 }

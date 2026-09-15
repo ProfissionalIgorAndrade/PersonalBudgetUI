@@ -65,9 +65,7 @@ export default function CategoryTrendWidget({ months, rows, monthsCount, onChang
           Sem despesas no período
         </p>
       ) : view === 'chart' ? (
-        <div style={{ height: chartHeight }}>
-          <GroupedBars labels={labels} series={series} />
-        </div>
+        <GroupedBars labels={labels} series={series} height={chartHeight} />
       ) : (
         <div style={{ maxHeight: 420, overflow: 'auto' }}>
           <table className="csv-table" style={{ width: '100%' }}>
