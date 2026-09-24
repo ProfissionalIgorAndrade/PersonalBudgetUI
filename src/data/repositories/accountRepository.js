@@ -18,3 +18,11 @@ export function listAccountTransactions(accountId, { month, year, page, frequenc
   const q = params.toString();
   return http.get(`/api/accounts/${encodeURIComponent(accountId)}/transactions?${q}`);
 }
+
+/** Cria uma caixinha vinculada a uma conta corrente. */
+export const createSavingsBox = (parentAccountId, name) =>
+  http.post('/api/accounts/savings-boxes', { parentAccountId, name });
+
+/** Renomeia uma caixinha. */
+export const renameSavingsBox = (accountId, name) =>
+  http.patch(`/api/accounts/savings-boxes/${accountId}`, { name });
