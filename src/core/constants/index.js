@@ -51,6 +51,7 @@ export const NAV = [
   { id: 'dashboard',    icon: '📊', label: 'Dashboard' },
   { id: 'transactions', icon: '💸', label: 'Lançamentos' },
   { id: 'accounts',     icon: '🏦', label: 'Contas' },
+  { id: 'savings',      icon: '🐷', label: 'Guardado' },
   { id: 'cards',        icon: '💳', label: 'Cartões' },
   { id: 'categories',   icon: '🏷️', label: 'Categorias' },
   { id: 'members',      icon: '👨‍👩‍👦', label: 'Família' },
