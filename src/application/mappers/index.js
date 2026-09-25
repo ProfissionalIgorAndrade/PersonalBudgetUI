@@ -86,6 +86,10 @@ export function normalizeAccount(a) {
     number:        toStr(rawNumber),
     balance:       parseMoneyAmount(a.balance ?? a.Balance),
     color:         BANK_COLORS[a.bank ?? a.Bank] || '#2dd4bf',
+    // Caixinha é uma conta de tipo Savings com pai; o resto do app trata as
+    // duas pela mesma forma, e a tela de guardados filtra por kind.
+    kind:            (a.kind ?? a.Kind ?? 'Checking') === 'Savings' ? 'savings' : 'checking',
+    parentAccountId: String(a.parentAccountId ?? a.ParentAccountId ?? '') || null,
     type:          'checking',
     isActive:      a.isActive !== false,
     memberId:      String(a.memberId ?? a.MemberId ?? a.profileId ?? a.ProfileId ?? a.memberProfileId ?? a.attributionProfileId ?? '') || null,
@@ -235,3 +239,6 @@ export const sortCategories = (cats) => [...(cats || [])].sort(byName);
  * — inclusive os que ainda não existem.
  */
 export const sortByName = (list) => [...(list || [])].sort(byName);
+
+/** Contas correntes — exclui caixinhas, que têm tela própria. */
+export const checkingOnly = (accounts) => (accounts || []).filter(a => a?.kind !== 'savings');

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { uid } from '../../../core/utils/format';
-import { accountLabel, cardLabel } from '../../../application/mappers/index';
+import { accountLabel, cardLabel, checkingOnly } from '../../../application/mappers/index';
 import CurrencyInput from '../../shared/components/CurrencyInput';
 import DateInput from '../../shared/components/DateInput';
 import { validateCreateTransactionDraft, resolveCreatePaymentArm } from '../../../application/createTransactionPayload';
@@ -283,7 +283,7 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
             <label className="form-label">Conta Origem *</label>
             <select className="form-select" required value={f.originAccountId} onChange={e => set('originAccountId', e.target.value)}>
               <option value="">— Selecione —</option>
-              {accounts.map(a => <option key={a.id} value={a.id}>{accountLabel(a, members)}</option>)}
+              {checkingOnly(accounts).map(a => <option key={a.id} value={a.id}>{accountLabel(a, members)}</option>)}
             </select>
           </div>
           <div className="form-group">

@@ -203,6 +203,37 @@ export function useAppData(notify) {
 
   /* ── Account CRUD ─────────────────────────────────────────── */
   const accOps = {
+    /**
+     * Guardar e resgatar são a mesma transferência com origem e destino
+     * trocados. Reusa o fluxo de transferência que já existe, então o valor
+     * sai do disponível sem virar despesa e o movimento fica no histórico.
+     */
+    onMoveSavings: async ({ box, account, direction, amount }) => {
+      const saving = direction === 'in';
+      await txRepo.createTransaction(txToApi({
+        type: 'expense',
+        recurrence: 'transfer',
+        description: saving ? `Guardado em ${box.name}` : `Resgate de ${box.name}`,
+        amount: Number(amount),
+        date: new Date().toISOString().slice(0, 10),
+        originAccountId:      saving ? account.id : box.id,
+        destinationAccountId: saving ? box.id : account.id,
+        memberId: account.memberId || box.memberId || '',
+      }));
+      await loadAcc();
+      await loadTx();
+    },
+
+    onCreateSavingsBox: async (parentAccountId, name) => {
+      await accountRepo.createSavingsBox(parentAccountId, name);
+      await loadAcc();
+    },
+
+    onRenameSavingsBox: async (accountId, name) => {
+      await accountRepo.renameSavingsBox(accountId, name);
+      await loadAcc();
+    },
+
     onAdd: async (acc) => {
       try {
         await accountRepo.createAccount({

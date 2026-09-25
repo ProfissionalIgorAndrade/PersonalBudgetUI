@@ -17,6 +17,7 @@ import DashboardView         from './presentation/dashboard/DashboardView';
 import TransactionsView      from './presentation/transactions/TransactionsView';
 import CardsView             from './presentation/cards/CardsView';
 import AccountsView          from './presentation/accounts/AccountsView';
+import SavingsView           from './presentation/savings/SavingsView';
 import MembersView           from './presentation/members/MembersView';
 import CategoriesView        from './presentation/categories/CategoriesView';
 import ProfileView           from './presentation/profile/ProfileView';
@@ -85,6 +86,9 @@ export default function App() {
                                     {...accOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete} onBatchDeleteTx={txOps.onBatchDelete}
                                     notify={notify} transactionsReloadGeneration={transactionsReloadGeneration}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
+    savings:      <SavingsView      accounts={accounts} members={members}
+                                    onCreateBox={accOps.onCreateSavingsBox} onRenameBox={accOps.onRenameSavingsBox}
+                                    onMove={accOps.onMoveSavings} notify={notify} />,
     members:      <MembersView      members={members} {...mbrOps} notify={notify} onLogout={handleLogout} />,
     categories:   <CategoriesView   categories={categories} {...catOps} />,
     profile:      <ProfileView      authSession={authSession} notify={notify} />,

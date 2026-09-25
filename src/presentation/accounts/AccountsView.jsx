@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { checkingOnly } from '../../application/mappers/index';
 import { R$ } from '../../core/utils/format';
 import { parseMoneyAmount } from '../../core/utils/money';
 import { ACC_TYPES } from '../../core/constants/index';
@@ -84,7 +85,7 @@ export default function AccountsView({
         <>
           <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
             <div style={{ display: 'flex', gap: 14 }}>
-              {accounts.map(a => (
+              {checkingOnly(accounts).map(a => (
                 <div key={a.id} style={{ flex: '0 0 calc(25% - 10.5px)', minWidth: 180 }}>
                   <AccountTile
                     account={a}
