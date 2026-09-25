@@ -34,3 +34,35 @@ describe('CardTile statement preview', () => {
     expect(screen.getByText('Fatura')).toBeTruthy();
   });
 });
+
+describe('CardTile after the refactor', () => {
+  it('shows the available limit, not the contracted one', () => {
+    render(tile({ spent: 5008.74, statementMonth: '2026-09' }));
+    expect(screen.getByText('Limite disponível')).toBeTruthy();
+    // 15.000,00 - 5.008,74
+    expect(screen.getByText(/9\.991,26/)).toBeTruthy();
+  });
+
+  it('drops the masked card number and the closing/due dates', () => {
+    const { container } = render(tile({ spent: 100, statementMonth: '2026-09' }));
+    expect(container.textContent).not.toMatch(/••••/);
+    expect(container.textContent).not.toMatch(/Fecha/);
+    expect(container.textContent).not.toMatch(/Vence/);
+  });
+
+  it('drops the usage percentage and the progress bar', () => {
+    const { container } = render(tile({ spent: 5008.74, statementMonth: '2026-09' }));
+    expect(container.textContent).not.toMatch(/33%/);
+    expect(container.querySelector('.progress-bar')).toBeNull();
+  });
+
+  it('leaves only the two action buttons below', () => {
+    const { container } = render(tile({ spent: 100, statementMonth: '2026-09' }));
+    expect(container.querySelectorAll('.card-sm button')).toHaveLength(2);
+  });
+
+  it('never shows a negative available limit', () => {
+    render(tile({ spent: 20000, statementMonth: '2026-09' }));
+    expect(screen.getByText(/^R\$ 0,00$/)).toBeTruthy();
+  });
+});
