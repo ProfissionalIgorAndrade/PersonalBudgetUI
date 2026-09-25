@@ -208,20 +208,13 @@ export function useAppData(notify) {
      * trocados. Reusa o fluxo de transferência que já existe, então o valor
      * sai do disponível sem virar despesa e o movimento fica no histórico.
      */
-    onMoveSavings: async ({ box, account, direction, amount }) => {
-      const saving = direction === 'in';
-      await txRepo.createTransaction(txToApi({
-        type: 'transfer',
-        recurrence: 'transfer',
-        description: saving ? `Guardado em ${box.name}` : `Resgate de ${box.name}`,
-        amount: Number(amount),
-        date: new Date().toISOString().slice(0, 10),
-        originAccountId:      saving ? account.id : box.id,
-        destinationAccountId: saving ? box.id : account.id,
-        memberId: account.memberId || box.memberId || '',
-      }));
+    onMoveSavings: async ({ box, direction, amount }) => {
+      if (direction === 'in') {
+        await accountRepo.depositToSavingsBox(box.id, Number(amount));
+      } else {
+        await accountRepo.withdrawFromSavingsBox(box.id, Number(amount));
+      }
       await loadAcc();
-      await loadTx();
     },
 
     onCreateSavingsBox: async (parentAccountId, name) => {
