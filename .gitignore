@@ -31,3 +31,4 @@ Thumbs.db
 
 # Vite cache
 .vite/
+.claude/settings.local.json
