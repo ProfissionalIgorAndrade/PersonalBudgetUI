@@ -23,7 +23,7 @@ const ymLabel = (ym) => {
   return `${m}/${y}`;
 };
 
-export default function AccountTile({ account, balance, flow, monthLabel, members, selected, onSelect, onEdit, onDelete }) {
+export default function AccountTile({ account, flow, monthLabel, members, selected, onSelect, onEdit, onDelete }) {
   const mem = findMember(members, account.memberId);
 
   return (
@@ -41,13 +41,25 @@ export default function AccountTile({ account, balance, flow, monthLabel, member
           </div>
         </div>
 
-        {/* Base: saldo + agência/conta */}
+        {/* Base: movimento do mês + agência/conta */}
         <div>
-          <div style={{ ...NUM, fontSize: 22, fontWeight: 800, marginBottom: 6, color: balance >= 0 ? '#4ade80' : '#f87171' }}>
-            {R$(balance)}
+          <div className="flex jcb aib" style={{ gap: 10, marginBottom: 6 }}>
+            <div>
+              <div style={{ fontSize: 9, opacity: .6, marginBottom: 2 }}>Receita</div>
+              <div style={{ ...NUM, fontSize: 17, fontWeight: 800, color: '#4ade80' }}>
+                {R$(flow?.income || 0)}
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 9, opacity: .6, marginBottom: 2 }}>Despesa</div>
+              <div style={{ ...NUM, fontSize: 17, fontWeight: 800, color: '#f87171' }}>
+                {R$(flow?.expense || 0)}
+              </div>
+            </div>
           </div>
           <div className="flex jcb" style={{ fontSize: 9, opacity: .65 }}>
             <span>Agência {account.agency || '—'} &nbsp;·&nbsp; Conta {account.accountNumber || '—'}</span>
+            {monthLabel && <span>{ymLabel(monthLabel)}</span>}
           </div>
         </div>
 
@@ -57,20 +69,6 @@ export default function AccountTile({ account, balance, flow, monthLabel, member
       </div>
 
       <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px 10px' }}>
-        {/* Prévia do período, para o card responder sem exigir clique. O saldo
-            acima é acumulado e vem da API; estes dois são do mês exibido. */}
-        {flow && (
-          <div className="flex jcb aic" style={{ marginBottom: 8 }}>
-            <span className="txxs tmuted">
-              Movimento{monthLabel ? ` ${ymLabel(monthLabel)}` : ''}
-            </span>
-            <span style={{ ...NUM, fontSize: 11, fontWeight: 700 }}>
-              <span style={{ color: '#4ade80' }}>+{R$(flow.income)}</span>
-              <span className="tmuted">{'  ·  '}</span>
-              <span style={{ color: '#f87171' }}>-{R$(flow.expense)}</span>
-            </span>
-          </div>
-        )}
         <div className="flex jce" style={{ gap: 5 }}>
           <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onEdit}>✏️</button>
           <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onDelete}>🗑️</button>
