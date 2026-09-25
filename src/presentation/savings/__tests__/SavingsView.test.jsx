@@ -46,9 +46,10 @@ describe('SavingsView', () => {
     expect(screen.getByText(/Reserva/)).toBeTruthy();
   });
 
-  it('disables Resgatar on an empty box', () => {
+  it('allows Resgatar even on an empty box', () => {
     render(view({ accounts: [conta, { ...reserva, balance: 0 }] }));
-    expect(screen.getByTitle(/Não há nada guardado/)).toBeTruthy();
+    const btn = screen.getAllByText(/Resgatar/)[0];
+    expect(btn.disabled).toBe(false);
   });
 
   it('opens the move form asking to save into the chosen box', () => {
@@ -78,5 +79,43 @@ describe('normalizeAccount', () => {
 
   it('treats an account with no kind as checking', () => {
     expect(normalizeAccount({ id: 'a1', bank: 'nubank', balance: 0 }).kind).toBe('checking');
+  });
+});
+
+describe('moving money has no cap', () => {
+  const open = (label) => {
+    const utils = render(view());
+    fireEvent.click(screen.getAllByText(label)[0]);
+    return utils;
+  };
+  // Ancorado no próprio modal: o texto dos botões também existe nos cards.
+  const modal = (c) => c.querySelector('.modal');
+  const amountInput = (c) => modal(c).querySelector('input');
+  const submitBtn = (c) => modal(c).querySelector('button[type="submit"]');
+
+  // The account balance is 0 and the old form capped deposits by it, so
+  // nothing could be put away at all.
+  it('accepts a deposit larger than the account balance', () => {
+    const { container } = open(/Guardar/);
+    fireEvent.change(amountInput(container), { target: { value: '1000,00' } });
+    expect(submitBtn(container).disabled).toBe(false);
+  });
+
+  it('accepts a withdrawal larger than the box holds', () => {
+    const { container } = open(/Resgatar/);
+    fireEvent.change(amountInput(container), { target: { value: '999.999,00' } });
+    expect(submitBtn(container).disabled).toBe(false);
+  });
+
+  it('still refuses zero', () => {
+    const { container } = open(/Guardar/);
+    fireEvent.change(amountInput(container), { target: { value: '0' } });
+    expect(submitBtn(container).disabled).toBe(true);
+  });
+
+  it('warns that a large withdrawal goes negative, without blocking it', () => {
+    const { container } = open(/Resgatar/);
+    fireEvent.change(amountInput(container), { target: { value: '999.999,00' } });
+    expect(container.textContent).toMatch(/deixa a caixinha negativa/);
   });
 });

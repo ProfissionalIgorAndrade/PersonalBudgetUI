@@ -3,8 +3,6 @@ import { R$ } from '../../../core/utils/format';
 
 /** Um card de caixinha: nome, quanto tem guardado e as duas ações. */
 export default function SavingsBoxCard({ box, onMove, onRename }) {
-  const empty = Number(box.balance || 0) <= 0;
-
   return (
     <div className="card-sm" style={{ padding: 14 }}>
       <div className="flex jcb aic" style={{ marginBottom: 8, gap: 8 }}>
@@ -25,14 +23,8 @@ export default function SavingsBoxCard({ box, onMove, onRename }) {
             onClick={() => onMove('in')}>
             ↓ Guardar
           </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            style={{ flex: 1, padding: '6px 8px', fontSize: 11 }}
-            disabled={empty}
-            title={empty ? 'Não há nada guardado nesta caixinha' : undefined}
-            onClick={() => onMove('out')}
-          >
+          <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '6px 8px', fontSize: 11 }}
+            onClick={() => onMove('out')}>
             ↑ Resgatar
           </button>
         </div>
