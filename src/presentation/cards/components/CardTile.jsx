@@ -28,6 +28,9 @@ const monthLabel = (ym) => {
 export default function CardTile({ card, spent, statementMonth, members, selected, onSelect, onEdit, onDelete }) {
   const mem    = findMember(members, card.memberId);
   const usePct = card.limit > 0 ? Math.min(spent / card.limit * 100, 100) : 0;
+  // "Limite atual" lido como o que ainda resta, não o limite contratado — é o
+  // número acionável. Nunca negativo na exibição.
+  const available = Math.max(Number(card.limit || 0) - Number(spent || 0), 0);
   return (
     <div style={{ borderRadius: 14, outline: selected ? '2px solid var(--primary)' : '2px solid transparent', outlineOffset: 3, transition: 'outline-color .2s' }}>
       <div
@@ -37,45 +40,39 @@ export default function CardTile({ card, spent, statementMonth, members, selecte
       >
         <div>
           <div style={{ fontSize: 10, opacity: .6, marginBottom: 2 }}>{FLAGS[card.flag] || 'Cartão'}</div>
-          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, marginBottom: mem ? 4 : 0 }}>{card.name}</div>
-          {mem && <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 13 }}>{mem.emoji} {mem.name}</div>}
+          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15 }}>{card.name}</div>
         </div>
-        <div>
-          <div style={{ fontFamily: 'monospace', fontSize: 12, letterSpacing: 2, opacity: .8 }}>
-            •••• •••• •••• {card.lastDigits || '????'}
+
+        {/* Fatura e limite na face, como a conta faz com receita e despesa. */}
+        <div className="flex jcb aib" style={{ gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 9, opacity: .6, marginBottom: 2 }}>
+              Fatura{statementMonth ? ` ${monthLabel(statementMonth)}` : ''}
+            </div>
+            <div style={{ ...NUM, fontSize: 17, fontWeight: 800 }}>{R$(spent)}</div>
           </div>
-          <div style={{ marginTop: 6, fontSize: 9, opacity: .65 }}>
-            <span>Fecha {card.closingDay || '?'} · Vence {card.dueDay || '?'}</span>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 9, opacity: .6, marginBottom: 2 }}>Limite disponível</div>
+            <div style={{
+              ...NUM, fontSize: 17, fontWeight: 800,
+              color: available <= 0 ? '#f87171' : usePct > 80 ? '#fbbf24' : undefined,
+            }}>
+              {R$(available)}
+            </div>
           </div>
         </div>
         <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, opacity: .5, fontWeight: 600 }}>
           {selected ? '▼ Aberto' : 'Ver faturas →'}
         </div>
       </div>
-      <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px 10px' }}>
-        {/* Total da fatura em destaque: é o número que a pessoa vem buscar,
-            e antes só aparecia depois de clicar no cartão. */}
-        <div className="flex jcb aib" style={{ marginBottom: 6 }}>
-          <span className="txxs tmuted">
-            Fatura{statementMonth ? ` ${monthLabel(statementMonth)}` : ''}
+      <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px' }}>
+        {/* Dono e ações na mesma linha: o nome identifica o cartão e as ações
+            agem sobre ele. Na face, ele competia com os valores. */}
+        <div className="flex jcb aic" style={{ gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {mem ? `${mem.emoji} ${mem.name}` : '—'}
           </span>
-          <span style={{ ...NUM, fontSize: 16, fontWeight: 800 }}>{R$(spent)}</span>
-        </div>
-        <div className="flex jcb aic" style={{ marginBottom: 4 }}>
-          <span className="txxs tmuted">Limite</span>
-          <span className="txxs tmuted" style={NUM}>{R$(card.limit)}</span>
-        </div>
-        <div className="progress-bar" style={{ marginBottom: 8 }}>
-          <div className="progress-fill" style={{
-            width: usePct + '%',
-            background: usePct > 80 ? 'var(--red)' : usePct > 50 ? 'var(--yellow)' : 'var(--primary)',
-          }} />
-        </div>
-        <div className="flex jcb aic">
-          <span style={{ fontSize: 13, fontWeight: 700, color: usePct > 80 ? 'var(--red)' : 'var(--text)', ...NUM }}>
-            {usePct.toFixed(0)}%
-          </span>
-          <div style={{ display: 'flex', gap: 5 }}>
+          <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
             <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onEdit}>✏️</button>
             <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onDelete}>🗑️</button>
           </div>
