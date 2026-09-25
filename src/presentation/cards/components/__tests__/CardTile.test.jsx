@@ -66,3 +66,24 @@ describe('CardTile after the refactor', () => {
     expect(screen.getByText(/^R\$ 0,00$/)).toBeTruthy();
   });
 });
+
+describe('CardTile owner and footer', () => {
+  it('shows the statement and available limit on the card face', () => {
+    const { container } = render(tile({ spent: 5008.74, statementMonth: '2026-09' }));
+    const face = container.querySelector('.cc-visual');
+    expect(face.textContent).toMatch(/Fatura 09\/2026/);
+    expect(face.textContent).toMatch(/Limite disponível/);
+    expect(face.textContent).toMatch(/9\.991,26/);
+  });
+
+  it('names the owner beside the actions, not on the card face', () => {
+    const { container } = render(tile({ spent: 100, statementMonth: '2026-09' }));
+    expect(container.querySelector('.card-sm').textContent).toMatch(/Igor/);
+    expect(container.querySelector('.cc-visual').textContent).not.toMatch(/Igor/);
+  });
+
+  it('keeps the two actions in the footer', () => {
+    const { container } = render(tile({ spent: 100, statementMonth: '2026-09' }));
+    expect(container.querySelectorAll('.card-sm button')).toHaveLength(2);
+  });
+});
