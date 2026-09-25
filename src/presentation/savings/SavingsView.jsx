@@ -33,7 +33,7 @@ export default function SavingsView({ accounts = [], members = [], onCreateBox, 
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Guardado</h1>
+          <h1 className="page-title">Cofrinho</h1>
           <p className="page-sub">
             {boxes.length} caixinha{boxes.length === 1 ? '' : 's'} · <strong>{R$(totalSaved)}</strong>
           </p>
