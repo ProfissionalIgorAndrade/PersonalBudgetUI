@@ -211,7 +211,7 @@ export function useAppData(notify) {
     onMoveSavings: async ({ box, account, direction, amount }) => {
       const saving = direction === 'in';
       await txRepo.createTransaction(txToApi({
-        type: 'expense',
+        type: 'transfer',
         recurrence: 'transfer',
         description: saving ? `Guardado em ${box.name}` : `Resgate de ${box.name}`,
         amount: Number(amount),
