@@ -35,10 +35,7 @@ export default function AccountTile({ account, flow, monthLabel, members, select
       >
         {/* Topo: banco + titular */}
         <div>
-          <div style={{ fontSize: 10, opacity: .6, marginBottom: 4 }}>{account.bank}</div>
-          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15 }}>
-            {mem ? `${mem.emoji} ${mem.name}` : '—'}
-          </div>
+          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15 }}>{account.bank}</div>
         </div>
 
         {/* Base: movimento do mês + agência/conta */}
@@ -68,10 +65,16 @@ export default function AccountTile({ account, flow, monthLabel, members, select
         </div>
       </div>
 
-      <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px 10px' }}>
-        <div className="flex jce" style={{ gap: 5 }}>
-          <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onEdit}>✏️</button>
-          <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onDelete}>🗑️</button>
+      <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px' }}>
+        {/* Dono e ações na mesma linha, igual ao card de cartão. */}
+        <div className="flex jcb aic" style={{ gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {mem ? `${mem.emoji} ${mem.name}` : '—'}
+          </span>
+          <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+            <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onEdit}>✏️</button>
+            <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onDelete}>🗑️</button>
+          </div>
         </div>
       </div>
     </div>

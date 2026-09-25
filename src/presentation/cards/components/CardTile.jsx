@@ -40,38 +40,42 @@ export default function CardTile({ card, spent, statementMonth, members, selecte
       >
         <div>
           <div style={{ fontSize: 10, opacity: .6, marginBottom: 2 }}>{FLAGS[card.flag] || 'Cartão'}</div>
-          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, marginBottom: mem ? 4 : 0 }}>{card.name}</div>
-          {mem && <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 13 }}>{mem.emoji} {mem.name}</div>}
+          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15 }}>{card.name}</div>
         </div>
-        <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, opacity: .5, fontWeight: 600 }}>
-          {selected ? '▼ Aberto' : 'Ver faturas →'}
-        </div>
-      </div>
-      <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '10px 12px' }}>
-        {/* Fatura e limite disponível na mesma linha. A barra de uso, o
-            percentual e a linha separada de limite saíram: o número que
-            importa é quanto ainda dá para gastar, e ele agora está escrito. */}
-        <div className="flex jcb aib" style={{ marginBottom: 10, gap: 10 }}>
+
+        {/* Fatura e limite na face, como a conta faz com receita e despesa. */}
+        <div className="flex jcb aib" style={{ gap: 10 }}>
           <div>
-            <div className="txxs tmuted" style={{ marginBottom: 2 }}>
+            <div style={{ fontSize: 9, opacity: .6, marginBottom: 2 }}>
               Fatura{statementMonth ? ` ${monthLabel(statementMonth)}` : ''}
             </div>
-            <div style={{ ...NUM, fontSize: 16, fontWeight: 800 }}>{R$(spent)}</div>
+            <div style={{ ...NUM, fontSize: 17, fontWeight: 800 }}>{R$(spent)}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div className="txxs tmuted" style={{ marginBottom: 2 }}>Limite disponível</div>
+            <div style={{ fontSize: 9, opacity: .6, marginBottom: 2 }}>Limite disponível</div>
             <div style={{
-              ...NUM, fontSize: 16, fontWeight: 800,
-              color: available <= 0 ? 'var(--red)' : usePct > 80 ? 'var(--yellow)' : 'var(--text)',
+              ...NUM, fontSize: 17, fontWeight: 800,
+              color: available <= 0 ? '#f87171' : usePct > 80 ? '#fbbf24' : undefined,
             }}>
               {R$(available)}
             </div>
           </div>
         </div>
-
-        <div className="flex jce" style={{ gap: 5 }}>
-          <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onEdit}>✏️</button>
-          <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onDelete}>🗑️</button>
+        <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, opacity: .5, fontWeight: 600 }}>
+          {selected ? '▼ Aberto' : 'Ver faturas →'}
+        </div>
+      </div>
+      <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px' }}>
+        {/* Dono e ações na mesma linha: o nome identifica o cartão e as ações
+            agem sobre ele. Na face, ele competia com os valores. */}
+        <div className="flex jcb aic" style={{ gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {mem ? `${mem.emoji} ${mem.name}` : '—'}
+          </span>
+          <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+            <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onEdit}>✏️</button>
+            <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onDelete}>🗑️</button>
+          </div>
         </div>
       </div>
     </div>

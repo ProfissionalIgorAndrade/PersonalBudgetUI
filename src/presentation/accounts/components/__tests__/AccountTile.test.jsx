@@ -28,10 +28,18 @@ describe('AccountTile', () => {
     expect(container.textContent).not.toMatch(/4\.321/);
   });
 
-  it('drops the movement row, leaving the actions', () => {
+  it('drops the movement row, leaving owner and actions', () => {
     const { container } = render(tile({ flow: { income: 10, expense: 5 }, monthLabel: '2026-09' }));
     expect(container.textContent).not.toMatch(/Movimento/);
     expect(container.querySelectorAll('.card-sm button')).toHaveLength(2);
+  });
+
+  // The owner moved off the coloured face and into the actions row.
+  it('names the owner beside the actions, not on the card face', () => {
+    const { container } = render(tile({ flow: { income: 10, expense: 5 } }));
+    const footer = container.querySelector('.card-sm');
+    expect(footer.textContent).toMatch(/Igor Andrade/);
+    expect(container.querySelector('.cc-visual').textContent).not.toMatch(/Igor Andrade/);
   });
 
   it('shows zeroes rather than blanks with no movement', () => {
