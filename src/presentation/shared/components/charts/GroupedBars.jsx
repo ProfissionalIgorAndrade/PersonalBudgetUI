@@ -8,11 +8,15 @@ import Chart from 'chart.js/auto';
  * o tempo é a série e a categoria é a posição, que é o que permite ver numa
  * olhada quais categorias subiram de um mês para o outro.
  */
-export default function GroupedBars({ labels, series, height = 340 }) {
+export default function GroupedBars({ labels, series, height = 340, theme }) {
   const ref = useRef();
 
   useEffect(() => {
     if (!ref.current) return;
+    const isLight   = theme === 'light';
+    const tickColor = isLight ? '#8A95A4' : '#5a7a77';
+    const gridColor = isLight ? '#E8EDF2' : '#1c3330';
+
     const ch = new Chart(ref.current.getContext('2d'), {
       type: 'bar',
       data: {
@@ -31,7 +35,7 @@ export default function GroupedBars({ labels, series, height = 340 }) {
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: { labels: { color: '#5a7a77', font: { family: 'Outfit', size: 11 }, boxWidth: 12 } },
+          legend: { labels: { color: tickColor, font: { family: 'Outfit', size: 11 }, boxWidth: 12 } },
           tooltip: {
             callbacks: {
               label: (ctx) => `${ctx.dataset.label}: ${new Intl.NumberFormat('pt-BR', {
@@ -42,18 +46,18 @@ export default function GroupedBars({ labels, series, height = 340 }) {
         },
         scales: {
           x: {
-            ticks: { color: '#5a7a77', font: { family: 'Outfit', size: 10 }, maxRotation: 45, minRotation: 0 },
+            ticks: { color: tickColor, font: { family: 'Outfit', size: 10 }, maxRotation: 45, minRotation: 0 },
             grid: { display: false },
           },
           y: {
             beginAtZero: true,
             ticks: {
-              color: '#5a7a77', font: { family: 'Outfit', size: 11 },
+              color: tickColor, font: { family: 'Outfit', size: 11 },
               // Milhares abreviados: com 16 categorias o eixo fica estreito e
               // "R$ 6.748,83" por tick empurra o gráfico todo.
               callback: v => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v),
             },
-            grid: { color: '#1c3330' },
+            grid: { color: gridColor },
           },
         },
       },
@@ -64,7 +68,7 @@ export default function GroupedBars({ labels, series, height = 340 }) {
     if (ref.current.parentElement) ro.observe(ref.current.parentElement);
 
     return () => { ro.disconnect(); ch.destroy(); };
-  }, [JSON.stringify(labels), JSON.stringify(series)]);
+  }, [JSON.stringify(labels), JSON.stringify(series), theme]);
 
   // A altura vem em pixels direto no elemento que o Chart.js mede, sem
   // intermediário em height: 100%. A tentativa anterior encadeava

@@ -7,7 +7,7 @@ const cardVariants = {
   visible: (i) => ({ opacity: 1, y: 0, scale: 1, transition: { delay: i * 0.08, duration: 0.38, ease: [0.4,0,0.2,1] } }),
 };
 
-const CARDS = (balance, savPct) => [
+const DARK_CARDS = (balance) => [
   {
     label:       'Receitas',
     icon:        '📈',
@@ -54,13 +54,53 @@ const CARDS = (balance, savPct) => [
   },
 ];
 
-export default function SummaryCards({ totalIn, totalOut, balance, savPct }) {
+const LIGHT_CARDS = (balance) => [
+  { label: 'Receitas', valColor: '#159A72' },
+  { label: 'Despesas', valColor: '#DF5B63' },
+  { label: 'Saldo',    valColor: balance >= 0 ? '#4E78D5' : '#DF5B63' },
+  { label: 'Poupança', valColor: '#8767D8' },
+];
+
+export default function SummaryCards({ totalIn, totalOut, balance, savPct, theme }) {
   const vals  = [totalIn, totalOut, balance, null];
   const extra = [null, null, null, savPct + '%'];
+  const isLight = theme === 'light';
+
+  if (isLight) {
+    const cards = LIGHT_CARDS(balance);
+    return (
+      <div className="grid-4" style={{ marginBottom: 20 }}>
+        {cards.map((s, i) => (
+          <motion.div
+            key={i}
+            custom={i}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            style={{
+              background: '#F8FAFC',
+              border: '1px solid #DCE3EB',
+              borderRadius: 10,
+              padding: '20px 22px',
+              boxShadow: 'none',
+            }}
+          >
+            {/* label */}
+            <div style={{ fontSize: 10.5, color: '#8792A1', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.9px', marginBottom: 8 }}>{s.label}</div>
+
+            {/* value */}
+            <div style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Inter', 'Outfit', sans-serif", color: s.valColor, letterSpacing: '-0.5px', lineHeight: 1, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' }}>
+              {extra[i] || R$(vals[i])}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid-4" style={{ marginBottom: 20 }}>
-      {CARDS(balance, savPct).map((s, i) => (
+      {DARK_CARDS(balance).map((s, i) => (
         <motion.div
           key={i}
           custom={i}
