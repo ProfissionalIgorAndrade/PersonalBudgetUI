@@ -1490,3 +1490,9 @@ canvas { max-height: 220px; }
   .main { margin-left: 56px; padding: 16px; max-width: calc(100vw - 56px); }
   .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
 }
+
+/* O extrato desce para baixo do gráfico quando a tela não comporta os dois
+   lado a lado; duas colunas estreitas deixam ambos ilegíveis. */
+@media (max-width: 1100px) {
+  .savings-split { grid-template-columns: 1fr !important; }
+}
