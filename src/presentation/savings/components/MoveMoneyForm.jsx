@@ -14,13 +14,13 @@ export default function MoveMoneyForm({ f, onChange, onSave, onClose }) {
   const amount = Number(f.amount) || 0;
   const inBox = Number(f.box?.balance) || 0;
 
-  // Sem teto. A caixinha é independente da conta: depositar e sacar são
-  // operações diretas nela, e o backend não valida saldo em nenhuma das duas.
+  // Depósito continua sem teto: a caixinha é independente da conta.
   //
-  // A versão anterior travava pelo saldo da conta de origem, herdado de
-  // quando guardar era uma transferência. Com o saldo da conta em zero, isso
-  // barrava qualquer depósito.
-  const canSave = amount > 0;
+  // Resgate tem teto no que a caixinha tem, porque o domínio passou a recusar
+  // saldo negativo. O aviso aqui é conveniência — a regra mora no backend, e
+  // avisar antes evita a viagem de ida e volta.
+  const tooMuch = !saving && amount > inBox;
+  const canSave = amount > 0 && !tooMuch;
 
   return (
     <Modal title={saving ? 'Guardar dinheiro' : 'Resgatar dinheiro'} onClose={onClose} confirmOnOverlay>
@@ -36,11 +36,10 @@ export default function MoveMoneyForm({ f, onChange, onSave, onClose }) {
         <div className="form-group">
           <label className="form-label">Valor (R$) *</label>
           <CurrencyInput value={f.amount} onChange={v => set('amount', v)} autoFocus />
-          <p className="txxs tmuted" style={{ marginTop: 6 }}>
-            {saving
-              ? <>Na caixinha hoje: {R$(inBox)}</>
-              : <>Na caixinha hoje: {R$(inBox)}{amount > inBox && amount > 0
-                  ? ` · sacar ${R$(amount)} deixa a caixinha negativa` : ''}</>}
+          <p className="txxs" style={{ marginTop: 6, color: tooMuch ? 'var(--red)' : 'var(--muted)' }}>
+            {tooMuch
+              ? `A caixinha tem ${R$(inBox)}. Não dá para resgatar mais do que isso.`
+              : `Na caixinha hoje: ${R$(inBox)}`}
           </p>
         </div>
 
