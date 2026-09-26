@@ -32,7 +32,7 @@ export default function App() {
   const { toast, notify, clearToast } = useNotify();
   const { authSession, login, signup, logout } = useAuth();
   const {
-    loading, transactions, accounts, categories, cards, members,
+    loading, transactions, savingsTransactions, accounts, categories, cards, members,
     transactionsReloadGeneration,
     loadAll, loadTx, clearData,
     txOps, accOps, catOps, cardOps, mbrOps,
@@ -86,8 +86,9 @@ export default function App() {
                                     {...accOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete} onBatchDeleteTx={txOps.onBatchDelete}
                                     notify={notify} transactionsReloadGeneration={transactionsReloadGeneration}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
-    savings:      <SavingsView      accounts={accounts} members={members}
+    savings:      <SavingsView      accounts={accounts} members={members} movements={savingsTransactions} theme={theme}
                                     onCreateBox={accOps.onCreateSavingsBox} onRenameBox={accOps.onRenameSavingsBox}
+                                    onSetGoal={accOps.onSetSavingsGoal}
                                     onMove={accOps.onMoveSavings} notify={notify} />,
     members:      <MembersView      members={members} {...mbrOps} notify={notify} onLogout={handleLogout} />,
     categories:   <CategoriesView   categories={categories} {...catOps} />,
