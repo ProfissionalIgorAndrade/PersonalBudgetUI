@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const VALID = ['dashboard', 'transactions', 'accounts', 'cards', 'categories', 'members', 'profile'];
+const VALID = ['dashboard', 'transactions', 'accounts', 'cards', 'savings', 'categories', 'members', 'profile'];
 
 export function useHashView(defaultView = 'dashboard') {
   const fromHash = () => {
