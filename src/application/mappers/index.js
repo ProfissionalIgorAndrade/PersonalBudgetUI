@@ -90,6 +90,7 @@ export function normalizeAccount(a) {
     // duas pela mesma forma, e a tela de guardados filtra por kind.
     kind:            (a.kind ?? a.Kind ?? 'Checking') === 'Savings' ? 'savings' : 'checking',
     parentAccountId: String(a.parentAccountId ?? a.ParentAccountId ?? '') || null,
+    savingsGoal:     a.savingsGoal ?? a.SavingsGoal ?? null,
     type:          'checking',
     isActive:      a.isActive !== false,
     memberId:      String(a.memberId ?? a.MemberId ?? a.profileId ?? a.ProfileId ?? a.memberProfileId ?? a.attributionProfileId ?? '') || null,
@@ -185,7 +186,12 @@ export function normalizeCard(c) {
 }
 
 export function normalizeTransaction(t) {
-  const isTransfer = (t.paymentMethod ?? t.PaymentMethod) === 'Transfer';
+  const method = t.paymentMethod ?? t.PaymentMethod;
+  const isTransfer = method === 'Transfer';
+  // Movimento de caixinha tem sentido (entrou ou saiu) e por isso é gravado
+  // como Income/Expense, mas não é receita nem despesa do lar. O tipo próprio
+  // o mantém fora de todo agregado, como já acontece com transferência.
+  const isSavings  = method === 'Savings';
   const dateStr    = t.date
     ? (typeof t.date === 'string' ? t.date.slice(0, 10) : new Date(t.date).toISOString().slice(0, 10))
     : '';
@@ -198,7 +204,11 @@ export function normalizeTransaction(t) {
     // Sem esta chave a busca falhava e todo lançamento vindo da tela de fatura
     // caía no fallback 'expense' - um estorno aparecia como despesa ali e como
     // receita em Lançamentos, para a mesma linha.
-    type:           isTransfer ? 'transfer' : (TYPE_FROM_API[t.type ?? t.Type ?? t.transactionType ?? t.TransactionType] || 'expense'),
+    // Preserva o sentido original, que a tela do cofrinho usa para o extrato.
+    savingsDirection: isSavings
+      ? ((TYPE_FROM_API[t.type ?? t.Type ?? t.transactionType ?? t.TransactionType] === 'income') ? 'in' : 'out')
+      : null,
+    type:           isSavings ? 'savings' : isTransfer ? 'transfer' : (TYPE_FROM_API[t.type ?? t.Type ?? t.transactionType ?? t.TransactionType] || 'expense'),
     status:         normalizeTransactionStatus(t.status ?? t.Status),
     recurrence:     FREQ_FROM_API[t.frequency ?? t.Frequency] || 'variable',
     categoryId:     t.categoryId          ?? t.CategoryId          ?? '',
