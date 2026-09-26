@@ -1,4 +1,4 @@
-import { useState, useCallback, useReducer } from 'react';
+import { useState, useCallback, useReducer, useMemo } from 'react';
 import { getHouseholdId, setHouseholdId } from '../../data/http/client';
 import * as householdRepo    from '../../data/repositories/householdRepository';
 import * as accountRepo      from '../../data/repositories/accountRepository';
@@ -16,7 +16,15 @@ export function useAppData(notify) {
   const [transactionsReloadGeneration, bumpTransactionsReload] = useReducer(x => x + 1, 0);
 
   const [loading,      setLoading]      = useState(false);
-  const [transactions, setTransactions] = useState([]);
+  const [allTransactions, setTransactions] = useState([]);
+
+  // Separado na origem, não em cada tela. Movimento de cofrinho só existe para
+  // a tela do cofrinho; deixá-lo na lista geral e confiar que todo consumidor
+  // vai filtrar é o tipo de regra que uma tela nova esquece.
+  const transactions = useMemo(
+    () => allTransactions.filter(t => t.type !== 'savings'), [allTransactions]);
+  const savingsTransactions = useMemo(
+    () => allTransactions.filter(t => t.type === 'savings'), [allTransactions]);
   const [accounts,     setAccounts]     = useState([]);
   const [categories,   setCategories]   = useState([]);
   const [cards,        setCards]        = useState([]);
@@ -222,6 +230,11 @@ export function useAppData(notify) {
       await loadAcc();
     },
 
+    onSetSavingsGoal: async (accountId, goal) => {
+      await accountRepo.setSavingsGoal(accountId, goal);
+      await loadAcc();
+    },
+
     onRenameSavingsBox: async (accountId, name) => {
       await accountRepo.renameSavingsBox(accountId, name);
       await loadAcc();
@@ -362,7 +375,7 @@ export function useAppData(notify) {
   };
 
   return {
-    loading, transactions, accounts, categories, cards, members,
+    loading, transactions, savingsTransactions, accounts, categories, cards, members,
     transactionsReloadGeneration,
     loadAll, loadTx, clearData,
     txOps, accOps, catOps, cardOps, mbrOps,

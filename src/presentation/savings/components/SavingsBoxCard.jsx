@@ -23,8 +23,14 @@ export default function SavingsBoxCard({ box, onMove, onRename }) {
             onClick={() => onMove('in')}>
             ↓ Guardar
           </button>
-          <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '6px 8px', fontSize: 11 }}
-            onClick={() => onMove('out')}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ flex: 1, padding: '6px 8px', fontSize: 11 }}
+            disabled={Number(box.balance || 0) <= 0}
+            title={Number(box.balance || 0) <= 0 ? 'Não há nada guardado nesta caixinha' : undefined}
+            onClick={() => onMove('out')}
+          >
             ↑ Resgatar
           </button>
         </div>

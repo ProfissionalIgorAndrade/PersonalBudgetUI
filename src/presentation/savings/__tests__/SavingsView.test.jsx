@@ -46,10 +46,11 @@ describe('SavingsView', () => {
     expect(screen.getByText(/Reserva/)).toBeTruthy();
   });
 
-  it('allows Resgatar even on an empty box', () => {
+  // A box holds money that exists and was set aside, so taking out more than
+  // it has describes nothing. The rule is in the domain; this mirrors it.
+  it('blocks Resgatar on an empty box', () => {
     render(view({ accounts: [conta, { ...reserva, balance: 0 }] }));
-    const btn = screen.getAllByText(/Resgatar/)[0];
-    expect(btn.disabled).toBe(false);
+    expect(screen.getAllByText(/Resgatar/)[0].disabled).toBe(true);
   });
 
   it('opens the move form asking to save into the chosen box', () => {
@@ -101,9 +102,15 @@ describe('moving money has no cap', () => {
     expect(submitBtn(container).disabled).toBe(false);
   });
 
-  it('accepts a withdrawal larger than the box holds', () => {
+  it('refuses a withdrawal larger than the box holds', () => {
     const { container } = open(/Resgatar/);
     fireEvent.change(amountInput(container), { target: { value: '999.999,00' } });
+    expect(submitBtn(container).disabled).toBe(true);
+  });
+
+  it('accepts a withdrawal up to the box balance', () => {
+    const { container } = open(/Resgatar/);
+    fireEvent.change(amountInput(container), { target: { value: '5.000,00' } });
     expect(submitBtn(container).disabled).toBe(false);
   });
 
@@ -113,9 +120,16 @@ describe('moving money has no cap', () => {
     expect(submitBtn(container).disabled).toBe(true);
   });
 
-  it('warns that a large withdrawal goes negative, without blocking it', () => {
+  it('says why the withdrawal is refused', () => {
     const { container } = open(/Resgatar/);
     fireEvent.change(amountInput(container), { target: { value: '999.999,00' } });
-    expect(container.textContent).toMatch(/deixa a caixinha negativa/);
+    expect(container.textContent).toMatch(/Não dá para resgatar mais do que isso/);
+  });
+
+  // The deposit side stays uncapped: a box does not draw from the account.
+  it('still accepts a deposit of any size', () => {
+    const { container } = open(/Guardar/);
+    fireEvent.change(amountInput(container), { target: { value: '999.999,00' } });
+    expect(submitBtn(container).disabled).toBe(false);
   });
 });
