@@ -14,11 +14,19 @@ const label = (key) => {
  * o acúmulo dos depósitos e nada além disso. Chamar de patrimônio prometeria
  * algo que não acontece.
  */
-export default function SavingsEvolution({ series, growth, months, onChangeMonths }) {
+export default function SavingsEvolution({ series, growth, months, onChangeMonths, theme }) {
+  const isLight = theme === 'light';
   const ref = useRef();
 
   useEffect(() => {
     if (!ref.current) return;
+    // Canvas não resolve var() do CSS: passar 'var(--primary)' ao Chart.js
+    // produz preto sólido, que foi o gráfico preto do print. Cores literais,
+    // como o BarLine já fazia.
+    const line = isLight ? '#55BDA5' : '#4ade80';
+    const fill = isLight ? '#55BDA524' : '#4ade8024';
+    const tick = isLight ? '#8A95A4' : '#5a7a77';
+    const grid = isLight ? '#E8EDF2' : '#1c3330';
     const ch = new Chart(ref.current.getContext('2d'), {
       type: 'line',
       data: {
@@ -26,8 +34,8 @@ export default function SavingsEvolution({ series, growth, months, onChangeMonth
         datasets: [{
           label: 'Total guardado',
           data: series.map(p => p.total),
-          borderColor: 'var(--primary)',
-          backgroundColor: 'color-mix(in srgb, var(--primary) 16%, transparent)',
+          borderColor: line,
+          backgroundColor: fill,
           borderWidth: 2, fill: true, tension: .35,
           pointRadius: 0, pointHoverRadius: 4,
         }],
@@ -40,20 +48,20 @@ export default function SavingsEvolution({ series, growth, months, onChangeMonth
           tooltip: { callbacks: { label: (c) => R$(c.parsed.y ?? 0) } },
         },
         scales: {
-          x: { ticks: { color: 'var(--muted)', font: { size: 10 } }, grid: { display: false } },
+          x: { ticks: { color: tick, font: { size: 10 } }, grid: { display: false } },
           y: {
             beginAtZero: true,
             ticks: {
-              color: 'var(--muted)', font: { size: 10 },
+              color: tick, font: { size: 10 },
               callback: v => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v),
             },
-            grid: { color: 'var(--border)' },
+            grid: { color: grid },
           },
         },
       },
     });
     return () => ch.destroy();
-  }, [JSON.stringify(series)]);
+  }, [JSON.stringify(series), isLight]);
 
   return (
     <div className="card" style={{ marginBottom: 14 }}>
