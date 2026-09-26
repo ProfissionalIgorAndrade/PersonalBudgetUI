@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { R$ } from '../../core/utils/format';
 import { accountLabel } from '../../application/mappers/index';
-import SavingsSummary from './components/SavingsSummary';
+import { TotalCard, SummaryCard } from './components/SavingsOverview';
+import SavingsBoxPanel from './components/SavingsBoxPanel';
 import SavingsEvolution from './components/SavingsEvolution';
 import SavingsMovements from './components/SavingsMovements';
-import SavingsBoxCard from './components/SavingsBoxCard';
 import { savingsMovements, savingsSeries, savingsGrowth, netOf } from './savingsHistory';
 import { useLocalStorage } from '../../core/hooks/useLocalStorage';
 import SavingsBoxForm from './components/SavingsBoxForm';
@@ -17,7 +17,7 @@ import MoveMoneyForm from './components/MoveMoneyForm';
  * Guardar e resgatar são transferências entre as duas, então o valor sai do
  * saldo disponível sem virar despesa — guardar não é gastar.
  */
-export default function SavingsView({ accounts = [], members = [], movements = [], onCreateBox, onRenameBox, onSetGoal, onMove, notify }) {
+export default function SavingsView({ accounts = [], members = [], movements = [], onCreateBox, onRenameBox, onSetGoal, onMove, notify, theme }) {
   const [months, setMonths] = useLocalStorage('pb_savings_months', 12);
   const [boxForm, setBoxForm]   = useState(null);
   const [moveForm, setMoveForm] = useState(null);
@@ -42,21 +42,31 @@ export default function SavingsView({ accounts = [], members = [], movements = [
   const monthNet = netOf(moves.filter(m => String(m.date).slice(0, 7) === thisKey));
 
   const boxNameOf = (id) => boxes.find(b => b.id === id)?.name || 'caixinha removida';
+  const accountNameOf = (id) => {
+    const acc = checking.find(a => a.id === id);
+    return acc ? accountLabel(acc, members) : null;
+  };
 
-  const grouped = checking
-    .map(acc => ({ acc, boxes: boxes.filter(b => b.parentAccountId === acc.id) }))
-    .filter(g => g.boxes.length > 0);
+  // "Disponível para guardar" é o saldo das contas de origem. Ele hoje lê zero,
+  // porque o saldo acumulado deixou de ser mantido — o número é honesto, e a
+  // linha existe porque faz parte do layout pedido.
+  const availableToSave = checking.reduce((s2, a) => s2 + Number(a.balance || 0), 0);
+  const thisYear = String(new Date().getFullYear());
+  const savedThisYear = netOf(moves.filter(m => String(m.date).slice(0, 4) === thisYear));
 
-  // Caixinha cuja conta de origem foi desativada aparece à parte em vez de
-  // sumir da tela: o dinheiro continua lá.
-  const orphans = boxes.filter(b => !checking.some(a => a.id === b.parentAccountId));
+
 
   return (
     <div>
       <div className="page-header">
         <div>
+          <div className="txxs tmuted" style={{ textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 2 }}>
+            Planejamento financeiro
+          </div>
           <h1 className="page-title">Cofrinho</h1>
-          <p className="page-sub">acompanhe seus objetivos e a evolução do que você guarda</p>
+          <p className="page-sub">
+            {boxes.length} caixinha{boxes.length === 1 ? '' : 's'} · acompanhe seus objetivos e evolução
+          </p>
         </div>
         <button
           className="btn btn-primary"
@@ -68,62 +78,28 @@ export default function SavingsView({ accounts = [], members = [], movements = [
         </button>
       </div>
 
-      <SavingsSummary total={totalSaved} towardGoal={towardGoal} goalTotal={goalTotal} monthNet={monthNet} boxCount={boxes.length} />
-
-      {boxes.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
-          <div style={{ fontSize: 34, marginBottom: 10 }}>🐷</div>
-          <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Nenhum dinheiro guardado ainda</p>
-          <p className="tmuted tsm" style={{ maxWidth: 440, margin: '0 auto', lineHeight: 1.6 }}>
-            Uma caixinha separa parte do saldo de uma conta. O dinheiro sai do
-            disponível e continua seu — guardar não conta como despesa.
-          </p>
+      <div className="savings-grid">
+        <div className="savings-col">
+          <TotalCard total={totalSaved} towardGoal={towardGoal} goalTotal={goalTotal} monthNet={monthNet} />
+          <SavingsEvolution series={series} growth={growth} months={months} onChangeMonths={setMonths} theme={theme} />
+          <SavingsMovements movements={moves} boxNameOf={boxNameOf} />
         </div>
-      ) : (
-        <>
-          {grouped.map(({ acc, boxes: bs }) => (
-            <div key={acc.id} style={{ marginBottom: 20 }}>
-              <div className="flex jcb aib" style={{ marginBottom: 10, gap: 10, flexWrap: 'wrap' }}>
-                <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.5px' }}>
-                  {accountLabel(acc, members)}
-                </h3>
-                <span className="txxs tmuted">
-                  Disponível na conta: <strong style={{ color: 'var(--text)' }}>{R$(acc.balance)}</strong>
-                </span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
-                {bs.map(b => (
-                  <SavingsBoxCard
-                    key={b.id}
-                    box={b}
-                    onMove={dir => setMoveForm({ box: b, account: acc, direction: dir, amount: '' })}
-                    onRename={() => setBoxForm({ id: b.id, parentAccountId: acc.id, name: b.name, goal: b.savingsGoal ?? '' })}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr)', gap: 14, alignItems: 'start' }} className="savings-split">
-            <SavingsEvolution series={series} growth={growth} months={months} onChangeMonths={setMonths} />
-            <SavingsMovements movements={moves} boxNameOf={boxNameOf} />
-          </div>
-
-          {orphans.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>
-                Sem conta de origem
-              </h3>
-              <p className="txxs tmuted" style={{ marginBottom: 10 }}>
-                A conta destas caixinhas foi desativada. O dinheiro continua aqui.
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
-                {orphans.map(b => <SavingsBoxCard key={b.id} box={b} />)}
-              </div>
-            </div>
-          )}
-        </>
-      )}
+        <div className="savings-col">
+          <SummaryCard
+            availableToSave={availableToSave}
+            boxCount={boxes.length}
+            savedThisYear={savedThisYear}
+            hasGoal={goalTotal > 0}
+          />
+          <SavingsBoxPanel
+            boxes={[...boxes].sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0))}
+            accountNameOf={accountNameOf}
+            onMove={(b, dir) => setMoveForm({ box: b, account: checking.find(a => a.id === b.parentAccountId), direction: dir, amount: '' })}
+            onRename={(b) => setBoxForm({ id: b.id, parentAccountId: b.parentAccountId, name: b.name, goal: b.savingsGoal ?? '' })}
+          />
+        </div>
+      </div>
 
       {boxForm && (
         <SavingsBoxForm

@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import React from 'react';
 import SavingsView from '../SavingsView';
-import SavingsSummary from '../components/SavingsSummary';
+import { TotalCard, SummaryCard } from '../components/SavingsOverview';
 import SavingsMovements from '../components/SavingsMovements';
 
 vi.mock('../components/SavingsEvolution', () => ({
@@ -53,9 +53,22 @@ describe('Cofrinho screen', () => {
   });
 
   it('nets this month, deposits minus withdrawals', () => {
+    const { container } = render(view());
+    // 500 + 350 - 150. The same figure also appears as the year's total, so
+    // the assertion is anchored on its own label.
+    expect(container.textContent).toMatch(/Este mês\s*\+?\s*R\$\s*700,00/);
+  });
+
+  it('totals the year separately', () => {
+    const { container } = render(view());
+    expect(container.textContent).toMatch(/Guardado este ano\s*R\$\s*700,00/);
+  });
+
+  // Part of the original layout. It reads zero because the account balance is
+  // no longer maintained - honest, and the row is what was asked for.
+  it('shows what is available in the source accounts', () => {
     render(view());
-    // 500 + 350 - 150
-    expect(screen.getByText(/700,00/)).toBeTruthy();
+    expect(screen.getByText('Disponível para guardar')).toBeTruthy();
   });
 
   it('plots the evolution and lists the statement', () => {
@@ -77,15 +90,22 @@ describe('Cofrinho screen', () => {
   });
 });
 
-describe('SavingsSummary without goals', () => {
-  it('asks for a goal instead of showing a bar with no target', () => {
-    render(<SavingsSummary total={1000} goalTotal={0} monthNet={0} boxCount={2} />);
-    expect(screen.getByText(/Defina uma meta/)).toBeTruthy();
+describe('TotalCard without goals', () => {
+  it('invites a goal instead of showing a bar with no target', () => {
+    render(<TotalCard total={1000} towardGoal={0} goalTotal={0} monthNet={0} />);
+    expect(screen.getByText(/Comece definindo uma meta/)).toBeTruthy();
+  });
+});
+
+describe('SummaryCard', () => {
+  it('nudges toward setting a goal when none exists', () => {
+    render(<SummaryCard availableToSave={0} boxCount={3} savedThisYear={0} hasGoal={false} />);
+    expect(screen.getByText(/Próximo passo/)).toBeTruthy();
   });
 
-  it('says there are no boxes yet when there are none', () => {
-    render(<SavingsSummary total={0} goalTotal={0} monthNet={0} boxCount={0} />);
-    expect(screen.getByText(/Nenhuma caixinha ainda/)).toBeTruthy();
+  it('drops the nudge once a goal exists', () => {
+    render(<SummaryCard availableToSave={0} boxCount={3} savedThisYear={0} hasGoal />);
+    expect(screen.queryByText(/Próximo passo/)).toBeNull();
   });
 });
 
