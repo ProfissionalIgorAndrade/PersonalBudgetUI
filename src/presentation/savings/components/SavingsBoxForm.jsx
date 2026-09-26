@@ -1,6 +1,7 @@
 import React from 'react';
 import Modal from '../../shared/components/Modal';
 import { accountLabel } from '../../../application/mappers/index';
+import CurrencyInput from '../../shared/components/CurrencyInput';
 
 /** Cria ou renomeia uma caixinha. */
 export default function SavingsBoxForm({ f, accounts, members, onChange, onSave, onClose }) {
@@ -22,6 +23,14 @@ export default function SavingsBoxForm({ f, accounts, members, onChange, onSave,
             value={f.name || ''}
             onChange={e => set('name', e.target.value)}
           />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Meta (R$)</label>
+          <CurrencyInput value={f.goal ?? ''} onChange={v => set('goal', v)} />
+          <p className="txxs tmuted" style={{ marginTop: 6, lineHeight: 1.5 }}>
+            Opcional. Deixe vazio ou zero para acompanhar a caixinha sem alvo.
+          </p>
         </div>
 
         {/* A conta de origem é imutável: mover uma caixinha entre contas seria

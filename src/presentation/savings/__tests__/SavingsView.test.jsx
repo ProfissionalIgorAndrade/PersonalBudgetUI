@@ -4,6 +4,12 @@ import React from 'react';
 import SavingsView from '../SavingsView';
 import { checkingOnly, normalizeAccount } from '../../../application/mappers/index';
 
+
+// jsdom não tem canvas; o gráfico é exercitado no seu próprio teste.
+vi.mock('../components/SavingsEvolution', () => ({
+  default: ({ series }) => <div data-testid="evolution" data-points={series.length} />,
+}));
+
 afterEach(cleanup);
 
 const members = [{ id: 'm1', name: 'Igor Andrade' }];
