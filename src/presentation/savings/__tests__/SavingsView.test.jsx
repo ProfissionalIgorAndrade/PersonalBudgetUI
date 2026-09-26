@@ -28,7 +28,7 @@ describe('SavingsView', () => {
     expect(screen.getByText(/6\.500,00/)).toBeTruthy();
   });
 
-  it('lists each box under its account', () => {
+  it('lists every box in the panel', () => {
     render(view());
     expect(screen.getByText(/Reserva/)).toBeTruthy();
     expect(screen.getByText(/Viagem/)).toBeTruthy();
@@ -36,7 +36,7 @@ describe('SavingsView', () => {
 
   it('shows an empty state when nothing is saved', () => {
     render(view({ accounts: [conta] }));
-    expect(screen.getByText(/Nenhum dinheiro guardado ainda/)).toBeTruthy();
+    expect(screen.getByText(/Nenhuma caixinha ainda/)).toBeTruthy();
   });
 
   it('cannot create a box with no current account', () => {
@@ -44,18 +44,16 @@ describe('SavingsView', () => {
     expect(screen.getByText(/Nova Caixinha/).disabled).toBe(true);
   });
 
-  // A box whose parent was deactivated still holds money; hiding it would
-  // hide the money.
-  it('keeps an orphaned box visible', () => {
+  // A box whose parent was deactivated still holds money. The panel lists
+  // every box, so it stays visible without a section of its own.
+  it('keeps a box with no parent account visible', () => {
     render(view({ accounts: [reserva] }));
-    expect(screen.getByText(/Sem conta de origem/)).toBeTruthy();
     expect(screen.getByText(/Reserva/)).toBeTruthy();
   });
 
-  it('allows Resgatar even on an empty box', () => {
+  it('blocks Resgatar on an empty box', () => {
     render(view({ accounts: [conta, { ...reserva, balance: 0 }] }));
-    const btn = screen.getAllByText(/Resgatar/)[0];
-    expect(btn.disabled).toBe(false);
+    expect(screen.getAllByText(/Resgatar/)[0].disabled).toBe(true);
   });
 
   it('opens the move form asking to save into the chosen box', () => {

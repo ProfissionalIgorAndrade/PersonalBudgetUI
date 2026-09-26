@@ -3,7 +3,7 @@ import { R$ } from '../../../core/utils/format';
 import { goalProgress } from '../savingsHistory';
 
 /** Um card de caixinha: nome, quanto tem guardado e as duas ações. */
-export default function SavingsBoxCard({ box, onMove, onRename }) {
+export default function SavingsBoxCard({ box, accountName, onMove, onRename }) {
   const pct = goalProgress(box);
   return (
     <div className="card-sm" style={{ padding: 14 }}>
@@ -17,9 +17,23 @@ export default function SavingsBoxCard({ box, onMove, onRename }) {
         )}
       </div>
 
-      <div style={{ fontSize: 19, fontWeight: 800, marginBottom: pct === null ? 12 : 6 }}>{R$(box.balance)}</div>
+      <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 4 }}>{R$(box.balance)}</div>
+
+      {/* A conta de origem virou legenda: o painel não agrupa mais por conta. */}
+      {accountName && (
+        <div className="txxs tmuted" style={{ marginBottom: pct === null ? 12 : 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {accountName}
+        </div>
+      )}
 
       {/* Só aparece quando há meta: barra vazia sem alvo não diz nada. */}
+      {pct === null && (
+        <div style={{ marginBottom: 12 }}>
+          <div className="txxs tmuted" style={{ marginBottom: 4 }}>Meta não definida</div>
+          <div className="progress-bar"><div className="progress-fill" style={{ width: '0%' }} /></div>
+        </div>
+      )}
+
       {pct !== null && (
         <div style={{ marginBottom: 12 }}>
           <div className="flex jcb aic" style={{ marginBottom: 4 }}>
@@ -39,12 +53,18 @@ export default function SavingsBoxCard({ box, onMove, onRename }) {
 
       {onMove && (
         <div className="flex" style={{ gap: 6 }}>
-          <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '6px 8px', fontSize: 11 }}
+          <button type="button" className="btn btn-secondary btn-save-hover" style={{ flex: 1, padding: '6px 8px', fontSize: 11 }}
             onClick={() => onMove('in')}>
             ↓ Guardar
           </button>
-          <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '6px 8px', fontSize: 11 }}
-            onClick={() => onMove('out')}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-withdraw-hover"
+            style={{ flex: 1, padding: '6px 8px', fontSize: 11 }}
+            disabled={Number(box.balance || 0) <= 0}
+            title={Number(box.balance || 0) <= 0 ? 'Não há nada guardado nesta caixinha' : undefined}
+            onClick={() => onMove('out')}
+          >
             ↑ Resgatar
           </button>
         </div>
