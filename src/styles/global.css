@@ -769,114 +769,166 @@ canvas { max-height: 220px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LIGHT THEME
-   Canvas is a clearly visible blue-gray so cards "float" above it.
-   Delta between canvas and card is ~16pt L — perceptible on any monitor.
-   Table/row separators use --border-row (darker than card border)
-   so lines are always readable inside white surfaces.
+   LIGHT THEME — Cloud Light v1
+   Source of truth: personal-budget-cloud-light-design-system.md
+   Principle: calm, low-noise, tonal hierarchy via subtle steps.
+   Borders and row separators are intentionally light.
+   Color is reserved for semantic meaning, not decoration.
 ═══════════════════════════════════════════════════════════════ */
 [data-theme="light"] {
-  /* ── Backgrounds ────────────────────────────────────────────── */
-  --bg:          #c9d3df;   /* canvas  — real blue-gray, cards clearly float */
-  --surface:     #f2f5fa;   /* card    — slightly cool off-white             */
-  --surface2:    #e3e7f2;   /* secondary — hover bg, tab container           */
-  --surface3:    #d6dbe8;   /* sunken  — input wells, inset areas            */
+  /* ── Backgrounds (surface hierarchy) ────────────────────────── */
+  --bg:          #EEF2F7;   /* application canvas                       */
+  --surface:     #F8FAFC;   /* cards, panels, tables                    */
+  --surface2:    #FBFCFD;   /* elevated / selected surfaces, hover bg   */
+  --surface3:    #F1F4F8;   /* input fields, inset wells                */
 
   /* ── Borders ────────────────────────────────────────────────── */
-  --border:      #bcc4d4;   /* card/container edge  */
-  --border-hi:   #9ea9be;   /* strong / focus ring  */
-  /* Row separators need a shade visible inside the card (#f2f5fa) */
-  --border-row:  #cdd2de;   /* table td / tx-row    */
+  --border:      #DCE3EB;   /* container edges                          */
+  --border-hi:   #C8D3DC;   /* stronger edge / focus adjacent           */
+  --border-row:  #E8EDF2;   /* intra-card row separators (very subtle)  */
 
-  /* ── Brand ──────────────────────────────────────────────────── */
-  --primary-dim: rgba(45,212,191,0.11);
+  /* ── Brand — slightly darker teal for light context ─────────── */
+  --primary:      #16B8AD;
+  --primary-dim:  #DFF7F3;
+  --primary-glow: rgba(22,184,173,0.16);
 
-  /* ── Semantic (WCAG AA ≥4.5:1 on #f2f5fa) ───────────────────── */
-  --green:   #166534;
-  --red:     #991b1b;
-  --yellow:  #92400e;
+  /* ── Semantic ────────────────────────────────────────────────── */
+  --accent:  #C8873F;
+  --green:   #159A72;   /* income  */
+  --red:     #DF5B63;   /* expense */
+  --yellow:  #C8873F;   /* warning */
 
-  /* ── Text ───────────────────────────────────────────────────── */
-  --text:   #13152a;
-  --text-2: #464c6a;
-  --muted:  #6a7090;
-  --white:  #f2f5fa;
+  /* ── Typography ─────────────────────────────────────────────── */
+  --text:   #172033;
+  --text-2: #667386;
+  --muted:  #8792A1;
+  --white:  #FFFFFF;
 
-  /* ── Shadows ────────────────────────────────────────────────── */
-  --shadow-xs: 0 1px 3px  rgba(0,0,0,.10);
-  --shadow-sm: 0 2px 8px  rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.07);
-  --shadow-md: 0 4px 16px rgba(0,0,0,.14), 0 2px 4px rgba(0,0,0,.08);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,.18), 0 4px 8px rgba(0,0,0,.10);
+  /* ── Shadows — extremely light, almost none ─────────────────── */
+  --shadow-xs: 0 1px 2px  rgba(23,32,51,0.04);
+  --shadow-sm: 0 2px 8px  rgba(23,32,51,0.04);
+  --shadow-md: 0 4px 12px rgba(23,32,51,0.06);
+  --shadow-lg: 0 8px 24px rgba(23,32,51,0.08);
 }
 
-/* ── Elevation ──────────────────────────────────────────────────── */
-[data-theme="light"] .card     { border-color: var(--border); box-shadow: var(--shadow-sm); }
-[data-theme="light"] .card-sm  { border-color: var(--border); }
-[data-theme="light"] .modal    { box-shadow: var(--shadow-lg); background: var(--surface); }
+/* ── Cards / panels ─────────────────────────────────────────────── */
+[data-theme="light"] .card,
+[data-theme="light"] .card-sm {
+  background:   var(--surface);
+  border-color: var(--border);
+  box-shadow:   none;
+}
+[data-theme="light"] .modal {
+  background:  var(--surface);
+  box-shadow:  0 8px 24px rgba(23,32,51,0.08);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+[data-theme="light"] .btn-secondary {
+  background:   var(--surface);
+  color:        var(--text-2);
+  border-color: var(--border);
+}
+[data-theme="light"] .btn-secondary:hover {
+  background:   var(--surface2);
+  border-color: var(--border-hi);
+  color:        var(--text);
+}
+[data-theme="light"] .btn-primary {
+  box-shadow: 0 2px 8px rgba(22,184,173,0.22);
+}
+[data-theme="light"] .btn-primary:hover {
+  box-shadow: 0 4px 16px rgba(22,184,173,0.32);
+}
+[data-theme="light"] .btn-icon {
+  background:   var(--surface);
+  border-color: var(--border);
+  color:        var(--text-2);
+}
+[data-theme="light"] .btn-icon:hover {
+  background:   var(--surface2);
+  border-color: var(--border-hi);
+  color:        var(--text);
+}
 
 /* ── Badges ──────────────────────────────────────────────────────── */
-[data-theme="light"] .badge-green  { background: rgba(22,101,52,.10);  color: #166534; }
-[data-theme="light"] .badge-red    { background: rgba(153,27,27,.10);  color: #991b1b; }
-[data-theme="light"] .badge-yellow { background: rgba(146,64,14,.10);  color: #92400e; }
-[data-theme="light"] .badge-blue   { background: rgba(29,78,216,.08);  color: #1d4ed8; }
-[data-theme="light"] .badge-teal   { background: var(--primary-dim);   color: #0f766e; }
-[data-theme="light"] .badge-muted  { background: var(--surface2);      color: var(--muted); }
+[data-theme="light"] .badge-green  { background: #E3F5EF; color: #159A72; }
+[data-theme="light"] .badge-red    { background: #FDECEF; color: #DF5B63; }
+[data-theme="light"] .badge-yellow { background: #F8EEDF; color: #C8873F; }
+[data-theme="light"] .badge-blue   { background: #E6EDFB; color: #4E78D5; }
+[data-theme="light"] .badge-teal   { background: #DFF7F3; color: #16B8AD; }
+[data-theme="light"] .badge-muted  { background: #F1F4F8; color: #8792A1; }
 
-/* ── Table separators — use --border-row (visible inside light card) */
-[data-theme="light"] th { border-bottom: 1px solid var(--border-hi); color: var(--muted); }
-[data-theme="light"] td { border-bottom: 1px solid var(--border-row); }
+/* ── Text utility overrides ─────────────────────────────────────── */
+[data-theme="light"] .tgreen  { color: #159A72; }
+[data-theme="light"] .tred    { color: #DF5B63; }
+[data-theme="light"] .tyellow { color: #C8873F; }
+
+/* ── Tables — calm, rows almost blend into surface ──────────────── */
+[data-theme="light"] th {
+  background:    #F4F7FA;
+  color:         #8A95A4;
+  border-bottom: 1px solid var(--border);
+}
+[data-theme="light"] td          { border-bottom: 1px solid var(--border-row); }
 [data-theme="light"] tr:last-child td { border-bottom: none; }
-[data-theme="light"] tr:hover td { background: rgba(45,212,191,.05); }
+[data-theme="light"] tr:hover td { background: #F3F7F9; }
 
 /* ── Transaction rows ────────────────────────────────────────────── */
 [data-theme="light"] .tx-row { border-bottom-color: var(--border-row); }
 
-/* ── Form inputs — visibly sunken inside the card ───────────────── */
+/* ── Form inputs ─────────────────────────────────────────────────── */
 [data-theme="light"] .form-input,
 [data-theme="light"] .form-select,
 [data-theme="light"] .form-textarea {
-  background:   var(--surface3);
-  border-color: var(--border);
+  background:   #F1F4F8;
+  border-color: #E0E6ED;
   color:        var(--text);
 }
 [data-theme="light"] .form-input:focus,
 [data-theme="light"] .form-select:focus {
   border-color: var(--primary);
-  background:   var(--surface);
-  box-shadow:   0 0 0 3px rgba(45,212,191,0.14);
+  background:   var(--surface2);
+  box-shadow:   0 0 0 3px rgba(22,184,173,0.12);
 }
-[data-theme="light"] .form-input::placeholder { color: var(--muted); }
+[data-theme="light"] .form-input::placeholder { color: #9AA5B4; }
 [data-theme="light"] .form-select option      { background: var(--surface); color: var(--text); }
 
 /* ── CSV / import table ──────────────────────────────────────────── */
 [data-theme="light"] .csv-table th,
-[data-theme="light"] .csv-table td           { border-color: var(--border-row); }
-[data-theme="light"] .csv-table thead th     { background: var(--surface2); border-bottom-color: var(--border-hi); }
-[data-theme="light"] .csv-col-n              { background: rgba(0,0,0,.05) !important; }
-[data-theme="light"] .csv-table tbody tr:nth-child(even) td { background: rgba(0,0,0,.025); }
-[data-theme="light"] .csv-table tbody tr:hover td { background: rgba(45,212,191,.07) !important; }
+[data-theme="light"] .csv-table td       { border-color: var(--border-row); }
+[data-theme="light"] .csv-table thead th { background: #F4F7FA; color: #8A95A4; border-bottom-color: var(--border); }
+[data-theme="light"] .csv-col-n          { background: rgba(23,32,51,.03) !important; }
+[data-theme="light"] .csv-table tbody tr:nth-child(even) td { background: rgba(23,32,51,.018); }
+[data-theme="light"] .csv-table tbody tr:hover td { background: #F3F7F9 !important; }
 
-/* ── Sidebar ─────────────────────────────────────────────────────── */
+/* ── Sidebar — slightly darker than page canvas ──────────────────── */
 [data-theme="light"] .sidebar {
-  background: var(--surface2);
+  background:         #E7EDF4;
   border-right-color: var(--border);
 }
+[data-theme="light"] .nav-item        { color: var(--text-2); }
+[data-theme="light"] .nav-item:hover  { background: rgba(22,184,173,0.07); color: var(--text); }
 [data-theme="light"] .nav-item.active {
-  background: linear-gradient(90deg, rgba(45,212,191,0.18), rgba(45,212,191,0.05));
+  background: #DFF7F3;
+  color:      #16B8AD;
 }
-[data-theme="light"] .nav-item:hover { background: var(--surface3); }
+[data-theme="light"] .nav-item.active::before { background: #16B8AD; box-shadow: 0 0 8px rgba(22,184,173,0.4); }
 
 /* ── Overlays ────────────────────────────────────────────────────── */
-[data-theme="light"] .modal-overlay  { background: rgba(0,0,0,.45); }
-[data-theme="light"] .drawer-overlay { background: rgba(0,0,0,.35); }
+[data-theme="light"] .modal-overlay  { background: rgba(23,32,51,.40); }
+[data-theme="light"] .drawer-overlay { background: rgba(23,32,51,.30); }
 [data-theme="light"] .drawer         { background: var(--surface); border-left-color: var(--border); }
+[data-theme="light"] .drawer-header  { background: var(--surface); border-bottom-color: var(--border); }
 
-/* ── Misc ────────────────────────────────────────────────────────── */
-[data-theme="light"] .cc-clickable:hover  { box-shadow: 0 8px 28px rgba(0,0,0,.16); }
-[data-theme="light"] .summary-box         { background: var(--surface2); border-color: var(--border); }
-[data-theme="light"] .progress-bar        { background: var(--surface3); }
-[data-theme="light"] .detail-panel        { border-top-color: var(--primary); background: var(--surface); }
-[data-theme="light"] .tip-card            { background: rgba(45,212,191,.08); border-color: rgba(45,212,191,.22); }
+/* ── Misc components ─────────────────────────────────────────────── */
+[data-theme="light"] .cc-clickable:hover { box-shadow: 0 4px 16px rgba(23,32,51,0.10); }
+[data-theme="light"] .summary-box  { background: var(--surface2); border-color: var(--border); }
+[data-theme="light"] .progress-bar { background: #E8EDF2; }
+[data-theme="light"] .detail-panel { background: var(--surface); border-top-color: var(--primary); border-color: var(--border); }
+[data-theme="light"] .tip-card     { background: #F1F6F8; border-color: var(--border); color: var(--text-2); }
+[data-theme="light"] .fatura-tab   { background: var(--surface); border-color: var(--border); color: var(--muted); }
+[data-theme="light"] .fatura-tab.active { background: #DFF7F3; color: #16B8AD; border-color: rgba(22,184,173,.35); }
 
 /* ═══════════════════════════════════════════════════════════════
    THEME TOGGLE BUTTON
@@ -1397,21 +1449,21 @@ canvas { max-height: 220px; }
 /* Light theme */
 [data-theme="light"] .ms-trigger,
 [data-theme="light"] .ms-arrow {
-  background: #ffffff;
-  border-color: #d1d5db;
-  color: #111827;
+  background:   var(--surface);
+  border-color: var(--border);
+  color:        var(--text);
 }
 [data-theme="light"] .ms-trigger:hover,
-[data-theme="light"] .ms-arrow:hover:not(:disabled) { background: #f3f4f6; }
+[data-theme="light"] .ms-arrow:hover:not(:disabled) { background: var(--surface2); }
 [data-theme="light"] .ms-popover {
-  background: #ffffff;
-  border-color: #d1d5db;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08);
+  background:  var(--surface);
+  border-color: var(--border);
+  box-shadow:  0 8px 24px rgba(23,32,51,0.08);
 }
-[data-theme="light"] .ms-year-arrow { background: #f3f4f6; border-color: #d1d5db; color: #374151; }
-[data-theme="light"] .ms-year-arrow:hover:not(:disabled) { background: #e5e7eb; }
-[data-theme="light"] .ms-cell:hover:not(:disabled) { background: #f3f4f6; color: #111827; }
-[data-theme="light"] .ms-cell.ms-selected { color: #07100f; }
+[data-theme="light"] .ms-year-arrow { background: var(--surface2); border-color: var(--border); color: var(--text-2); }
+[data-theme="light"] .ms-year-arrow:hover:not(:disabled) { background: #EEF2F7; }
+[data-theme="light"] .ms-cell:hover:not(:disabled) { background: #EEF2F7; color: var(--text); }
+[data-theme="light"] .ms-cell.ms-selected { color: #0a1a18; }
 
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE
