@@ -11,7 +11,7 @@ import { R$ } from '../../../core/utils/format';
  *
  * Duas visões: gráfico para enxergar o movimento, tabela para ler o número.
  */
-export default function CategoryTrendWidget({ months, rows, monthsCount, onChangeMonths }) {
+export default function CategoryTrendWidget({ months, rows, monthsCount, onChangeMonths, theme }) {
   const [view, setView] = useState('chart');
 
   const series = months.map(m => ({ label: m.label, color: m.color, data: rows.map(r => r.values[m.key] ?? 0) }));
@@ -65,7 +65,7 @@ export default function CategoryTrendWidget({ months, rows, monthsCount, onChang
           Sem despesas no período
         </p>
       ) : view === 'chart' ? (
-        <GroupedBars labels={labels} series={series} height={chartHeight} />
+        <GroupedBars labels={labels} series={series} height={chartHeight} theme={theme} />
       ) : (
         <div style={{ maxHeight: 420, overflow: 'auto' }}>
           <table className="csv-table" style={{ width: '100%' }}>

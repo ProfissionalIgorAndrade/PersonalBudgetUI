@@ -38,7 +38,7 @@ const DEFAULT_LAYOUT = [
   { id: 'income-person', label: 'Receitas por Pessoa',    icon: '💵', col: 1, order: 5, visible: true },
 ];
 
-export default function DashboardView({ data, setView, activeMonth, setActiveMonth }) {
+export default function DashboardView({ data, setView, activeMonth, setActiveMonth, theme }) {
   const { transactions, categories, members, cards } = data;
   const [storedLayout,  setLayout]        = useLocalStorage('pb_dash_layout', DEFAULT_LAYOUT);
   // Nunca usar o layout salvo direto: ele pode ter id repetido, id de widget
@@ -175,11 +175,11 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
     const props = { key: id };
     let widget;
     switch (id) {
-      case 'cashflow':     widget = <CashflowWidget labels={mLabels} income={mIn} expenses={mOut} />; break;
-      case 'donut':        widget = <DonutWidget data={catData} labels={catLabels} colors={catColors} />; break;
+      case 'cashflow':     widget = <CashflowWidget labels={mLabels} income={mIn} expenses={mOut} theme={theme} />; break;
+      case 'donut':        widget = <DonutWidget data={catData} labels={catLabels} colors={catColors} theme={theme} />; break;
       case 'cat-expenses': widget = <CategoryExpensesWidget categories={categories} byCat={byCat} catKeys={catKeys} totalOut={totalOut} />; break;
       case 'cat-income':   widget = <CategoryIncomeWidget categories={categories} byIncCat={byIncCat} incCatKeys={incCatKeys} totalIn={totalIn} />; break;
-      case 'cat-trend':    widget = <CategoryTrendWidget months={trendMonthsData} rows={trendRows} monthsCount={trendMonths} onChangeMonths={setTrendMonths} />; break;
+      case 'cat-trend':    widget = <CategoryTrendWidget months={trendMonthsData} rows={trendRows} monthsCount={trendMonths} onChangeMonths={setTrendMonths} theme={theme} />; break;
       case 'faturas':      widget = <FaturasWidget faturasData={faturasData} totalFaturas={totalFaturas} />; break;
       case 'tips':         widget = <TipsWidget tips={tips} />; break;
       case 'recent':       widget = <RecentWidget recent={recent} categories={categories} onViewAll={() => setView('transactions')} />; break;
@@ -206,7 +206,7 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
         </div>
       </div>
 
-      <SummaryCards totalIn={totalIn} totalOut={totalOut} balance={balance} savPct={savPct} />
+      <SummaryCards totalIn={totalIn} totalOut={totalOut} balance={balance} savPct={savPct} theme={theme} />
 
       <div className="grid-dash" style={{ marginBottom: 16 }}>
         <div className="flex fcol" style={{ gap: 14 }}>
