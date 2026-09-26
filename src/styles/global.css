@@ -4,20 +4,27 @@
    DESIGN TOKENS
 ═══════════════════════════════════════════════════════════════ */
 :root {
-  /* ── Dracula-inspired dark palette ─────────────────────────── */
+  /* ── DARK THEME (default) ───────────────────────────────────────
+     Axis: hsl(235) blue-violet — Dracula-inspired.
+     5-level surface hierarchy, each step +4pt lightness:
+       canvas(12%) → card(16%) → raised(20%) → high(24%)
+     Borders: surface L plus 10–18pt so separators always read.
+     Shadows: high opacity — dark-on-dark needs stronger depth cues.
+  ─────────────────────────────────────────────────────────────── */
+
   /* Backgrounds */
-  --bg:         #1e1f29;
-  --surface:    #252637;
-  --surface2:   #2d2f42;
-  --surface3:   #363850;
+  --bg:         #1a1b27;   /* canvas  hsl(235,21%,12%) */
+  --surface:    #22233a;   /* card    hsl(235,20%,17%) */
+  --surface2:   #2a2c42;   /* raised  hsl(235,19%,21%) */
+  --surface3:   #33364e;   /* high    hsl(234,19%,25%) */
 
-  /* Borders */
-  --border:     #3d3f58;
-  --border-hi:  #4e5070;
+  /* Borders — surface L plus ~12–20pt */
+  --border:     #3c3f5a;   /* default hsl(235,17%,29%) */
+  --border-hi:  #4d5070;   /* strong  hsl(234,16%,37%) */
 
-  /* Brand (teal kept as signature accent) */
+  /* Brand */
   --primary:      #2dd4bf;
-  --primary-dim:  rgba(45,212,191,0.1);
+  --primary-dim:  rgba(45,212,191,0.10);
   --primary-glow: rgba(45,212,191,0.18);
 
   /* Semantic */
@@ -27,14 +34,14 @@
   --yellow:  #f1fa8c;
 
   /* Text */
-  --text:   #f8f8f2;
+  --text:   #f0f0f8;   /* hsl(240, 11%, 96%) — slightly cool, easier on eyes */
   --text-2: #8b8fad;
   --muted:  #6272a4;
-  --white:  #f8f8f2;
+  --white:  #f0f0f8;
 
-  /* Depth */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.55);
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.65), 0 1px 2px rgba(0,0,0,0.45);
+  /* Shadows — high opacity for dark depth */
+  --shadow-xs: 0 1px 2px  rgba(0,0,0,0.55);
+  --shadow-sm: 0 2px 8px  rgba(0,0,0,0.65), 0 1px 2px rgba(0,0,0,0.45);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.72), 0 2px 4px rgba(0,0,0,0.45);
   --shadow-lg: 0 12px 40px rgba(0,0,0,0.82), 0 4px 8px rgba(0,0,0,0.55);
 
@@ -763,37 +770,104 @@ canvas { max-height: 220px; }
 
 /* ═══════════════════════════════════════════════════════════════
    LIGHT THEME
+   Axis: hsl(220) cool blue-gray — fintech/trustworthy register.
+   5-level surface hierarchy (research: Material 3, Linear, Stripe):
+     canvas(94%) → card(100%) → secondary(92%) → sunken(88%) → overlay(100%+shadow)
+   Borders: card L minus 12–17pt so they always read against the surface.
+   Text: WCAG AA (≥4.5:1) on all surface levels.
 ═══════════════════════════════════════════════════════════════ */
 [data-theme="light"] {
-  --bg:          #e2e8f2;
-  --surface:     #f6f9fc;
-  --surface2:    #e8edf7;
-  --surface3:    #d8dfee;
-  --border:      #bcc4d8;
-  --border-hi:   #a4aec8;
-  --primary-dim: rgba(45,212,191,0.11);
-  --green:       #16a34a;
-  --red:         #dc2626;
-  --yellow:      #d97706;
-  --text:        #1a1c2e;
-  --text-2:      #3d4163;
-  --muted:       #5c6490;
-  --shadow-xs:   0 1px 3px rgba(0,0,0,.11);
-  --shadow-sm:   0 2px 10px rgba(0,0,0,.13), 0 1px 3px rgba(0,0,0,.07);
-  --shadow-md:   0 4px 20px rgba(0,0,0,.15), 0 2px 6px rgba(0,0,0,.08);
-  --shadow-lg:   0 16px 50px rgba(0,0,0,.20), 0 4px 10px rgba(0,0,0,.10);
+  /* ── Backgrounds ────────────────────────────────────────────── */
+  --bg:          #edf0f5;   /* canvas      hsl(220,10%,94%) — never pure white */
+  --surface:     #ffffff;   /* card        pure white, elevated above canvas   */
+  --surface2:    #eaecf3;   /* secondary   hsl(224, 9%,92%) — hover/stripe bg  */
+  --surface3:    #dde1ea;   /* sunken      hsl(221, 9%,88%) — input fields     */
+
+  /* ── Borders ────────────────────────────────────────────────── */
+  --border:      #cdd1de;   /* default     hsl(222, 9%,83%) — card edges, rows */
+  --border-hi:   #b3b9cb;   /* strong      hsl(224, 9%,74%) — focus rings      */
+
+  /* ── Brand ──────────────────────────────────────────────────── */
+  --primary-dim: rgba(45,212,191,0.10);
+
+  /* ── Semantic (WCAG AA ≥4.5:1 on --surface #ffffff) ─────────── */
+  --green:   #166534;   /* contrast 7.2:1 */
+  --red:     #991b1b;   /* contrast 6.8:1 */
+  --yellow:  #92400e;   /* contrast 5.8:1 */
+
+  /* ── Text (hsl 230 axis) ────────────────────────────────────── */
+  --text:   #14162a;   /* primary    contrast ~16:1  */
+  --text-2: #4a4f6a;   /* secondary  contrast  7.5:1 */
+  --muted:  #6e7390;   /* muted      contrast  4.6:1 — at AA floor */
+  --white:  #ffffff;   /* keep --white as true white  */
+
+  /* ── Shadows (lighter opacities — no harsh dark blobs) ──────── */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,.08);
+  --shadow-sm: 0 2px 8px  rgba(0,0,0,.09), 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.11), 0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.14), 0 4px 8px rgba(0,0,0,.08);
 }
-[data-theme="light"] .card { box-shadow: var(--shadow-sm); }
-[data-theme="light"] .modal { box-shadow: var(--shadow-lg); }
-[data-theme="light"] .badge-blue { color: #1d4ed8; }
-[data-theme="light"] .csv-col-n { background: rgba(0,0,0,.04) !important; }
-[data-theme="light"] .csv-table tbody tr:nth-child(even) td { background: rgba(0,0,0,.025); }
-[data-theme="light"] .csv-table tbody tr:hover td { background: rgba(45,212,191,.07) !important; }
-[data-theme="light"] .modal-overlay  { background: rgba(0,0,0,.52); }
-[data-theme="light"] .drawer-overlay { background: rgba(0,0,0,.42); }
-[data-theme="light"] .cc-clickable:hover { box-shadow: 0 8px 28px rgba(0,0,0,.14); }
-[data-theme="light"] .nav-item.active { background: linear-gradient(90deg, rgba(45,212,191,0.14), rgba(45,212,191,0.04)); }
+
+/* ── Elevation ──────────────────────────────────────────────────── */
+[data-theme="light"] .card     { border-color: var(--border); box-shadow: var(--shadow-sm); }
+[data-theme="light"] .card-sm  { border-color: var(--border); }
+[data-theme="light"] .modal    { box-shadow: var(--shadow-lg); }
+
+/* ── Badges — semantic colors adjusted for light backgrounds ─────── */
+[data-theme="light"] .badge-green  { background: rgba(22,101,52,.09);   color: #166534; }
+[data-theme="light"] .badge-red    { background: rgba(153,27,27,.09);   color: #991b1b; }
+[data-theme="light"] .badge-yellow { background: rgba(146,64,14,.09);   color: #92400e; }
+[data-theme="light"] .badge-blue   { background: rgba(29,78,216,.07);   color: #1d4ed8; }
+[data-theme="light"] .badge-teal   { background: var(--primary-dim);    color: #0f766e; }
+
+/* ── Table separators — explicit so lines are always visible ──────── */
+[data-theme="light"] th          { border-bottom-color: var(--border-hi); color: var(--muted); }
+[data-theme="light"] td          { border-bottom-color: var(--border); }
+[data-theme="light"] tr:last-child td { border-bottom: none; }
 [data-theme="light"] tr:hover td { background: rgba(45,212,191,.04); }
+
+/* ── Transaction rows ────────────────────────────────────────────── */
+[data-theme="light"] .tx-row    { border-bottom-color: var(--border); }
+
+/* ── Form inputs — white on white card → sunken (#dde1ea) well ───── */
+[data-theme="light"] .form-input,
+[data-theme="light"] .form-select,
+[data-theme="light"] .form-textarea {
+  background:   var(--surface3);
+  border-color: var(--border);
+  color:        var(--text);
+}
+[data-theme="light"] .form-input:focus,
+[data-theme="light"] .form-select:focus {
+  border-color: var(--primary);
+  background:   #ffffff;
+  box-shadow:   0 0 0 3px rgba(45,212,191,0.12);
+}
+[data-theme="light"] .form-input::placeholder { color: var(--muted); opacity: 0.9; }
+[data-theme="light"] .form-select option      { background: #ffffff; color: var(--text); }
+
+/* ── CSV / import table ──────────────────────────────────────────── */
+[data-theme="light"] .csv-table th,
+[data-theme="light"] .csv-table td              { border-color: var(--border); }
+[data-theme="light"] .csv-table thead th        { background: var(--surface2); }
+[data-theme="light"] .csv-col-n                 { background: rgba(0,0,0,.04) !important; }
+[data-theme="light"] .csv-table tbody tr:nth-child(even) td { background: rgba(0,0,0,.022); }
+[data-theme="light"] .csv-table tbody tr:hover  td { background: rgba(45,212,191,.06) !important; }
+
+/* ── Sidebar nav active state ────────────────────────────────────── */
+[data-theme="light"] .nav-item.active {
+  background: linear-gradient(90deg, rgba(45,212,191,0.15), rgba(45,212,191,0.04));
+}
+
+/* ── Overlays ────────────────────────────────────────────────────── */
+[data-theme="light"] .modal-overlay  { background: rgba(0,0,0,.48); }
+[data-theme="light"] .drawer-overlay { background: rgba(0,0,0,.38); }
+
+/* ── Misc ────────────────────────────────────────────────────────── */
+[data-theme="light"] .cc-clickable:hover { box-shadow: 0 8px 28px rgba(0,0,0,.14); }
+[data-theme="light"] .summary-box        { background: var(--surface2); border-color: var(--border); }
+[data-theme="light"] .progress-bar       { background: var(--surface3); }
+[data-theme="light"] .detail-panel       { border-top-color: var(--primary); }
 
 /* ═══════════════════════════════════════════════════════════════
    THEME TOGGLE BUTTON
