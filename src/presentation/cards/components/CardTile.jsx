@@ -1,6 +1,6 @@
 import React from 'react';
 import { R$ } from '../../../core/utils/format';
-import { FLAGS, CARD_GRADIENTS } from '../../../core/constants/index';
+import { CARD_GRADIENTS } from '../../../core/constants/index';
 import { findMember } from '../../../application/mappers/index';
 import CardBrandLogo from './CardBrandLogo';
 
@@ -57,16 +57,13 @@ export default function CardTile({ card, spent, statementMonth, members, selecte
         style={{ background: getGrad(card.color), padding: facePad, minHeight: faceMinH }}
         onClick={onSelect}
       >
-        {/* Linha 1: bandeira + logo */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: compact ? 4 : 6 }}>
-          <div style={{ fontSize: compact ? 8 : 9, opacity: .6 }}>{FLAGS[card.flag] || 'Cartão'}</div>
+        {/* Linha 1: nome do cartão (esquerda) + logo da bandeira (direita) */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, marginBottom: compact ? 4 : 6 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: nameSize, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.name}</div>
+            {mem && <div className="cc-face-owner">{mem.emoji} {mem.name}</div>}
+          </div>
           <CardBrandLogo flag={card.flag} cardName={card.name} size="sm" />
-        </div>
-
-        {/* Linha 2: nome + dono */}
-        <div style={{ marginBottom: 2 }}>
-          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: nameSize, lineHeight: 1.25 }}>{card.name}</div>
-          {mem && <div className="cc-face-owner">{mem.emoji} {mem.name}</div>}
         </div>
 
         {/* Linha 3: barra de progresso */}
