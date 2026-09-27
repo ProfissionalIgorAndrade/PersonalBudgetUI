@@ -29,7 +29,8 @@ const DEFAULT_LAYOUT = [
   { id: 'donut',         label: 'Gráfico de Despesas',    icon: '🍩', col: 0, order: 1, visible: true },
   { id: 'cat-expenses',  label: 'Despesas por Categoria', icon: '📉', col: 0, order: 2, visible: true },
   { id: 'cat-income',    label: 'Receitas por Categoria', icon: '📈', col: 0, order: 3, visible: true },
-  { id: 'cat-trend',     label: 'Comparativo por Categoria', icon: '📊', col: 0, order: 4, visible: true },
+  { id: 'cat-trend-chart', label: 'Comparativo — Gráfico',  icon: '📊', col: 0, order: 4, visible: true },
+  { id: 'cat-trend-table', label: 'Comparativo — Tabela',   icon: '▦',  col: 0, order: 5, visible: true },
   { id: 'faturas',       label: 'Total das Faturas',      icon: '💳', col: 1, order: 0, visible: true },
   { id: 'tips',          label: 'Dicas & Alertas',        icon: '💡', col: 1, order: 1, visible: true },
   { id: 'recent',        label: 'Últimos Lançamentos',    icon: '🕐', col: 1, order: 2, visible: true },
@@ -179,7 +180,8 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
       case 'donut':        widget = <DonutWidget data={catData} labels={catLabels} colors={catColors} theme={theme} />; break;
       case 'cat-expenses': widget = <CategoryExpensesWidget categories={categories} byCat={byCat} catKeys={catKeys} totalOut={totalOut} />; break;
       case 'cat-income':   widget = <CategoryIncomeWidget categories={categories} byIncCat={byIncCat} incCatKeys={incCatKeys} totalIn={totalIn} />; break;
-      case 'cat-trend':    widget = <CategoryTrendWidget months={trendMonthsData} rows={trendRows} monthsCount={trendMonths} onChangeMonths={setTrendMonths} theme={theme} />; break;
+      case 'cat-trend-chart': widget = <CategoryTrendWidget months={trendMonthsData} rows={trendRows} monthsCount={trendMonths} onChangeMonths={setTrendMonths} theme={theme} mode="chart" />; break;
+      case 'cat-trend-table': widget = <CategoryTrendWidget months={trendMonthsData} rows={trendRows} monthsCount={trendMonths} onChangeMonths={setTrendMonths} theme={theme} mode="table" />; break;
       case 'faturas':      widget = <FaturasWidget faturasData={faturasData} totalFaturas={totalFaturas} />; break;
       case 'tips':         widget = <TipsWidget tips={tips} />; break;
       case 'recent':       widget = <RecentWidget recent={recent} categories={categories} onViewAll={() => setView('transactions')} />; break;
