@@ -12,10 +12,20 @@ function hexDarken(hex, f) {
   return `#${toH(r)}${toH(g)}${toH(b)}`;
 }
 
-const getGrad = c => {
+const getGradDark = c => {
   try { return `linear-gradient(135deg, ${hexDarken(c, 0.12)} 0%, ${hexDarken(c, 0.32)} 100%)`; }
   catch { return 'linear-gradient(135deg, #1e293b, #0f172a)'; }
 };
+
+const getGradLight = c => {
+  try { return `linear-gradient(135deg, ${hexDarken(c, 0.42)} 0%, ${hexDarken(c, 0.68)} 100%)`; }
+  catch { return 'linear-gradient(135deg, #312e81, #4f46e5)'; }
+};
+
+const isLightTheme = () =>
+  typeof document !== 'undefined' && document.documentElement.dataset.theme === 'light';
+
+const getGrad = c => isLightTheme() ? getGradLight(c) : getGradDark(c);
 
 const ymLabel = (ym) => {
   if (!ym) return '';

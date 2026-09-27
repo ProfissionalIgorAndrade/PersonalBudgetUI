@@ -14,11 +14,21 @@ function hexDarken(hex, f) {
   return `#${toH(r)}${toH(g)}${toH(b)}`;
 }
 
-const getGrad = c => {
+const getGradDark = c => {
   if (CARD_GRADIENTS[c]) return CARD_GRADIENTS[c];
   try { return `linear-gradient(135deg, ${hexDarken(c, 0.12)} 0%, ${hexDarken(c, 0.32)} 100%)`; }
   catch { return 'linear-gradient(135deg, #1e1b4b, #312e81)'; }
 };
+
+const getGradLight = c => {
+  try { return `linear-gradient(135deg, ${hexDarken(c, 0.42)} 0%, ${hexDarken(c, 0.68)} 100%)`; }
+  catch { return 'linear-gradient(135deg, #312e81, #4f46e5)'; }
+};
+
+const isLightTheme = () =>
+  typeof document !== 'undefined' && document.documentElement.dataset.theme === 'light';
+
+const getGrad = c => isLightTheme() ? getGradLight(c) : getGradDark(c);
 
 const monthLabel = (ym) => {
   if (!ym) return '';
