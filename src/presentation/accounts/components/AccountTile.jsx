@@ -72,14 +72,23 @@ export default function AccountTile({ account, flow, monthLabel, members, select
           )}
         </div>
 
-        <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, opacity: .5, fontWeight: 600 }}>
-          {selected ? '▼ Aberto' : 'Ver lançamentos →'}
-        </div>
+        {!compact && (
+          <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, opacity: .5, fontWeight: 600 }}>
+            {selected ? '▼ Aberto' : 'Ver lançamentos →'}
+          </div>
+        )}
+
+        {/* Compact: botões de ação dentro da face */}
+        {compact && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, marginTop: 6 }} onClick={e => e.stopPropagation()}>
+            <button className="btn-icon" style={{ padding: '2px 6px', fontSize: 11, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', borderRadius: 5 }} onClick={onEdit}>✏️</button>
+            <button className="btn-icon" style={{ padding: '2px 6px', fontSize: 11, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', borderRadius: 5 }} onClick={onDelete}>🗑️</button>
+          </div>
+        )}
       </div>
 
       {!compact && (
         <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px' }}>
-          {/* Dono e ações na mesma linha, igual ao card de cartão. */}
           <div className="flex jcb aic" style={{ gap: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {mem ? `${mem.emoji} ${mem.name}` : '—'}

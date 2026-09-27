@@ -99,9 +99,17 @@ export default function CardTile({ card, spent, statementMonth, members, selecte
             Vence dia {card.dueDay}
           </div>
         )}
+
+        {/* Compact: botões de ação dentro da face */}
+        {compact && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, marginTop: 6 }} onClick={e => e.stopPropagation()}>
+            <button className="btn-icon" style={{ padding: '2px 6px', fontSize: 11, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', borderRadius: 5 }} onClick={onEdit}>✏️</button>
+            <button className="btn-icon" style={{ padding: '2px 6px', fontSize: 11, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', borderRadius: 5 }} onClick={onDelete}>🗑️</button>
+          </div>
+        )}
       </div>
 
-      {/* Footer: somente ações */}
+      {/* Footer: somente ações (modo normal) */}
       {!compact && (
         <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px' }}>
           <div className="flex jcb aic" style={{ gap: 8 }}>
