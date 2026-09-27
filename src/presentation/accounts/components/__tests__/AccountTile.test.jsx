@@ -34,12 +34,11 @@ describe('AccountTile', () => {
     expect(container.querySelectorAll('.card-sm button')).toHaveLength(2);
   });
 
-  // The owner moved off the coloured face and into the actions row.
-  it('names the owner beside the actions, not on the card face', () => {
+  // Non-compact: owner stays in the footer actions row, not on the card face.
+  it('names the owner in the footer row (non-compact)', () => {
     const { container } = render(tile({ flow: { income: 10, expense: 5 } }));
     const footer = container.querySelector('.card-sm');
     expect(footer.textContent).toMatch(/Igor Andrade/);
-    expect(container.querySelector('.cc-visual').textContent).not.toMatch(/Igor Andrade/);
   });
 
   it('shows zeroes rather than blanks with no movement', () => {
@@ -50,5 +49,57 @@ describe('AccountTile', () => {
   it('keeps agency and account visible', () => {
     render(tile({ flow: { income: 0, expense: 0 } }));
     expect(screen.getByText(/Agência 0001/)).toBeTruthy();
+  });
+});
+
+describe('AccountTile — bank logo', () => {
+  it('shows a bank logo badge on the card face', () => {
+    const { container } = render(tile({ flow: { income: 0, expense: 0 } }));
+    // BankLogo renders a .bkl-badge for known banks
+    expect(container.querySelector('.bkl-badge')).toBeTruthy();
+  });
+
+  it('shows NU badge for Nubank', () => {
+    const { container } = render(tile({ flow: { income: 0, expense: 0 } }));
+    const badge = container.querySelector('.bkl-badge');
+    expect(badge.textContent).toBe('NU');
+  });
+
+  it('shows fallback icon for unknown bank', () => {
+    const unknownAccount = { ...account, bank: 'BancoDesconhecido' };
+    const { container } = render(
+      <AccountTile account={unknownAccount} members={members}
+        onSelect={() => {}} onEdit={() => {}} onDelete={() => {}} />
+    );
+    expect(container.querySelector('.bkl-fallback')).toBeTruthy();
+    expect(container.querySelector('.bkl-badge')).toBeNull();
+  });
+
+  it('renders logo in compact mode', () => {
+    const { container } = render(tile({ compact: true, flow: { income: 0, expense: 0 } }));
+    expect(container.querySelector('.bkl')).toBeTruthy();
+  });
+
+  it('uses sm size badge in compact mode', () => {
+    const { container } = render(tile({ compact: true, flow: { income: 0, expense: 0 } }));
+    expect(container.querySelector('.bkl-sm')).toBeTruthy();
+  });
+});
+
+describe('AccountTile — compact mode', () => {
+  it('shows owner name on the card face in compact mode', () => {
+    const { container } = render(tile({ compact: true, flow: { income: 0, expense: 0 } }));
+    expect(container.querySelector('.cc-visual').textContent).toMatch(/Igor Andrade/);
+  });
+
+  it('shows no .card-sm footer in compact mode', () => {
+    const { container } = render(tile({ compact: true, flow: { income: 0, expense: 0 } }));
+    expect(container.querySelector('.card-sm')).toBeNull();
+  });
+
+  it('shows edit and delete buttons inside the face in compact mode', () => {
+    const { container } = render(tile({ compact: true, flow: { income: 0, expense: 0 } }));
+    const buttons = container.querySelector('.cc-visual').querySelectorAll('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(2);
   });
 });

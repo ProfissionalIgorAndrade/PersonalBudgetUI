@@ -1,6 +1,7 @@
 import React from 'react';
 import { R$ } from '../../../core/utils/format';
-import { findMember } from '../../../application/mappers/index';
+import { findMember, BANK_LABELS } from '../../../application/mappers/index';
+import BankLogo from '../../shared/components/BankLogo';
 
 const NUM = { fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' };
 
@@ -43,9 +44,17 @@ export default function AccountTile({ account, flow, monthLabel, members, select
         style={{ background: getGrad(account.color), padding: compact ? '10px 12px' : '14px 16px', minHeight: compact ? 90 : 110 }}
         onClick={onSelect}
       >
-        {/* Topo: banco + titular */}
-        <div>
-          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: compact ? 13 : 15 }}>{account.bank}</div>
+        {/* Topo: logo + banco */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+          <BankLogo bank={account.bank} size={compact ? 'sm' : 'md'} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: compact ? 13 : 15, lineHeight: 1.2 }}>
+              {BANK_LABELS[account.bank] || account.bank}
+            </div>
+            {compact && mem && (
+              <div className="cc-face-owner">{mem.emoji} {mem.name}</div>
+            )}
+          </div>
         </div>
 
         {/* Base: movimento do mês + agência/conta */}
