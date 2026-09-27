@@ -21,7 +21,6 @@ import SavingsView           from './presentation/savings/SavingsView';
 import MembersView           from './presentation/members/MembersView';
 import CategoriesView        from './presentation/categories/CategoriesView';
 import ProfileView           from './presentation/profile/ProfileView';
-import CalendarView          from './presentation/calendar/CalendarView';
 
 const pageVariants = {
   initial: { opacity: 0, y: 14 },
@@ -77,7 +76,6 @@ export default function App() {
 
   const views = {
     dashboard:    <DashboardView    data={data} setView={setView} activeMonth={activeMonth} setActiveMonth={setActiveMonth} theme={theme} />,
-    calendar:     <CalendarView />,
     transactions: <TransactionsView data={data} {...txOps} activeMonth={activeMonth} setActiveMonth={setActiveMonth}
                                     onImport={txOps.onImportOne} reloadTransactions={loadTx} />,
     cards:        <CardsView        cards={cards} members={members} transactions={transactions} categories={categories} accounts={accounts}
