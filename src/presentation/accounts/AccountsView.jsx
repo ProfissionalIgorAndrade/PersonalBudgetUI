@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { checkingOnly } from '../../application/mappers/index';
 import { R$ } from '../../core/utils/format';
 import { parseMoneyAmount } from '../../core/utils/money';
@@ -18,6 +18,7 @@ export default function AccountsView({
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [f, setF]                           = useState({});
   const [deleteTarget, setDeleteTarget]     = useState(null);
+  const [sidebarSearch, setSidebarSearch]   = useState('');
 
   const selectedId = selectedAccount?.id;
   useEffect(() => {
@@ -60,6 +61,18 @@ export default function AccountsView({
 
   const select = a => setSelectedAccount(sel => sel?.id === a.id ? null : a);
 
+  const sidebarAccounts = useMemo(() => {
+    const base = checkingOnly(accounts);
+    if (!sidebarSearch.trim()) return base;
+    const q = sidebarSearch.trim().toLowerCase();
+    return base.filter(a => {
+      if (a.bank && a.bank.toLowerCase().includes(q)) return true;
+      const mem = members.find(m => m.id === a.memberId);
+      if (mem && mem.name.toLowerCase().includes(q)) return true;
+      return false;
+    });
+  }, [accounts, members, sidebarSearch]);
+
   const confirmDeleteAccount = () => {
     if (!deleteTarget) return;
     onDelete(deleteTarget.id);
@@ -82,14 +95,29 @@ export default function AccountsView({
       {accounts.length === 0 ? (
         <div className="empty"><div className="ei">🏦</div><p>Nenhuma conta cadastrada</p></div>
       ) : (
-        <>
-          <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
-            <div style={{ display: 'flex', gap: 14 }}>
-              {checkingOnly(accounts).map(a => (
-                <div key={a.id} style={{ flex: '0 0 calc(25% - 10.5px)', minWidth: 180 }}>
+        <div className="cc-list-layout">
+          {/* Sidebar com busca e lista de contas */}
+          <div className="cc-list-sidebar">
+            <div className="cc-list-sidebar-search">
+              <input
+                className="form-input"
+                style={{ width: '100%', fontSize: 12 }}
+                placeholder="🔍 Buscar conta..."
+                value={sidebarSearch}
+                onChange={e => setSidebarSearch(e.target.value)}
+                aria-label="Buscar conta"
+              />
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, padding: '10px' }}>
+              {sidebarAccounts.length === 0 ? (
+                <div style={{ padding: '20px 12px', color: 'var(--muted)', fontSize: 12, textAlign: 'center' }}>
+                  Nenhuma conta encontrada
+                </div>
+              ) : (
+                sidebarAccounts.map(a => (
                   <AccountTile
+                    key={a.id}
                     account={a}
-                    balance={accountBalance(a)}
                     flow={monthFlow(a.id)}
                     monthLabel={activeMonth}
                     members={members}
@@ -97,45 +125,54 @@ export default function AccountsView({
                     onSelect={() => select(a)}
                     onEdit={() => { setF(a); setShowForm(true); }}
                     onDelete={() => setDeleteTarget({ id: a.id, name: a.name })}
+                    compact={true}
                   />
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
-          {selectedAccount && (
-            <div className="detail-panel" style={{ marginTop: 16 }}>
-              <div className="flex jcb aic" style={{ marginBottom: 18 }}>
-                <div>
-                  <h2 style={{ fontSize: 18, fontWeight: 800, fontFamily: 'Syne' }}>{selectedAccount.name} — Lançamentos</h2>
-                  <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
-                    {ACC_TYPES[selectedAccount.type] || selectedAccount.type}
-                    {selectedAccount.bank ? ' · ' + selectedAccount.bank : ''}
-                    {' · Saldo: '}
-                    <span style={{ fontWeight: 700, color: accountBalance(selectedAccount) >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                      {R$(accountBalance(selectedAccount))}
-                    </span>
-                  </p>
+          {/* Painel de detalhe */}
+          <div className="cc-list-detail">
+            {selectedAccount ? (
+              <>
+                <div className="flex jcb aic" style={{ marginBottom: 18 }}>
+                  <div>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, fontFamily: 'Syne' }}>{selectedAccount.bank} — Lançamentos</h2>
+                    <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
+                      {ACC_TYPES[selectedAccount.type] || selectedAccount.type}
+                      {selectedAccount.bank ? ' · ' + selectedAccount.bank : ''}
+                      {' · Saldo: '}
+                      <span style={{ fontWeight: 700, color: accountBalance(selectedAccount) >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                        {R$(accountBalance(selectedAccount))}
+                      </span>
+                    </p>
+                  </div>
+                  <button className="btn-icon" onClick={() => setSelectedAccount(null)}>✕</button>
                 </div>
-                <button className="btn-icon" onClick={() => setSelectedAccount(null)}>✕</button>
+                <AccountDetail
+                  account={selectedAccount}
+                  accountLedgerBalance={accountBalance(selectedAccount)}
+                  transactionsReloadGeneration={transactionsReloadGeneration}
+                  categories={categories}
+                  members={members}
+                  accounts={accounts}
+                  cards={cards}
+                  onEditTx={onEditTx}
+                  onDeleteTx={onDeleteTx}
+                  onBatchDeleteTx={onBatchDeleteTx}
+                  notify={notify}
+                  activeMonth={activeMonth}
+                />
+              </>
+            ) : (
+              <div className="cc-list-empty">
+                <div style={{ fontSize: 32, marginBottom: 12 }}>🏦</div>
+                <div>Selecione uma conta para ver os lançamentos</div>
               </div>
-              <AccountDetail
-                account={selectedAccount}
-                accountLedgerBalance={accountBalance(selectedAccount)}
-                transactionsReloadGeneration={transactionsReloadGeneration}
-                categories={categories}
-                members={members}
-                accounts={accounts}
-                cards={cards}
-                onEditTx={onEditTx}
-                onDeleteTx={onDeleteTx}
-                onBatchDeleteTx={onBatchDeleteTx}
-                notify={notify}
-                activeMonth={activeMonth}
-              />
-            </div>
-          )}
-        </>
+            )}
+          </div>
+        </div>
       )}
 
       {showForm && (

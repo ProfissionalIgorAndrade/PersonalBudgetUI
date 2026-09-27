@@ -32,7 +32,7 @@ function progressColor(pct) {
   return 'var(--primary)';
 }
 
-export default function CardTile({ card, spent, statementMonth, members, selected, onSelect, onEdit, onDelete }) {
+export default function CardTile({ card, spent, statementMonth, members, selected, onSelect, onEdit, onDelete, compact = false }) {
   const mem     = findMember(members, card.memberId);
   const usePct  = card.limit > 0 ? Math.min(spent / card.limit * 100, 100) : 0;
   const available = Math.max(Number(card.limit || 0) - Number(spent || 0), 0);
@@ -41,7 +41,7 @@ export default function CardTile({ card, spent, statementMonth, members, selecte
     <div style={{ borderRadius: 14, outline: selected ? '2px solid var(--primary)' : '2px solid transparent', outlineOffset: 3, transition: 'outline-color .2s' }}>
       <div
         className="cc-visual cc-clickable"
-        style={{ background: getGrad(card.color), padding: '14px 16px', minHeight: 140 }}
+        style={{ background: getGrad(card.color), padding: compact ? '10px 12px' : '14px 16px', minHeight: compact ? 105 : 140 }}
         onClick={onSelect}
       >
         {/* Linha 1: bandeira + logo */}
@@ -52,7 +52,7 @@ export default function CardTile({ card, spent, statementMonth, members, selecte
 
         {/* Linha 2: nome + dono */}
         <div style={{ marginBottom: 2 }}>
-          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, lineHeight: 1.25 }}>{card.name}</div>
+          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: compact ? 12 : 14, lineHeight: 1.25 }}>{card.name}</div>
           {mem && <div className="cc-face-owner">{mem.emoji} {mem.name}</div>}
         </div>
 
@@ -84,7 +84,7 @@ export default function CardTile({ card, spent, statementMonth, members, selecte
         </div>
 
         {/* Linha 5: vencimento no canto inferior direito */}
-        {card.dueDay && (
+        {!compact && card.dueDay && (
           <div className="cc-face-due" style={{ marginTop: 6 }}>
             Vence dia {card.dueDay}
           </div>
@@ -92,17 +92,19 @@ export default function CardTile({ card, spent, statementMonth, members, selecte
       </div>
 
       {/* Footer: somente ações */}
-      <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px' }}>
-        <div className="flex jcb aic" style={{ gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {selected ? '▼ aberto' : 'ver fatura →'}
-          </span>
-          <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-            <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onEdit}>✏️</button>
-            <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onDelete}>🗑️</button>
+      {!compact && (
+        <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px' }}>
+          <div className="flex jcb aic" style={{ gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {selected ? '▼ aberto' : 'ver fatura →'}
+            </span>
+            <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+              <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onEdit}>✏️</button>
+              <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onDelete}>🗑️</button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
