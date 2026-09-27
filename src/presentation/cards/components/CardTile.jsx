@@ -2,6 +2,7 @@ import React from 'react';
 import { R$ } from '../../../core/utils/format';
 import { FLAGS, CARD_GRADIENTS } from '../../../core/constants/index';
 import { findMember } from '../../../application/mappers/index';
+import CardBrandLogo from './CardBrandLogo';
 
 const NUM = { fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' };
 
@@ -25,52 +26,76 @@ const monthLabel = (ym) => {
   return `${m}/${y}`;
 };
 
+function progressColor(pct) {
+  if (pct >= 90) return 'var(--red)';
+  if (pct >= 70) return 'var(--yellow)';
+  return 'var(--primary)';
+}
+
 export default function CardTile({ card, spent, statementMonth, members, selected, onSelect, onEdit, onDelete }) {
-  const mem    = findMember(members, card.memberId);
-  const usePct = card.limit > 0 ? Math.min(spent / card.limit * 100, 100) : 0;
-  // "Limite atual" lido como o que ainda resta, não o limite contratado — é o
-  // número acionável. Nunca negativo na exibição.
+  const mem     = findMember(members, card.memberId);
+  const usePct  = card.limit > 0 ? Math.min(spent / card.limit * 100, 100) : 0;
   const available = Math.max(Number(card.limit || 0) - Number(spent || 0), 0);
+
   return (
     <div style={{ borderRadius: 14, outline: selected ? '2px solid var(--primary)' : '2px solid transparent', outlineOffset: 3, transition: 'outline-color .2s' }}>
       <div
         className="cc-visual cc-clickable"
-        style={{ background: getGrad(card.color), padding: '14px 16px', minHeight: 110 }}
+        style={{ background: getGrad(card.color), padding: '14px 16px', minHeight: 140 }}
         onClick={onSelect}
       >
-        <div>
-          <div style={{ fontSize: 10, opacity: .6, marginBottom: 2 }}>{FLAGS[card.flag] || 'Cartão'}</div>
-          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15 }}>{card.name}</div>
+        {/* Linha 1: bandeira + logo */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <div style={{ fontSize: 9, opacity: .6 }}>{FLAGS[card.flag] || 'Cartão'}</div>
+          <CardBrandLogo flag={card.flag} cardName={card.name} size="sm" />
         </div>
 
-        {/* Fatura e limite na face, como a conta faz com receita e despesa. */}
+        {/* Linha 2: nome + dono */}
+        <div style={{ marginBottom: 2 }}>
+          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, lineHeight: 1.25 }}>{card.name}</div>
+          {mem && <div className="cc-face-owner">{mem.emoji} {mem.name}</div>}
+        </div>
+
+        {/* Linha 3: barra de progresso */}
+        <div className="cc-face-progress">
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width: `${usePct}%`, background: progressColor(usePct) }} />
+          </div>
+          <span className="cc-face-progress-pct">{Math.round(usePct)}%</span>
+        </div>
+
+        {/* Linha 4: fatura + limite disponível */}
         <div className="flex jcb aib" style={{ gap: 10 }}>
           <div>
             <div style={{ fontSize: 9, opacity: .6, marginBottom: 2 }}>
               Fatura{statementMonth ? ` ${monthLabel(statementMonth)}` : ''}
             </div>
-            <div style={{ ...NUM, fontSize: 17, fontWeight: 800 }}>{R$(spent)}</div>
+            <div style={{ ...NUM, fontSize: 15, fontWeight: 800 }}>{R$(spent)}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 9, opacity: .6, marginBottom: 2 }}>Limite disponível</div>
+            <div style={{ fontSize: 9, opacity: .6, marginBottom: 2 }}>Disponível</div>
             <div style={{
-              ...NUM, fontSize: 17, fontWeight: 800,
+              ...NUM, fontSize: 15, fontWeight: 800,
               color: available <= 0 ? '#f87171' : usePct > 80 ? '#fbbf24' : undefined,
             }}>
               {R$(available)}
             </div>
           </div>
         </div>
-        <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, opacity: .5, fontWeight: 600 }}>
-          {selected ? '▼ Aberto' : 'Ver faturas →'}
-        </div>
+
+        {/* Linha 5: vencimento no canto inferior direito */}
+        {card.dueDay && (
+          <div className="cc-face-due" style={{ marginTop: 6 }}>
+            Vence dia {card.dueDay}
+          </div>
+        )}
       </div>
+
+      {/* Footer: somente ações */}
       <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px' }}>
-        {/* Dono e ações na mesma linha: o nome identifica o cartão e as ações
-            agem sobre ele. Na face, ele competia com os valores. */}
         <div className="flex jcb aic" style={{ gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {mem ? `${mem.emoji} ${mem.name}` : '—'}
+          <span style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {selected ? '▼ aberto' : 'ver fatura →'}
           </span>
           <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
             <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onEdit}>✏️</button>

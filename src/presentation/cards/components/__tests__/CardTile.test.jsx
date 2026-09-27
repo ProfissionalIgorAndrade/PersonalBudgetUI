@@ -5,7 +5,7 @@ import CardTile from '../CardTile';
 
 afterEach(cleanup);
 
-const card = { id: 'c1', name: 'Inter Black', flag: 'visa', lastDigits: '4417', limit: 15000, closingDay: 27, dueDay: 7, color: '#f87171', memberId: 'm1' };
+const card = { id: 'c1', name: 'Inter Black', flag: 'master', lastDigits: '4417', limit: 15000, closingDay: 27, dueDay: 7, color: '#f87171', memberId: 'm1' };
 const members = [{ id: 'm1', name: 'Igor', emoji: '🧑' }];
 
 const tile = (props) => (
@@ -35,28 +35,27 @@ describe('CardTile statement preview', () => {
   });
 });
 
-describe('CardTile after the refactor', () => {
-  it('shows the available limit, not the contracted one', () => {
+describe('CardTile after the redesign', () => {
+  it('shows the available limit', () => {
     render(tile({ spent: 5008.74, statementMonth: '2026-09' }));
-    expect(screen.getByText('Limite disponível')).toBeTruthy();
+    expect(screen.getByText('Disponível')).toBeTruthy();
     // 15.000,00 - 5.008,74
     expect(screen.getByText(/9\.991,26/)).toBeTruthy();
   });
 
-  it('drops the masked card number and the closing/due dates', () => {
-    const { container } = render(tile({ spent: 100, statementMonth: '2026-09' }));
-    expect(container.textContent).not.toMatch(/••••/);
-    expect(container.textContent).not.toMatch(/Fecha/);
-    expect(container.textContent).not.toMatch(/Vence/);
-  });
-
-  it('drops the usage percentage and the progress bar', () => {
+  it('renders a progress bar reflecting usage', () => {
     const { container } = render(tile({ spent: 5008.74, statementMonth: '2026-09' }));
-    expect(container.textContent).not.toMatch(/33%/);
-    expect(container.querySelector('.progress-bar')).toBeNull();
+    expect(container.querySelector('.progress-bar')).toBeTruthy();
+    expect(container.querySelector('.progress-fill')).toBeTruthy();
   });
 
-  it('leaves only the two action buttons below', () => {
+  it('shows usage percentage label', () => {
+    const { container } = render(tile({ spent: 7500, statementMonth: '2026-09' }));
+    // 7500 / 15000 = 50%
+    expect(container.querySelector('.cc-face-progress-pct').textContent).toBe('50%');
+  });
+
+  it('leaves only the two action buttons in the footer', () => {
     const { container } = render(tile({ spent: 100, statementMonth: '2026-09' }));
     expect(container.querySelectorAll('.card-sm button')).toHaveLength(2);
   });
@@ -65,25 +64,41 @@ describe('CardTile after the refactor', () => {
     render(tile({ spent: 20000, statementMonth: '2026-09' }));
     expect(screen.getByText(/^R\$ 0,00$/)).toBeTruthy();
   });
+
+  it('shows the due day on the card face', () => {
+    const { container } = render(tile({ spent: 100, statementMonth: '2026-09' }));
+    const face = container.querySelector('.cc-visual');
+    expect(face.textContent).toMatch(/Vence dia 7/);
+  });
 });
 
-describe('CardTile owner and footer', () => {
-  it('shows the statement and available limit on the card face', () => {
+describe('CardTile owner visibility', () => {
+  it('shows owner name on the card face', () => {
+    const { container } = render(tile({ spent: 100, statementMonth: '2026-09' }));
+    const face = container.querySelector('.cc-visual');
+    expect(face.textContent).toMatch(/Igor/);
+  });
+
+  it('shows card name on the face', () => {
     const { container } = render(tile({ spent: 5008.74, statementMonth: '2026-09' }));
     const face = container.querySelector('.cc-visual');
-    expect(face.textContent).toMatch(/Fatura 09\/2026/);
-    expect(face.textContent).toMatch(/Limite disponível/);
-    expect(face.textContent).toMatch(/9\.991,26/);
+    expect(face.textContent).toMatch(/Inter Black/);
   });
 
-  it('names the owner beside the actions, not on the card face', () => {
-    const { container } = render(tile({ spent: 100, statementMonth: '2026-09' }));
-    expect(container.querySelector('.card-sm').textContent).toMatch(/Igor/);
-    expect(container.querySelector('.cc-visual').textContent).not.toMatch(/Igor/);
-  });
-
-  it('keeps the two actions in the footer', () => {
+  it('still keeps the two action buttons in the footer', () => {
     const { container } = render(tile({ spent: 100, statementMonth: '2026-09' }));
     expect(container.querySelectorAll('.card-sm button')).toHaveLength(2);
+  });
+});
+
+describe('CardTile CardBrandLogo integration', () => {
+  it('renders the CardBrandLogo on the card face', () => {
+    const { container } = render(tile({ spent: 100, statementMonth: '2026-09' }));
+    expect(container.querySelector('.cbl')).toBeTruthy();
+  });
+
+  it('renders mastercard circles for master flag', () => {
+    const { container } = render(tile({ spent: 100, statementMonth: '2026-09' }));
+    expect(container.querySelector('.cbl-master')).toBeTruthy();
   });
 });
