@@ -110,12 +110,18 @@ export default function SavingsView({ accounts = [], members = [], movements = [
           onClose={() => setBoxForm(null)}
           onSave={async () => {
             try {
-              // A meta é um endpoint próprio: criar/renomear não a carrega.
-              if (boxForm.id) await onRenameBox(boxForm.id, boxForm.name);
-              else await onCreateBox(boxForm.parentAccountId, boxForm.name);
-              if (onSetGoal && boxForm.id) {
-                await onSetGoal(boxForm.id, Number(boxForm.goal) > 0 ? Number(boxForm.goal) : null);
-              }
+              // A meta tem endpoint próprio: criar e renomear não a carregam.
+              // Na criação, usa o id devolvido — antes a meta digitada era
+              // silenciosamente descartada na primeira caixinha.
+              const goal = Number(boxForm.goal) > 0 ? Number(boxForm.goal) : null;
+              const id = boxForm.id
+                ? (await onRenameBox(boxForm.id, boxForm.name), boxForm.id)
+                : await onCreateBox(boxForm.parentAccountId, boxForm.name);
+
+              // Sem id não dá para gravar a meta, e falhar aqui perderia a
+              // caixinha que já foi criada; o aviso é melhor que o erro.
+              if (onSetGoal && id) await onSetGoal(id, goal);
+              else if (goal && !id) notify?.('Caixinha criada, mas não foi possível salvar a meta.', 'error');
               setBoxForm(null);
             } catch (e) { notify?.(e.message || 'Não foi possível salvar.', 'error'); }
           }}
