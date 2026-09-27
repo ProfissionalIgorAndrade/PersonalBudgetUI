@@ -73,6 +73,10 @@ export default function AccountsView({
     });
   }, [accounts, members, sidebarSearch]);
 
+  const totalBalance = useMemo(() =>
+    checkingOnly(accounts).reduce((sum, a) => sum + parseMoneyAmount(a?.balance ?? a?.Balance), 0),
+  [accounts]);
+
   const confirmDeleteAccount = () => {
     if (!deleteTarget) return;
     onDelete(deleteTarget.id);
@@ -98,15 +102,19 @@ export default function AccountsView({
         <div className="cc-list-layout">
           {/* Sidebar com busca e lista de contas */}
           <div className="cc-list-sidebar">
-            <div className="cc-list-sidebar-search">
+            <div className="cc-list-sidebar-search" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <input
                 className="form-input"
-                style={{ width: '100%', fontSize: 12 }}
+                style={{ flex: 1, minWidth: 0, fontSize: 12 }}
                 placeholder="🔍 Buscar conta..."
                 value={sidebarSearch}
                 onChange={e => setSidebarSearch(e.target.value)}
                 aria-label="Buscar conta"
               />
+              <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                <div style={{ fontSize: 9, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Saldo total</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: totalBalance >= 0 ? 'var(--green)' : 'var(--red)', whiteSpace: 'nowrap', fontFamily: "'Inter', sans-serif" }}>{R$(totalBalance)}</div>
+              </div>
             </div>
             <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, padding: '10px' }}>
               {sidebarAccounts.length === 0 ? (
