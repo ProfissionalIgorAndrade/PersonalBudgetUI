@@ -8,8 +8,12 @@ import Chart from 'chart.js/auto';
  * o tempo é a série e a categoria é a posição, que é o que permite ver numa
  * olhada quais categorias subiram de um mês para o outro.
  */
-export default function GroupedBars({ labels, series, height = 340, theme }) {
+export default function GroupedBars({ labels, series, height, theme }) {
   const ref = useRef();
+
+  // height=undefined → comportamento responsivo como BarLine (aspect ratio padrão 2:1).
+  // height={px}      → altura fixa em pixels com maintainAspectRatio: false.
+  const fixedHeight = height != null;
 
   useEffect(() => {
     if (!ref.current) return;
@@ -32,7 +36,7 @@ export default function GroupedBars({ labels, series, height = 340, theme }) {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false,
+        ...(fixedHeight ? { maintainAspectRatio: false } : {}),
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { labels: { color: tickColor, font: { family: 'Outfit', size: 11 }, boxWidth: 12 } },
@@ -53,8 +57,6 @@ export default function GroupedBars({ labels, series, height = 340, theme }) {
             beginAtZero: true,
             ticks: {
               color: tickColor, font: { family: 'Outfit', size: 11 },
-              // Milhares abreviados: com 16 categorias o eixo fica estreito e
-              // "R$ 6.748,83" por tick empurra o gráfico todo.
               callback: v => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v),
             },
             grid: { color: gridColor },
@@ -62,21 +64,18 @@ export default function GroupedBars({ labels, series, height = 340, theme }) {
         },
       },
     });
-    // Largura do card muda com a sidebar e com o próprio redimensionamento da
-    // janela; sem isto o gráfico só acompanha o resize da window.
     const ro = new ResizeObserver(() => ch.resize());
     if (ref.current.parentElement) ro.observe(ref.current.parentElement);
 
     return () => { ro.disconnect(); ch.destroy(); };
-  }, [JSON.stringify(labels), JSON.stringify(series), theme]);
+  }, [JSON.stringify(labels), JSON.stringify(series), theme, fixedHeight]);
 
-  // A altura vem em pixels direto no elemento que o Chart.js mede, sem
-  // intermediário em height: 100%. A tentativa anterior encadeava
-  // 100% -> 100% -> altura do pai, e o Chart media antes dessa cadeia
-  // resolver, ficando com uma fração do espaço.
-  return (
-    <div style={{ position: 'relative', width: '100%', height: `${height}px` }}>
-      <canvas ref={ref} />
-    </div>
-  );
+  if (fixedHeight) {
+    return (
+      <div style={{ position: 'relative', width: '100%', height: `${height}px` }}>
+        <canvas ref={ref} />
+      </div>
+    );
+  }
+  return <canvas ref={ref} />;
 }
