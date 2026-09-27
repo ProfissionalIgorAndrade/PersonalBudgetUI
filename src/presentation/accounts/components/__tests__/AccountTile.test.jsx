@@ -34,12 +34,11 @@ describe('AccountTile', () => {
     expect(container.querySelectorAll('.card-sm button')).toHaveLength(2);
   });
 
-  // The owner moved off the coloured face and into the actions row.
-  it('names the owner beside the actions, not on the card face', () => {
+  // The owner is shown on the card face (below the bank name) — consistent
+  // with CardTile which also places the owner on the face.
+  it('shows the owner on the card face', () => {
     const { container } = render(tile({ flow: { income: 10, expense: 5 } }));
-    const footer = container.querySelector('.card-sm');
-    expect(footer.textContent).toMatch(/Igor Andrade/);
-    expect(container.querySelector('.cc-visual').textContent).not.toMatch(/Igor Andrade/);
+    expect(container.querySelector('.cc-visual').textContent).toMatch(/Igor Andrade/);
   });
 
   it('shows zeroes rather than blanks with no movement', () => {
