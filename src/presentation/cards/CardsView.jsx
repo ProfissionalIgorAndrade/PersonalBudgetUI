@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { curMonth } from '../../core/utils/format';
+import React, { useState, useMemo, useCallback } from 'react';
+import { curMonth, R$ } from '../../core/utils/format';
 import { COLORS, FLAGS } from '../../core/constants/index';
 import { txBelongsToMonth, statementNet } from '../../core/utils/billing';
 import { cardLabel } from '../../application/mappers/index';
@@ -30,10 +30,14 @@ export default function CardsView({
   const [listSearch, setListSearch] = useState('');
 
   // ── Helpers ───────────────────────────────────────────────────────────
-  const cardStatementTotal = id => {
+  const cardStatementTotal = useCallback(id => {
     const m = activeMonth || curMonth();
     return statementNet(transactions.filter(t => t.cardId === id && txBelongsToMonth(t, m)));
-  };
+  }, [transactions, activeMonth]);
+
+  const totalAllCards = useMemo(() =>
+    cards.reduce((sum, c) => sum + cardStatementTotal(c.id), 0),
+  [cards, cardStatementTotal]);
 
   const select = c => setSelectedCardId(id => id === c.id ? null : c.id);
 
@@ -98,15 +102,19 @@ export default function CardsView({
         <div className="cc-list-layout">
           {/* Sidebar com busca e lista de cartões */}
           <div className="cc-list-sidebar">
-            <div className="cc-list-sidebar-search">
+            <div className="cc-list-sidebar-search" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <input
                 className="form-input"
-                style={{ width: '100%', fontSize: 12 }}
+                style={{ flex: 1, minWidth: 0, fontSize: 12 }}
                 placeholder="🔍 Buscar cartão..."
                 value={listSearch}
                 onChange={e => setListSearch(e.target.value)}
                 aria-label="Buscar cartão"
               />
+              <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                <div style={{ fontSize: 9, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Total faturas</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', fontFamily: "'Inter', sans-serif" }}>{R$(totalAllCards)}</div>
+              </div>
             </div>
             <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, padding: '10px' }}>
               {listCards.length === 0 ? (

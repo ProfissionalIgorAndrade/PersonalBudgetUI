@@ -474,6 +474,7 @@ canvas { max-height: 220px; }
   width: 140px; height: 140px;
   border-radius: 50%;
   background: rgba(255,255,255,.07);
+  pointer-events: none;
 }
 .cc-visual::after {
   content: '';
@@ -482,6 +483,7 @@ canvas { max-height: 220px; }
   width: 160px; height: 160px;
   border-radius: 50%;
   background: rgba(255,255,255,.05);
+  pointer-events: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════
