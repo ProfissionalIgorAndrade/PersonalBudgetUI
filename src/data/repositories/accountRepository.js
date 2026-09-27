@@ -34,3 +34,13 @@ export const depositToSavingsBox = (accountId, amount) =>
 /** Resgata um valor de uma caixinha. */
 export const withdrawFromSavingsBox = (accountId, amount) =>
   http.post(`/api/accounts/savings-boxes/${accountId}/withdraw`, { amount });
+
+/**
+ * Define ou remove a meta de uma caixinha. Null remove.
+ *
+ * onSetSavingsGoal já chamava esta função, que não existia — o merge que
+ * desfez a separação dos movimentos levou-a junto, e a chamada quebrava em
+ * runtime no primeiro salvamento de meta.
+ */
+export const setSavingsGoal = (accountId, goal) =>
+  http.patch(`/api/accounts/savings-boxes/${accountId}/goal`, { goal });
