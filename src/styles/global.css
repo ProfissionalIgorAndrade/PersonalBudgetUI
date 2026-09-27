@@ -1626,7 +1626,7 @@ canvas { max-height: 220px; }
   overflow: hidden;
 }
 .cc-list-sidebar {
-  width: 280px;
+  width: 300px;
   flex-shrink: 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -1643,10 +1643,14 @@ canvas { max-height: 220px; }
   z-index: 1;
   border-bottom: 1px solid var(--border);
 }
-.cc-list-sidebar-items {
+/* Container de cards compactos na sidebar */
+.cc-list-sidebar-cards {
   flex: 1;
   overflow-y: auto;
-  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 10px;
 }
 .cc-list-detail {
   flex: 1;
@@ -1893,8 +1897,13 @@ canvas { max-height: 220px; }
 .cc-modal-card.selected { border-color: var(--primary); }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .cc-list-sidebar { width: 260px; }
+}
+
 @media (max-width: 1024px) {
   .cc-list-sidebar { width: 240px; }
+  .cc-list-sidebar-cards { gap: 8px; padding: 10px 8px; }
 }
 
 @media (max-width: 768px) {
@@ -1904,9 +1913,21 @@ canvas { max-height: 220px; }
   }
   .cc-list-sidebar {
     width: 100%;
-    max-height: 280px;
+    max-height: 360px;
     border-right: none;
     border-bottom: 1px solid var(--border);
+  }
+  /* No mobile, cards na sidebar ficam em grid horizontal */
+  .cc-list-sidebar-cards {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px;
+    gap: 10px;
+  }
+  .cc-list-sidebar-cards > * {
+    flex: 0 0 200px;
   }
   .cc-list-detail { padding: 16px; }
   .cc-carousel-more { min-height: 120px; width: 80px; font-size: 12px; }

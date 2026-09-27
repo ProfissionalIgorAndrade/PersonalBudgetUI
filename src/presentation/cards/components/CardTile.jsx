@@ -32,27 +32,40 @@ function progressColor(pct) {
   return 'var(--primary)';
 }
 
-export default function CardTile({ card, spent, statementMonth, members, selected, onSelect, onEdit, onDelete }) {
+/**
+ * CardTile
+ *
+ * Props:
+ *   compact — boolean (default false)
+ *     Renderiza uma versão menor para uso em sidebars/listas verticais.
+ *     Mantém toda a identidade visual mas com padding e fontes reduzidos.
+ */
+export default function CardTile({ card, spent, statementMonth, members, selected, onSelect, onEdit, onDelete, compact = false }) {
   const mem     = findMember(members, card.memberId);
   const usePct  = card.limit > 0 ? Math.min(spent / card.limit * 100, 100) : 0;
   const available = Math.max(Number(card.limit || 0) - Number(spent || 0), 0);
+
+  const facePad     = compact ? '10px 12px' : '14px 16px';
+  const faceMinH    = compact ? 90           : 140;
+  const nameSize    = compact ? 12            : 14;
+  const amountSize  = compact ? 13            : 15;
 
   return (
     <div style={{ borderRadius: 14, outline: selected ? '2px solid var(--primary)' : '2px solid transparent', outlineOffset: 3, transition: 'outline-color .2s' }}>
       <div
         className="cc-visual cc-clickable"
-        style={{ background: getGrad(card.color), padding: '14px 16px', minHeight: 140 }}
+        style={{ background: getGrad(card.color), padding: facePad, minHeight: faceMinH }}
         onClick={onSelect}
       >
         {/* Linha 1: bandeira + logo */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <div style={{ fontSize: 9, opacity: .6 }}>{FLAGS[card.flag] || 'Cartão'}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: compact ? 4 : 6 }}>
+          <div style={{ fontSize: compact ? 8 : 9, opacity: .6 }}>{FLAGS[card.flag] || 'Cartão'}</div>
           <CardBrandLogo flag={card.flag} cardName={card.name} size="sm" />
         </div>
 
         {/* Linha 2: nome + dono */}
         <div style={{ marginBottom: 2 }}>
-          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, lineHeight: 1.25 }}>{card.name}</div>
+          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: nameSize, lineHeight: 1.25 }}>{card.name}</div>
           {mem && <div className="cc-face-owner">{mem.emoji} {mem.name}</div>}
         </div>
 
@@ -64,18 +77,18 @@ export default function CardTile({ card, spent, statementMonth, members, selecte
           <span className="cc-face-progress-pct">{Math.round(usePct)}%</span>
         </div>
 
-        {/* Linha 4: fatura + limite disponível */}
-        <div className="flex jcb aib" style={{ gap: 10 }}>
+        {/* Linha 4: fatura + disponível */}
+        <div className="flex jcb aib" style={{ gap: 8 }}>
           <div>
-            <div style={{ fontSize: 9, opacity: .6, marginBottom: 2 }}>
+            <div style={{ fontSize: compact ? 8 : 9, opacity: .6, marginBottom: 1 }}>
               Fatura{statementMonth ? ` ${monthLabel(statementMonth)}` : ''}
             </div>
-            <div style={{ ...NUM, fontSize: 15, fontWeight: 800 }}>{R$(spent)}</div>
+            <div style={{ ...NUM, fontSize: amountSize, fontWeight: 800 }}>{R$(spent)}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 9, opacity: .6, marginBottom: 2 }}>Disponível</div>
+            <div style={{ fontSize: compact ? 8 : 9, opacity: .6, marginBottom: 1 }}>Disponível</div>
             <div style={{
-              ...NUM, fontSize: 15, fontWeight: 800,
+              ...NUM, fontSize: amountSize, fontWeight: 800,
               color: available <= 0 ? '#f87171' : usePct > 80 ? '#fbbf24' : undefined,
             }}>
               {R$(available)}
@@ -83,23 +96,23 @@ export default function CardTile({ card, spent, statementMonth, members, selecte
           </div>
         </div>
 
-        {/* Linha 5: vencimento no canto inferior direito */}
-        {card.dueDay && (
+        {/* Data de vencimento — só no layout normal */}
+        {!compact && card.dueDay && (
           <div className="cc-face-due" style={{ marginTop: 6 }}>
             Vence dia {card.dueDay}
           </div>
         )}
       </div>
 
-      {/* Footer: somente ações */}
-      <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: '8px 12px' }}>
+      {/* Footer: ações */}
+      <div className="card-sm" style={{ borderRadius: '0 0 12px 12px', borderTop: 'none', padding: compact ? '6px 10px' : '8px 12px' }}>
         <div className="flex jcb aic" style={{ gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 10, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {selected ? '▼ aberto' : 'ver fatura →'}
           </span>
           <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-            <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onEdit}>✏️</button>
-            <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onDelete}>🗑️</button>
+            <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 11 }} onClick={onEdit}>✏️</button>
+            <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 11 }} onClick={onDelete}>🗑️</button>
           </div>
         </div>
       </div>
