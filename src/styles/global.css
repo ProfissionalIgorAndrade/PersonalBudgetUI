@@ -1914,6 +1914,36 @@ canvas { max-height: 220px; }
   .cc-carousel-more { min-height: 120px; width: 80px; font-size: 12px; }
 }
 
+/* ── Bank Logo (.bkl) — CSS-only, sem imagens externas ──────────────────── */
+/*
+ * Segue a mesma filosofia do .cbl (CardBrandLogo): badge colorido com
+ * abreviação do banco, sem dependências externas de assets.
+ * Três tamanhos: sm (sidebar compacta), md (tile normal), lg (cabeçalho).
+ */
+.bkl {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.bkl-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  color: #fff;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  flex-shrink: 0;
+  border-radius: 5px;
+}
+.bkl-sm .bkl-badge  { font-size: 7px;  padding: 2px 4px;  border-radius: 4px; }
+.bkl-md .bkl-badge  { font-size: 9px;  padding: 3px 5px;  border-radius: 5px; }
+.bkl-lg .bkl-badge  { font-size: 11px; padding: 4px 7px;  border-radius: 6px; }
+.bkl-fallback { font-size: 14px; line-height: 1; }
+.bkl-sm .bkl-fallback { font-size: 12px; }
+.bkl-lg .bkl-fallback { font-size: 18px; }
+
 /* ── Light theme overrides ───────────────────────────────────────────────── */
 [data-theme="light"] .cards-view-toggle { background: #EEF2F7; border-color: var(--border); }
 [data-theme="light"] .cards-view-toggle-btn.active { background: var(--primary); color: #fff; }
