@@ -226,8 +226,12 @@ export function useAppData(notify) {
     },
 
     onCreateSavingsBox: async (parentAccountId, name) => {
-      await accountRepo.createSavingsBox(parentAccountId, name);
+      // Devolve o id para o chamador poder gravar a meta em seguida: o
+      // endpoint de criação não aceita meta, ela tem rota própria.
+      const created = await accountRepo.createSavingsBox(parentAccountId, name);
       await loadAcc();
+      // O client já desembrulha o ApiResponse, então o id vem direto.
+      return created?.id ?? null;
     },
 
     onSetSavingsGoal: async (accountId, goal) => {
