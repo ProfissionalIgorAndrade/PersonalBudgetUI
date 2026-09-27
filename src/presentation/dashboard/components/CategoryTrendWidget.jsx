@@ -1,71 +1,46 @@
-import React, { useState } from 'react';
+import React from 'react';
 import GroupedBars from '../../shared/components/charts/GroupedBars';
 import { R$ } from '../../../core/utils/format';
 
 /**
  * Comparativo de despesas por categoria nos últimos meses.
  *
- * O Fluxo de Caixa responde "quanto entrou e saiu"; este responde "onde a
- * saída mudou". Uma categoria que dobrou de um mês para o outro é invisível
- * num total agregado e óbvia aqui.
+ * mode='chart' → gráfico de barras agrupadas (preenche o container)
+ * mode='table' → tabela com variação percentual
  *
- * Duas visões: gráfico para enxergar o movimento, tabela para ler o número.
+ * Cada modo é um widget independente no dashboard customizer.
  */
-export default function CategoryTrendWidget({ months, rows, monthsCount, onChangeMonths, theme }) {
-  const [view, setView] = useState('chart');
-
+export default function CategoryTrendWidget({ months, rows, monthsCount, onChangeMonths, theme, mode = 'chart' }) {
   const series = months.map(m => ({ label: m.label, color: m.color, data: rows.map(r => r.values[m.key] ?? 0) }));
   const labels = rows.map(r => r.name);
 
-  // Mais generoso que antes: com 16 categorias o gráfico ficava espremido num
-  // card que tinha espaço de sobra. Cresce com a quantidade de categorias e
-  // para de crescer aos 620.
-  const chartHeight = Math.max(340, Math.min(rows.length * 34, 620));
-
-  const tab = (id, icon, title) => (
-    <button
-      type="button"
-      className="btn-icon"
-      title={title}
-      aria-pressed={view === id}
-      onClick={() => setView(id)}
-      style={{
-        padding: '4px 8px', fontSize: 13,
-        background: view === id ? 'var(--surface2)' : 'transparent',
-        borderColor: view === id ? 'var(--primary)' : 'var(--border)',
-      }}
-    >
-      {icon}
-    </button>
-  );
+  const title = mode === 'chart'
+    ? `Despesas por Categoria — ${monthsCount} meses`
+    : `Comparativo por Categoria — ${monthsCount} meses`;
 
   return (
     <div className="card">
       <div className="flex jcb aic" style={{ marginBottom: 6, gap: 8, flexWrap: 'wrap' }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-0.2px', margin: 0 }}>
-          Despesas por Categoria — {monthsCount} meses
+          {title}
         </h3>
-        <div className="flex aic" style={{ gap: 6 }}>
-          <select
-            className="form-select"
-            value={monthsCount}
-            onChange={e => onChangeMonths(Number(e.target.value))}
-            style={{ padding: '4px 8px', fontSize: 11, width: 'auto' }}
-            aria-label="Meses comparados"
-          >
-            {[3, 6, 12].map(n => <option key={n} value={n}>{n} meses</option>)}
-          </select>
-          {tab('chart', '📈', 'Ver como gráfico')}
-          {tab('table', '▦', 'Ver como tabela')}
-        </div>
+        <select
+          className="form-select"
+          value={monthsCount}
+          onChange={e => onChangeMonths(Number(e.target.value))}
+          style={{ padding: '4px 8px', fontSize: 11, width: 'auto' }}
+          aria-label="Meses comparados"
+        >
+          {[3, 6, 12].map(n => <option key={n} value={n}>{n} meses</option>)}
+        </select>
       </div>
 
       {rows.length === 0 ? (
         <p className="tmuted tsm" style={{ textAlign: 'center', padding: '12px 0' }}>
           Sem despesas no período
         </p>
-      ) : view === 'chart' ? (
-        <GroupedBars labels={labels} series={series} height={chartHeight} theme={theme} />
+      ) : mode === 'chart' ? (
+        <GroupedBars labels={labels} series={series} theme={theme} />
       ) : (
         <div style={{ maxHeight: 420, overflow: 'auto' }}>
           <table className="csv-table" style={{ width: '100%' }}>
@@ -80,8 +55,6 @@ export default function CategoryTrendWidget({ months, rows, monthsCount, onChang
               {rows.map(r => {
                 const first = r.values[months[0].key] ?? 0;
                 const last  = r.values[months[months.length - 1].key] ?? 0;
-                // Sem base não existe variação percentual; mostrar 100% ou ∞
-                // num mês que começou do zero seria ruído, não informação.
                 const delta = first > 0 ? ((last - first) / first) * 100 : null;
                 return (
                   <tr key={r.id}>

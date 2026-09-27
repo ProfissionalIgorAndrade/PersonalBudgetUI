@@ -36,8 +36,8 @@ const widget = (props = {}) => (
   <CategoryTrendWidget months={months} rows={rows} monthsCount={3} onChangeMonths={() => {}} {...props} />
 );
 
-describe('CategoryTrendWidget', () => {
-  it('opens on the chart view with one series per month', () => {
+describe('CategoryTrendWidget — mode chart (default)', () => {
+  it('renders the grouped bar chart with one series per month', () => {
     render(widget());
     const chart = screen.getByTestId('chart');
     expect(chart.dataset.labels).toBe('Moradia|Transporte|Viagens');
@@ -50,23 +50,32 @@ describe('CategoryTrendWidget', () => {
     expect(screen.getByTestId('chart').dataset.series).toContain('Ago/26:6871.31,2846.62,0');
   });
 
-  it('switches to the table view', () => {
+  it('does not render the table', () => {
     render(widget());
-    fireEvent.click(screen.getByTitle('Ver como tabela'));
+    expect(screen.queryByText('Categoria')).toBeNull();
+  });
+
+  it('renders without a fixed height so the chart fills its container', () => {
+    render(widget());
+    expect(screen.getByTestId('chart').dataset.height).toBeUndefined();
+  });
+});
+
+describe('CategoryTrendWidget — mode table', () => {
+  it('renders the table header and category data', () => {
+    render(widget({ mode: 'table' }));
     expect(screen.getByText('Categoria')).toBeTruthy();
     expect(screen.getByText(/6.748,83/)).toBeTruthy();
   });
 
   it('shows a dash rather than zero for a month with no spending', () => {
-    render(widget());
-    fireEvent.click(screen.getByTitle('Ver como tabela'));
+    render(widget({ mode: 'table' }));
     const viagens = screen.getByText(/Viagens/).closest('tr');
     expect(viagens.textContent).toContain('—');
   });
 
   it('marks a rise in red and a fall in green', () => {
-    render(widget());
-    fireEvent.click(screen.getByTitle('Ver como tabela'));
+    render(widget({ mode: 'table' }));
     const transporte = screen.getByText(/Transporte/).closest('tr');
     // 3346.99 -> 3997.71 is a rise
     expect(transporte.textContent).toMatch(/\+19%/);
@@ -74,6 +83,13 @@ describe('CategoryTrendWidget', () => {
     expect(viagens.textContent).toMatch(/-81%/);
   });
 
+  it('does not render the chart', () => {
+    render(widget({ mode: 'table' }));
+    expect(screen.queryByTestId('chart')).toBeNull();
+  });
+});
+
+describe('CategoryTrendWidget — shared behaviour', () => {
   it('reports a change of month count', () => {
     const onChangeMonths = vi.fn();
     render(widget({ onChangeMonths }));
@@ -85,28 +101,11 @@ describe('CategoryTrendWidget', () => {
     render(widget({ rows: [] }));
     expect(screen.getByText(/Sem despesas no período/)).toBeTruthy();
   });
-});
 
-describe('chart sizing', () => {
-  const sized = (n) => {
-    const many = Array.from({ length: n }, (_, i) => ({
-      id: `x${i}`, name: `Cat ${i}`, icon: '📦',
-      values: { '2026-07': 100, '2026-08': 100, '2026-09': 100 }, total: 300,
-    }));
-    const { container } = render(
-      <CategoryTrendWidget months={months} rows={many} monthsCount={3} onChangeMonths={() => {}} />);
-    return container.querySelector('[data-testid="chart"]').dataset.height;
-  };
-
-  it('keeps a floor so a short list is not a sliver', () => {
-    expect(sized(3)).toBe('340');
-  });
-
-  it('grows with the number of categories', () => {
-    expect(sized(16)).toBe('544');
-  });
-
-  it('stops growing so the card cannot run away', () => {
-    expect(sized(40)).toBe('620');
+  it('month selector is present in table mode too', () => {
+    const onChangeMonths = vi.fn();
+    render(widget({ mode: 'table', onChangeMonths }));
+    fireEvent.change(screen.getByLabelText('Meses comparados'), { target: { value: '12' } });
+    expect(onChangeMonths).toHaveBeenCalledWith(12);
   });
 });
