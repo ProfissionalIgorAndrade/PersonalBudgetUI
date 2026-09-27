@@ -41,7 +41,7 @@ function normalizeCalendarResponse(data) {
         date:             dateStr,
         isToday:          dateStr === today,
         isPast:           dateStr < today,
-        transactions:     (d.transactions ?? []).map(normalizeTransaction),
+        transactions:     (d.transactions ?? []).map(normalizeTransaction).filter(t => t.recurrence === 'fixed'),
         statements:       (d.statements ?? []).map(s => ({
           statementId:    s.statementId ?? s.StatementId,
           creditCardId:   s.creditCardId ?? s.CreditCardId,
@@ -277,13 +277,16 @@ export default function CalendarView() {
   // Completa a última semana com células vazias
   while (cells.length % 7 !== 0) cells.push(null);
 
+  // Number of grid rows = DOW header row + week rows
+  const weekRows = Math.ceil(cells.length / 7);
+
   return (
     <div style={styles.page}>
       {/* Cabeçalho */}
       <div style={styles.header}>
         <div style={styles.headerLeft}>
-          <h2 style={styles.title}>📅 Calendário Financeiro</h2>
-          <p style={styles.subtitle}>Seus lançamentos e projeções organizados por dia</p>
+          <h2 style={styles.title}>📅 Calendário de Recorrentes</h2>
+          <p style={styles.subtitle}>Receitas e despesas fixas organizadas por dia</p>
         </div>
         <div style={styles.navControls}>
           <button style={styles.navBtn} onClick={() => setActiveMonth(m => addMonths(m, -1))}>‹</button>
@@ -302,10 +305,9 @@ export default function CalendarView() {
 
       {/* Legenda */}
       <div style={styles.legend}>
-        <span style={styles.legendItem}><span style={{ color: 'var(--green)' }}>●</span> Receita</span>
-        <span style={styles.legendItem}><span style={{ color: 'var(--red)' }}>●</span> Despesa</span>
+        <span style={styles.legendItem}><span style={{ color: 'var(--green)' }}>●</span> Receita fixa</span>
+        <span style={styles.legendItem}><span style={{ color: 'var(--red)' }}>●</span> Despesa fixa</span>
         <span style={styles.legendItem}><span style={{ color: '#818cf8' }}>●</span> Fatura de cartão</span>
-        <span style={styles.legendItem}><span style={{ color: 'var(--muted)' }}>●</span> Pendente (opaco)</span>
         <span style={styles.legendItem}><span style={{ color: 'var(--primary)' }}>◆</span> Saldo projetado</span>
       </div>
 
@@ -324,7 +326,7 @@ export default function CalendarView() {
       {!loading && !error && (
         <>
           {/* Grade — cabeçalho dos dias da semana */}
-          <div style={styles.grid}>
+          <div style={{ ...styles.grid, gridTemplateRows: `auto repeat(${weekRows}, 1fr)` }}>
             {DOW_LABELS.map(d => (
               <div key={d} style={styles.dowHeader}>{d}</div>
             ))}
@@ -357,8 +359,9 @@ export default function CalendarView() {
 const styles = {
   page: {
     padding: '24px 28px',
-    maxWidth: 1200,
-    margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100%',
   },
   header: {
     display: 'flex',
@@ -458,6 +461,8 @@ const styles = {
     border: '1px solid var(--border)',
     borderRadius: 10,
     overflow: 'hidden',
+    flex: 1,
+    minHeight: 0,
   },
   dowHeader: {
     background: 'var(--surface)',
@@ -470,12 +475,12 @@ const styles = {
   },
   emptyCell: {
     background: 'var(--bg)',
-    minHeight: 90,
+    minHeight: 140,
   },
   dayCell: {
     background: 'var(--surface)',
-    minHeight: 90,
-    padding: '5px 6px',
+    minHeight: 140,
+    padding: '10px 12px',
     display: 'flex',
     flexDirection: 'column',
     gap: 2,
@@ -497,7 +502,7 @@ const styles = {
     marginBottom: 2,
   },
   dayNumber: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 600,
     color: 'var(--muted)',
   },
@@ -505,12 +510,12 @@ const styles = {
     background: 'var(--primary)',
     color: '#000',
     borderRadius: '50%',
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: 11,
+    fontSize: 12,
   },
   eventList: {
     display: 'flex',
