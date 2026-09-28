@@ -21,6 +21,7 @@ import SavingsView           from './presentation/savings/SavingsView';
 import MembersView           from './presentation/members/MembersView';
 import CategoriesView        from './presentation/categories/CategoriesView';
 import ProfileView           from './presentation/profile/ProfileView';
+import SimulatorView         from './presentation/simulator/SimulatorView';
 
 const pageVariants = {
   initial: { opacity: 0, y: 14 },
@@ -95,6 +96,7 @@ export default function App() {
     members:      <MembersView      members={members} {...mbrOps} notify={notify} onLogout={handleLogout} />,
     categories:   <CategoriesView   categories={categories} {...catOps} />,
     profile:      <ProfileView      authSession={authSession} notify={notify} />,
+    simulator:    <SimulatorView    theme={theme} />,
   };
 
   return (
