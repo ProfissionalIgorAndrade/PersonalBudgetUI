@@ -64,11 +64,9 @@ describe('Cofrinho screen', () => {
     expect(container.textContent).toMatch(/Guardado este ano\s*R\$\s*700,00/);
   });
 
-  // Part of the original layout. It reads zero because the account balance is
-  // no longer maintained - honest, and the row is what was asked for.
-  it('shows what is available in the source accounts', () => {
+  it('does not show "Disponível para guardar" row', () => {
     render(view());
-    expect(screen.getByText('Disponível para guardar')).toBeTruthy();
+    expect(screen.queryByText('Disponível para guardar')).toBeNull();
   });
 
   it('plots the evolution and lists the statement', () => {

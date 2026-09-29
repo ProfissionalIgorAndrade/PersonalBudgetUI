@@ -1656,6 +1656,8 @@ canvas { max-height: 220px; }
   overflow-y: auto;
   padding: 26px;
   background: var(--surface);
+  display: flex;
+  flex-direction: column;
 }
 .cc-list-empty {
   flex: 1;
