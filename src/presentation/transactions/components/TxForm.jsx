@@ -28,10 +28,7 @@ const emptyDraft = (members) => {
     memberId: members[0]?.id || '',
     accountId: '', cardId: '',
     originAccountId: '', destinationAccountId: '',
-    // Um lançamento novo nasce pendente. 'paid' presumia que a pessoa já
-    // pagou no momento do cadastro, o que raramente é verdade e fazia o
-    // registro entrar como concluído sem ninguém escolher isso.
-    recurrence: 'variable', status: 'pending',
+    recurrence: 'variable',
     installments: '', repeatCount: '',
     expirationDate: '',
     installmentTitle: '',
@@ -97,7 +94,6 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
       accountId: cardId ? '' : p.accountId,
       ...(cardId
         ? {
-            status: 'pending',
             recurrence: p.recurrence === 'fixed' ? 'variable' : p.recurrence,
           }
         : {}),

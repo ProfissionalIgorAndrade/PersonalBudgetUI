@@ -7,7 +7,7 @@ import { txBelongsToMonth } from '../../core/utils/billing';
 import TxForm from './components/TxForm';
 import TxTable from './components/TxTable';
 
-const EMPTY = { type: 'all', memberId: 'all', recurrence: 'all', status: 'all', cardId: 'all', accountId: 'all', categoryId: 'all', search: '' };
+const EMPTY = { type: 'all', memberId: 'all', recurrence: 'all', cardId: 'all', accountId: 'all', categoryId: 'all', search: '' };
 
 
 export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatchDelete, activeMonth, setActiveMonth, onImport, reloadTransactions }) {
@@ -26,7 +26,6 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
     if (filter.type       !== 'all' && t.type       !== filter.type)       return false;
     if (filter.memberId   !== 'all' && t.memberId   !== filter.memberId)   return false;
     if (filter.recurrence !== 'all' && t.recurrence !== filter.recurrence) return false;
-    if (filter.status     !== 'all' && t.status     !== filter.status)     return false;
     if (filter.cardId     !== 'all' && t.cardId     !== filter.cardId)     return false;
     if (filter.accountId  !== 'all' && t.accountId  !== filter.accountId)  return false;
     if (filter.categoryId !== 'all' && t.categoryId !== filter.categoryId) return false;
@@ -85,12 +84,6 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
             <option value="variable">Variável</option>
             <option value="fixed">Fixa</option>
             <option value="installment">Parcelada</option>
-          </select>
-          <select className="form-select" style={sel()} value={filter.status} onChange={set('status')}>
-            <option value="all">Todos os status</option>
-            <option value="paid">✅ Completo</option>
-            <option value="pending">⏳ Pendente</option>
-            <option value="cancelled">❌ Cancelado</option>
           </select>
           <select className="form-select" style={sel()} value={filter.accountId} onChange={set('accountId')}>
             <option value="all">Todas as contas</option>
