@@ -31,24 +31,6 @@ export const TYPE_FROM_API  = { Income: 'income', Expense: 'expense' };
 export const FREQ_TO_API    = { fixed: 'Fixed', variable: 'Variable', installment: 'Installments' };
 export const FREQ_FROM_API  = { Fixed: 'fixed', Variable: 'variable', Installments: 'installment' };
 
-export const STATUS_TO_API   = { paid: 'Completed', pending: 'Pending', cancelled: 'Cancelled' };
-export const STATUS_FROM_API = { Completed: 'paid', Pending: 'pending', Cancelled: 'cancelled', Simulated: 'pending' };
-
-/** Maps API numeric/string status (1/2/4, pending/completed/cancelled, PascalCase) to UI keys. */
-export function normalizeTransactionStatus(raw) {
-  if (raw == null || raw === '') return 'pending';
-  if (typeof raw === 'number' && Number.isFinite(raw)) {
-    if (raw === 1) return 'pending';
-    if (raw === 2) return 'paid';
-    if (raw === 4) return 'cancelled';
-  }
-  const s = String(raw).trim();
-  const lower = s.toLowerCase();
-  if (lower === 'pending') return 'pending';
-  if (lower === 'completed') return 'paid';
-  if (lower === 'cancelled' || lower === 'canceled') return 'cancelled';
-  return STATUS_FROM_API[raw] ?? STATUS_FROM_API[s] ?? 'pending';
-}
 
 export const CAT_TYPE_TO_API   = { income: 'Income', expense: 'Expense' };
 export const CAT_TYPE_FROM_API = { Income: 'income', Expense: 'expense' };
@@ -209,7 +191,6 @@ export function normalizeTransaction(t) {
       ? ((TYPE_FROM_API[t.type ?? t.Type ?? t.transactionType ?? t.TransactionType] === 'income') ? 'in' : 'out')
       : null,
     type:           isSavings ? 'savings' : isTransfer ? 'transfer' : (TYPE_FROM_API[t.type ?? t.Type ?? t.transactionType ?? t.TransactionType] || 'expense'),
-    status:         normalizeTransactionStatus(t.status ?? t.Status),
     recurrence:     FREQ_FROM_API[t.frequency ?? t.Frequency] || 'variable',
     categoryId:     t.categoryId          ?? t.CategoryId          ?? '',
     memberId:       t.attributionProfileId ?? t.AttributionProfileId ?? '',
