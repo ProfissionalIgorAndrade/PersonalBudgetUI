@@ -8,8 +8,6 @@ export const TYPE_FROM_API  = { Income: 'income', Expense: 'expense' };
 export const FREQ_TO_API    = { fixed: 'Fixed', variable: 'Variable', installment: 'Installments' };
 export const FREQ_FROM_API  = { Fixed: 'fixed', Variable: 'variable', Installments: 'installment' };
 
-export const STATUS_TO_API  = { paid: 'Completed', pending: 'Pending', cancelled: 'Cancelled' };
-export const STATUS_FROM_API = { Completed: 'paid', Pending: 'pending', Cancelled: 'cancelled', Simulated: 'pending' };
 
 export const CAT_TYPE_TO_API   = { income: 'Income', expense: 'Expense' };
 export const CAT_TYPE_FROM_API = { Income: 'income', Expense: 'expense' };
@@ -33,7 +31,7 @@ export function normalizeAccount(a) {
     bank:      a.bank,
     agency:    a.agency || '',
     number:    a.number || '',
-    balance:   parseMoneyAmount(a.balance ?? a.Balance),
+    balance:   parseMoneyAmount(a.balance ?? a.Balance ?? 0),
     color:     BANK_COLORS[a.bank] || '#2dd4bf',
     type:      'checking',
     isActive:  a.isActive !== false,
@@ -74,7 +72,6 @@ export function normalizeTransaction(t) {
     amount:         t.amount           ?? t.Amount           ?? 0,
     date:           dateStr,
     type:           isTransfer ? 'transfer' : (TYPE_FROM_API[t.type ?? t.Type] || 'expense'),
-    status:         STATUS_FROM_API[t.status ?? t.Status] || 'pending',
     recurrence:     FREQ_FROM_API[t.frequency ?? t.Frequency] || 'variable',
     categoryId:     t.categoryId           ?? t.CategoryId           ?? '',
     memberId:       t.attributionProfileId  ?? t.AttributionProfileId ?? '',
