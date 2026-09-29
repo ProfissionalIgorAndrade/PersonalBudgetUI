@@ -41,7 +41,10 @@ export default function SavingsMovements({ movements, boxNameOf, limit = 8 }) {
                   <div style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {isIn ? 'Depósito' : 'Resgate'} · {boxNameOf(m.accountId)}
                   </div>
-                  <div className="txxs tmuted">{dm(m.date)}</div>
+                  <div className="txxs tmuted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {dm(m.date)}
+                    {m.notes ? <> · {m.notes}</> : null}
+                  </div>
                 </div>
               </div>
               <span style={{ fontSize: 12, fontWeight: 700, flexShrink: 0, color: isIn ? 'var(--green)' : 'var(--red)' }}>
