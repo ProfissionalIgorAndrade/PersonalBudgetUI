@@ -85,7 +85,7 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
     const acc = {};
     for (const key of trendKeys) {
       for (const t of transactions) {
-        if (t.type !== 'expense' || t.status === 'cancelled') continue;
+        if (t.type !== 'expense') continue;
         if (!txBelongsToMonth(t, key)) continue;
         acc[t.categoryId] = acc[t.categoryId] || {};
         acc[t.categoryId][key] = (acc[t.categoryId][key] || 0) + Number(t.amount || 0);
@@ -111,7 +111,7 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
   const mOut     = months6.map(m => transactions.filter(t => txBelongsToMonth(t, m) && t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0));
 
   const recent       = [...transactions].sort((a, b) => b.date?.localeCompare(a.date)).slice(0, 6);
-  const pendingFixed = transactions.filter(t => t.recurrence === 'fixed' && t.status === 'pending').slice(0, 4);
+  const pendingFixed = transactions.filter(t => t.recurrence === 'fixed').slice(0, 4);
 
   const faturasData  = (cards || []).map(card => {
     const spent = statementNet(transactions.filter(t => t.cardId === card.id && txBelongsToMonth(t, month)));

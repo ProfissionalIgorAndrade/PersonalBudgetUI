@@ -47,10 +47,6 @@ export default function SavingsView({ accounts = [], members = [], movements = [
     return acc ? accountLabel(acc, members) : null;
   };
 
-  // "Disponível para guardar" é o saldo das contas de origem. Ele hoje lê zero,
-  // porque o saldo acumulado deixou de ser mantido — o número é honesto, e a
-  // linha existe porque faz parte do layout pedido.
-  const availableToSave = checking.reduce((s2, a) => s2 + Number(a.balance || 0), 0);
   const thisYear = String(new Date().getFullYear());
   const savedThisYear = netOf(moves.filter(m => String(m.date).slice(0, 4) === thisYear));
 
@@ -87,7 +83,6 @@ export default function SavingsView({ accounts = [], members = [], movements = [
 
         <div className="savings-col">
           <SummaryCard
-            availableToSave={availableToSave}
             boxCount={boxes.length}
             savedThisYear={savedThisYear}
             hasGoal={goalTotal > 0}
