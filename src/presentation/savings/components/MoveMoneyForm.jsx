@@ -44,6 +44,22 @@ export default function MoveMoneyForm({ f, onChange, onSave, onClose }) {
           </p>
         </div>
 
+        <div className="form-group">
+          <label className="form-label">Motivo</label>
+          <input
+            className="form-input"
+            maxLength={500}
+            placeholder={saving ? 'Ex: sobra do mês, 13º' : 'Ex: conserto do carro'}
+            value={f.reason || ''}
+            onChange={e => set('reason', e.target.value)}
+          />
+          {/* Opcional de propósito: exigir justificativa em todo movimento faria
+              o usuário inventar texto para poder salvar. */}
+          <p className="txxs tmuted" style={{ marginTop: 6 }}>
+            Opcional. Se preenchido, aparece no extrato.
+          </p>
+        </div>
+
         <div className="flex jce gap2" style={{ gap: 8, marginTop: 8 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
           <button type="submit" className="btn btn-primary" disabled={!canSave}>

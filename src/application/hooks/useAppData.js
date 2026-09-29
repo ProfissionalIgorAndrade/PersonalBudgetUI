@@ -221,13 +221,16 @@ export function useAppData(notify) {
      * trocados. Reusa o fluxo de transferência que já existe, então o valor
      * sai do disponível sem virar despesa e o movimento fica no histórico.
      */
-    onMoveSavings: async ({ box, direction, amount }) => {
+    onMoveSavings: async ({ box, direction, amount, reason }) => {
       if (direction === 'in') {
-        await accountRepo.depositToSavingsBox(box.id, Number(amount));
+        await accountRepo.depositToSavingsBox(box.id, Number(amount), reason || null);
       } else {
-        await accountRepo.withdrawFromSavingsBox(box.id, Number(amount));
+        await accountRepo.withdrawFromSavingsBox(box.id, Number(amount), reason || null);
       }
       await loadAcc();
+      // O movimento é um lançamento: sem recarregar, o extrato não mostra o
+      // que acabou de acontecer.
+      await loadTx();
     },
 
     onCreateSavingsBox: async (parentAccountId, name) => {

@@ -28,12 +28,12 @@ export const renameSavingsBox = (accountId, name) =>
   http.patch(`/api/accounts/savings-boxes/${accountId}`, { name });
 
 /** Deposita um valor numa caixinha. */
-export const depositToSavingsBox = (accountId, amount) =>
-  http.post(`/api/accounts/savings-boxes/${accountId}/deposit`, { amount });
+export const depositToSavingsBox = (accountId, amount, reason) =>
+  http.post(`/api/accounts/savings-boxes/${accountId}/deposit`, { amount, reason });
 
 /** Resgata um valor de uma caixinha. */
-export const withdrawFromSavingsBox = (accountId, amount) =>
-  http.post(`/api/accounts/savings-boxes/${accountId}/withdraw`, { amount });
+export const withdrawFromSavingsBox = (accountId, amount, reason) =>
+  http.post(`/api/accounts/savings-boxes/${accountId}/withdraw`, { amount, reason });
 
 /**
  * Define ou remove a meta de uma caixinha. Null remove.
