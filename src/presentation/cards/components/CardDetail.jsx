@@ -188,13 +188,10 @@ export default function CardDetail({
 
   // Estorno subtrai em vez de ser ignorado — ver statementNet.
   const total   = statementNet(selTx);
-  const paid    = statementNet(selTx.filter(t => t.status === 'paid'));
-  const pending = statementNet(selTx.filter(t => t.status !== 'paid'));
 
   const dueDate = new Date(fatY, fatM - 1, dueDay);
   const dueFmt  = dueDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 
-  const allPaid = selTx.length > 0 && selTx.every(t => t.status === 'paid');
   const isPast  = monthStr < currentFatMonth;
 
   const [statement, setStatement] = useState({
@@ -249,9 +246,8 @@ export default function CardDetail({
     else if (apiClosed) faturaStatus = 'fechada';
     else           faturaStatus = 'aberta';
   } else {
-    if (allPaid)   faturaStatus = 'paga';
-    else if (isPast) faturaStatus = 'fechada';
-    else           faturaStatus = 'aberta';
+    if (isPast) faturaStatus = 'fechada';
+    else        faturaStatus = 'aberta';
   }
 
   const cfg = STATUS_CFG[faturaStatus];
@@ -297,14 +293,6 @@ export default function CardDetail({
         <div className="summary-box">
           <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Vencimento</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>{dueFmt}</div>
-        </div>
-        <div className="summary-box">
-          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Pago</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--green)', ...NUM }}>{statement.loading ? '—' : R$(paid)}</div>
-        </div>
-        <div className="summary-box">
-          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Pendente</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: pending > 0 ? 'var(--yellow)' : 'var(--muted)', ...NUM }}>{statement.loading ? '—' : R$(pending)}</div>
         </div>
       </div>
 

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { statementNet, statementRows } from '../billing';
 
-const ex = (amount, status = 'pending') => ({ type: 'expense', amount, status });
-const inc = (amount, status = 'pending') => ({ type: 'income', amount, status });
+const ex  = (amount) => ({ type: 'expense', amount });
+const inc = (amount) => ({ type: 'income', amount });
 
 describe('statementNet', () => {
   it('sums expenses', () => {
@@ -19,10 +19,6 @@ describe('statementNet', () => {
     expect(statementNet([ex(10), inc(30)])).toBe(-20);
   });
 
-  it('leaves cancelled rows out of both sides', () => {
-    expect(statementNet([ex(100), ex(999, 'cancelled'), inc(999, 'cancelled')])).toBe(100);
-  });
-
   it('handles an empty or malformed list without throwing', () => {
     expect(statementNet([])).toBe(0);
     expect(statementNet()).toBe(0);
@@ -31,7 +27,11 @@ describe('statementNet', () => {
 });
 
 describe('statementRows', () => {
-  it('drops cancelled rows only', () => {
-    expect(statementRows([ex(1), ex(2, 'cancelled'), inc(3)])).toHaveLength(2);
+  it('filters out null/undefined entries', () => {
+    expect(statementRows([ex(1), null, inc(3)])).toHaveLength(2);
+  });
+
+  it('returns all non-null rows', () => {
+    expect(statementRows([ex(1), ex(2), inc(3)])).toHaveLength(3);
   });
 });

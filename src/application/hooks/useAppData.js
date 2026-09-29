@@ -258,7 +258,6 @@ export function useAppData(notify) {
           bank:           acc.bank,
           agency:         acc.agency         || '',
           accountNumber:  acc.accountNumber  || '',
-          initialBalance: Number(acc.initialBalance || 0),
           memberId:       acc.memberId,
         });
         await loadAcc();

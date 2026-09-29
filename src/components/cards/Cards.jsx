@@ -98,7 +98,7 @@ export default function Cards({ cards, members, transactions, categories, accoun
   const cardSpend = id => {
     const m = curMonth();
     return transactions
-      .filter(t => t.cardId === id && t.date?.startsWith(m) && t.type === 'expense' && t.status !== 'cancelled')
+      .filter(t => t.cardId === id && t.date?.startsWith(m) && t.type === 'expense')
       .reduce((s, t) => s + Number(t.amount), 0);
   };
 

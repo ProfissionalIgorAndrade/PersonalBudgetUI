@@ -41,11 +41,10 @@ export default function CardDetail({
 
   const currentFatMonth = faturaMonths[0];
   const [selected, setSelected] = useState(faturaMonths[0]);
-  const [paying, setPaying]     = useState(false);
 
   /* ── build fatura map ────────────────────────────────────── */
   const cardTx = transactions.filter(
-    t => t.cardId === card.id && t.type === 'expense' && t.status !== 'cancelled'
+    t => t.cardId === card.id && t.type === 'expense'
   );
   const faturaMap = {};
   cardTx.forEach(t => {
@@ -55,29 +54,21 @@ export default function CardDetail({
 
   const selTx   = faturaMap[selected] || [];
   const total   = selTx.reduce((s, t) => s + Number(t.amount), 0);
-  const paid    = selTx.filter(t => t.status === 'paid').reduce((s, t) => s + Number(t.amount), 0);
-  const pending = selTx.filter(t => t.status !== 'paid').reduce((s, t) => s + Number(t.amount), 0);
 
   const [fatY, fatM] = selected.split('-').map(Number);
   const dueDate = new Date(fatY, fatM - 1, dueDay);
   const dueFmt  = dueDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 
   /* ── fatura status ───────────────────────────────────────── */
-  const allPaid = selTx.length > 0 && selTx.every(t => t.status === 'paid');
   const isPast  = selected < currentFatMonth;
 
   let faturaStatus;
-  if (allPaid) faturaStatus = 'paga';
-  else if (isFaturaClosed(selected) || isPast) faturaStatus = 'fechada';
+  if (isFaturaClosed(selected) || isPast) faturaStatus = 'fechada';
   else faturaStatus = 'aberta';
 
   const cfg = STATUS_CFG[faturaStatus];
 
-  const payAll = () => {
-    setPaying(true);
-    selTx.filter(t => t.status !== 'paid').forEach(t => onEditTx({ ...t, status: 'paid' }));
-    setTimeout(() => setPaying(false), 800);
-  };
+
 
   return (
     <div>
@@ -136,16 +127,6 @@ export default function CardDetail({
               🔒 Fechar Fatura
             </button>
           )}
-          {faturaStatus !== 'paga' && pending > 0 && (
-            <button
-              className="btn btn-primary"
-              style={{ fontSize: 12, padding: '6px 14px' }}
-              onClick={payAll}
-              disabled={paying}
-            >
-              {paying ? '⏳ Processando…' : '💳 Pagar Fatura'}
-            </button>
-          )}
         </div>
       </div>
 
@@ -158,14 +139,6 @@ export default function CardDetail({
         <div className="summary-box">
           <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Vencimento</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>{dueFmt}</div>
-        </div>
-        <div className="summary-box">
-          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Pago</div>
-          <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'Syne', color: 'var(--green)' }}>{R$(paid)}</div>
-        </div>
-        <div className="summary-box">
-          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Pendente</div>
-          <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'Syne', color: pending > 0 ? 'var(--yellow)' : 'var(--muted)' }}>{R$(pending)}</div>
         </div>
       </div>
 

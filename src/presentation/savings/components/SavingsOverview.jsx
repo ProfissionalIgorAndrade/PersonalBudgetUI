@@ -48,8 +48,8 @@ export function TotalCard({ total, towardGoal, goalTotal, monthNet }) {
   );
 }
 
-/** Resumo: disponível nas contas de origem, caixinhas ativas e total do ano. */
-export function SummaryCard({ availableToSave, boxCount, savedThisYear, hasGoal }) {
+/** Resumo: caixinhas ativas e total do ano. */
+export function SummaryCard({ boxCount, savedThisYear, hasGoal }) {
   const row = (label, value) => (
     <div className="flex jcb aic" style={{ padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
       <span style={{ fontSize: 12 }}>{label}</span>
@@ -60,7 +60,6 @@ export function SummaryCard({ availableToSave, boxCount, savedThisYear, hasGoal 
   return (
     <div className="card">
       <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 6px' }}>Resumo</h3>
-      {row('Disponível para guardar', R$(availableToSave))}
       {row('Caixinhas ativas', boxCount)}
       {row('Guardado este ano', R$(savedThisYear))}
 

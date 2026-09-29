@@ -1,6 +1,5 @@
 import React from 'react';
 import { BANK_LABELS } from '../../../application/mappers/index';
-import CurrencyInput from '../../shared/components/CurrencyInput';
 import Modal from '../../shared/components/Modal';
 
 const BANKS = Object.entries(BANK_LABELS).map(([k, v]) => ({ value: k, label: v }));
@@ -48,13 +47,7 @@ export default function AccountForm({ f, onChange, onSave, onClose, members }) {
           </span>
         )}
       </div>
-      {!f.id && (
-        <div className="form-group">
-          <label className="form-label">Saldo Inicial (R$)</label>
-          <CurrencyInput value={f.initialBalance || ''} onChange={v => set('initialBalance', v)} />
-        </div>
-      )}
-      <div className="flex jce gap2" style={{ gap: 8, marginTop: 8 }}>
+<div className="flex jce gap2" style={{ gap: 8, marginTop: 8 }}>
         <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
         <button className="btn btn-primary" onClick={onSave} disabled={!canSave}>💾 Salvar</button>
       </div>

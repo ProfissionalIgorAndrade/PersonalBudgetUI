@@ -82,10 +82,10 @@ export const statementLabel = (t) => {
  */
 export const statementNet = (rows = []) =>
   rows.reduce((sum, t) => {
-    if (!t || t.status === 'cancelled') return sum;
+    if (!t) return sum;
     const amount = Number(t.amount) || 0;
     return t.type === 'income' ? sum - amount : sum + amount;
   }, 0);
 
-/** Lançamentos que compõem a fatura: tudo menos os cancelados. */
-export const statementRows = (rows = []) => rows.filter(t => t && t.status !== 'cancelled');
+/** Lançamentos que compõem a fatura. */
+export const statementRows = (rows = []) => rows.filter(t => !!t);

@@ -3,12 +3,6 @@ import { R$, fdate } from '../../utils/format';
 import Modal from '../ui/Modal';
 import TxForm from './TxForm';
 
-/* ── badges ─────────────────────────────────────────────────── */
-const STATUS = {
-  paid:      <span className="badge badge-green">✓ Pago</span>,
-  pending:   <span className="badge badge-yellow">⏳ Pendente</span>,
-  cancelled: <span className="badge badge-muted">✕ Cancelado</span>,
-};
 
 const REC = {
   fixed:       <span className="badge badge-teal">Fixo</span>,
@@ -69,7 +63,6 @@ export default function TxTable({
       if (sortCol === 'amount')     return Number(t.amount);
       if (sortCol === 'cat')        return categories.find(c => c.id === t.categoryId)?.name?.toLowerCase() || '';
       if (sortCol === 'member')     return members.find(m => m.id === t.memberId)?.name?.toLowerCase() || '';
-      if (sortCol === 'status')     return t.status || '';
       if (sortCol === 'recurrence') return t.recurrence || '';
       return '';
     };
@@ -88,10 +81,9 @@ export default function TxTable({
   /* ── CSV export ──────────────────────────────────────────── */
   function exportCSV() {
     const hdrs = ['#', 'Data', 'Descrição', 'Tipo', 'Categoria', 'Membro',
-                  'Conta', 'Cartão', 'Recorrência', 'Status', 'Valor (R$)', 'Observações'];
+                  'Conta', 'Cartão', 'Recorrência', 'Valor (R$)', 'Observações'];
     const TYPE = { income: 'Receita', expense: 'Despesa', transfer: 'Transferência' };
     const REC_LBL = { fixed: 'Fixo', variable: 'Variável', installment: 'Parcelado', split: 'Dividido', none: 'Avulso' };
-    const ST_LBL  = { paid: 'Pago', pending: 'Pendente', cancelled: 'Cancelado' };
 
     const csvRows = sorted.map((t, i) => [
       i + 1,
@@ -103,7 +95,6 @@ export default function TxTable({
       accounts.find(a => a.id === t.accountId)?.name || '',
       cards.find(c => c.id === t.cardId)?.name || '',
       REC_LBL[t.recurrence] || '',
-      ST_LBL[t.status] || '',
       (t.type === 'income' ? '+' : '-') + Number(t.amount).toFixed(2).replace('.', ','),
       `"${(t.notes || '').replace(/"/g, '""')}"`,
     ].join(';'));
@@ -151,7 +142,6 @@ export default function TxTable({
               {show('account')    && <th>Conta</th>}
               {show('card')       && <th>Cartão</th>}
               {show('recurrence') && <Th col="recurrence">Recorrência</Th>}
-              <Th col="status">Status</Th>
               <Th col="amount" style={{ textAlign: 'right' }}>Valor</Th>
               <th className="csv-col-act"></th>
             </tr>
@@ -218,9 +208,6 @@ export default function TxTable({
                   {show('recurrence') && (
                     <td>{REC[t.recurrence] ?? REC.none}</td>
                   )}
-
-                  {/* status */}
-                  <td>{STATUS[t.status] ?? <span className="badge badge-muted">{t.status}</span>}</td>
 
                   {/* valor */}
                   <td className="csv-col-val" style={{

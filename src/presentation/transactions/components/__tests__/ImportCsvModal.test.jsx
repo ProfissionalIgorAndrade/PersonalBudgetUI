@@ -115,7 +115,6 @@ describe('progress reporting', () => {
       expect(p.cardId).toBe('cc1');
       expect(p.statementMonth).toBe(10);
       expect(p.recurrence).toBe('variable');
-      expect(p.status).toBe('pending');
     }
     // Dates stay per-row; only the statement is shared.
     expect(seen.map(p => p.date)).toEqual(['2026-07-01', '2026-07-02', '2026-07-03']);

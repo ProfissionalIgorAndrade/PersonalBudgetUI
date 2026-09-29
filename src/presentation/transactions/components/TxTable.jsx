@@ -14,9 +14,6 @@ const TYPE_BADGE = {
   transfer: <span className="badge badge-muted">Transferência</span>,
 };
 
-function allowsEditDeleteActions(t) {
-  return t?.status === 'pending';
-}
 
 const REC = {
   variable:    <span className="badge badge-blue">Variável</span>,
@@ -73,7 +70,6 @@ export default function TxTable({
       if (sortCol === 'amount')     return Number(t.amount);
       if (sortCol === 'cat')        return categories.find(c => c.id === t.categoryId)?.name?.toLowerCase() || '';
       if (sortCol === 'member')     return members.find(m => m.id === t.memberId)?.name?.toLowerCase() || '';
-      if (sortCol === 'status')     return t.status || '';
       if (sortCol === 'recurrence') return t.recurrence || '';
       if (sortCol === 'type')       return t.type || '';
       return '';
@@ -85,8 +81,7 @@ export default function TxTable({
     });
   }, [rows, sortCol, sortDir, categories, members]);
 
-  // Exclude cancelled from summary totals
-  const active     = rows.filter(t => t.status !== 'cancelled');
+  const active     = rows;
   const totalIn    = active.filter(t => t.type === 'income').reduce((s, t)  => s + Number(t.amount), 0);
   const totalOut   = active.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const balance    = totalIn - totalOut;
@@ -263,10 +258,10 @@ export default function TxTable({
                   </td>
                   <td className="csv-col-act">
                     <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
-                      {onEdit && allowsEditDeleteActions(t) && (
+                      {onEdit && (
                         <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setEditingTx(t)} title="Editar">✏️</button>
                       )}
-                      {onDelete && allowsEditDeleteActions(t) && (
+                      {onDelete && (
                         <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setConfirmDel(t)} title="Excluir">🗑️</button>
                       )}
                       <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setDetailTx(t)} title="Detalhes">🔍</button>

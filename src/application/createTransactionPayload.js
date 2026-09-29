@@ -3,7 +3,6 @@
  * (Enums inlined to avoid a circular import with application/mappers.)
  */
 const TYPE_TO_API = { income: 'Income', expense: 'Expense' };
-const STATUS_TO_API = { paid: 'Completed', pending: 'Pending', cancelled: 'Cancelled' };
 
 const ROUND2 = n => Math.round(Number(n) * 100) / 100;
 
@@ -181,8 +180,6 @@ export function buildCreateTransactionPayload(f) {
       toAccountId: f.destinationAccountId || null,
       accountId: null,
       creditCardId: null,
-      autoComplete: false,
-      status: null,
       observations,
     };
   }
@@ -214,15 +211,11 @@ export function buildCreateTransactionPayload(f) {
       body.installmentCount = n;
       body.amount = per;
       body.totalAmount = ROUND2(per * n);
-      body.autoComplete = false;
-      body.status = null;
       return body;
     }
 
     body.frequency = 'Variable';
     body.amount = ROUND2(num(f.amount));
-    body.autoComplete = false;
-    body.status = null;
     return body;
   }
 
@@ -242,17 +235,11 @@ export function buildCreateTransactionPayload(f) {
     body.amount = ROUND2(num(f.amount));
     const exp = (f.expirationDate ?? '').trim();
     if (exp) body.expirationDate = exp;
-    body.autoComplete = false;
-    body.status = null;
     return body;
   }
 
   body.frequency = 'Variable';
   body.amount = ROUND2(num(f.amount));
-  const paid = f.status === 'paid';
-  body.autoComplete = paid;
-  body.status = paid ? null : (STATUS_TO_API[f.status] || 'Pending');
-
   return body;
 }
 

@@ -10,5 +10,5 @@ export const updateTransaction = (id, body)    => http.patch(`/api/transactions/
 export const deleteTransaction = (id)          => http.delete(`/api/transactions/${id}`);
 export const deleteRecurringTransaction = (id, recurrenceDeleteMode) =>
   http.delete(`/api/transactions/${id}/recurring`, { recurrenceDeleteMode });
-export const updateStatus      = (id, status)  => http.patch(`/api/transactions/${id}/status`, { status });
+
 export const batchDelete       = (ids)         => http.delete('/api/transactions/batch', { transactionIds: ids });

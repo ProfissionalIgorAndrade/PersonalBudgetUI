@@ -76,12 +76,12 @@ export default function Dashboard({ data, setView, activeMonth, setActiveMonth }
 
   // recent & pending
   const recent       = [...transactions].sort((a, b) => b.date?.localeCompare(a.date)).slice(0, 6);
-  const pendingFixed = transactions.filter(t => t.recurrence === 'fixed' && t.status === 'pending').slice(0, 4);
+  const pendingFixed = transactions.filter(t => t.recurrence === 'fixed').slice(0, 4);
 
   // faturas do mês
   const faturasData   = (cards || []).map(card => {
     const spent = transactions
-      .filter(t => t.cardId === card.id && t.date?.startsWith(month) && t.type === 'expense' && t.status !== 'cancelled')
+      .filter(t => t.cardId === card.id && t.date?.startsWith(month) && t.type === 'expense')
       .reduce((s, t) => s + Number(t.amount), 0);
     return { ...card, spent };
   }).filter(c => c.spent > 0);

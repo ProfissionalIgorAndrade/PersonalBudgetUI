@@ -83,7 +83,7 @@ export default function Accounts({ accounts, members, transactions, categories, 
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
 
   const openNew = () => {
-    setF({ bank: 'Nubank', agency: '', accountNumber: '', initialBalance: '' });
+    setF({ bank: 'Nubank', agency: '', accountNumber: '' });
     setModal('form');
   };
   const save = () => {
@@ -91,13 +91,7 @@ export default function Accounts({ accounts, members, transactions, categories, 
     setModal(null);
   };
 
-  const calcBalance = acc => {
-    const base = Number(acc.balance) || 0;
-    const delta = transactions
-      .filter(t => t.accountId === acc.id && t.status === 'paid')
-      .reduce((s, t) => s + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0);
-    return base + delta;
-  };
+  const calcBalance = acc => Number(acc.balance) || 0;
 
   const totalBalance = accounts.reduce((s, a) => s + calcBalance(a), 0);
   const select = a => setSelectedAccount(sel => sel?.id === a.id ? null : a);
@@ -199,13 +193,7 @@ export default function Accounts({ accounts, members, transactions, categories, 
               <input className="form-input" value={f.accountNumber} onChange={e => set('accountNumber', e.target.value)} placeholder="12345-6" />
             </div>
           </div>
-          {!f.id && (
-            <div className="form-group">
-              <label className="form-label">Saldo Inicial (R$)</label>
-              <CurrencyInput value={f.initialBalance} onChange={v => set('initialBalance', v)} />
-            </div>
-          )}
-          <div className="flex jce gap2" style={{ gap: 8, marginTop: 8 }}>
+<div className="flex jce gap2" style={{ gap: 8, marginTop: 8 }}>
             <button className="btn btn-secondary" onClick={() => setModal(null)}>Cancelar</button>
             <button className="btn btn-primary" onClick={save}>💾 Salvar</button>
           </div>
