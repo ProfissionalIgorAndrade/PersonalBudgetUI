@@ -20,7 +20,7 @@ export default function MoveMoneyForm({ f, onChange, onSave, onClose }) {
   // A versão anterior travava pelo saldo da conta de origem, herdado de
   // quando guardar era uma transferência. Com o saldo da conta em zero, isso
   // barrava qualquer depósito.
-  const canSave = amount > 0;
+  const canSave = amount > 0 && (f.reason || '').trim().length > 0;
 
   return (
     <Modal title={saving ? 'Guardar dinheiro' : 'Resgatar dinheiro'} onClose={onClose} confirmOnOverlay>
@@ -45,7 +45,7 @@ export default function MoveMoneyForm({ f, onChange, onSave, onClose }) {
         </div>
 
         <div className="form-group">
-          <label className="form-label">Motivo</label>
+          <label className="form-label">Motivo *</label>
           <input
             className="form-input"
             maxLength={500}
@@ -53,10 +53,8 @@ export default function MoveMoneyForm({ f, onChange, onSave, onClose }) {
             value={f.reason || ''}
             onChange={e => set('reason', e.target.value)}
           />
-          {/* Opcional de propósito: exigir justificativa em todo movimento faria
-              o usuário inventar texto para poder salvar. */}
           <p className="txxs tmuted" style={{ marginTop: 6 }}>
-            Opcional. Se preenchido, aparece no extrato.
+            Aparece no extrato.
           </p>
         </div>
 
