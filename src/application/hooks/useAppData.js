@@ -12,6 +12,9 @@ import {
 } from '../mappers';
 import { describeCreateTransactionResponse } from '../createTransactionPayload';
 
+const RECURRENCE_MODE      = { 1: 'OnlyThis', 2: 'ThisAndFuture', 3: 'All' };
+const INSTALLMENT_EDIT_MODE = { 1: 'All', 2: 'ThisAndFuture' };
+
 export function useAppData(notify) {
   const [transactionsReloadGeneration, bumpTransactionsReload] = useReducer(x => x + 1, 0);
 
@@ -145,7 +148,7 @@ export function useAppData(notify) {
             await txRepo.updateInstallmentStatement(tx.id, {
               statementMonth: tx.statementMonth,
               statementYear:  tx.statementYear,
-              editMode:       installmentEditMode,
+              editMode:       INSTALLMENT_EDIT_MODE[installmentEditMode] ?? 'All',
               // Without these the endpoint moved the statement and discarded
               // everything else the user had edited, silently.
               categoryId:           tx.categoryId || null,
@@ -163,7 +166,7 @@ export function useAppData(notify) {
             description:          tx.description || undefined,
             categoryId:           tx.categoryId  || undefined,
             attributionProfileId: tx.memberId    || undefined,
-            recurrenceEditMode:   editMode,
+            recurrenceEditMode:   RECURRENCE_MODE[editMode] ?? 'OnlyThis',
             observations:         tx.notes ?? null,
           });
         } else {
@@ -189,7 +192,7 @@ export function useAppData(notify) {
       try {
         const isRecurring = recurrence === 'fixed' || recurrence === 'installment';
         const r = isRecurring
-          ? await txRepo.deleteRecurringTransaction(id, recurrenceDeleteMode ?? 1)
+          ? await txRepo.deleteRecurringTransaction(id, RECURRENCE_MODE[recurrenceDeleteMode ?? 1] ?? 'OnlyThis')
           : await txRepo.deleteTransaction(id);
         await loadTx();
         if (isRecurring) {
