@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { checkingOnly } from '../../application/mappers/index';
 import { R$ } from '../../core/utils/format';
-import { parseMoneyAmount } from '../../core/utils/money';
+
 import { ACC_TYPES } from '../../core/constants/index';
 import MonthSelector from '../shared/components/MonthSelector';
 import { txBelongsToMonth } from '../../core/utils/billing';
@@ -29,7 +29,7 @@ export default function AccountsView({
   }, [accounts, selectedId]);
 
   const openNew = () => {
-    setF({ bank: 'Nubank', agency: '', accountNumber: '', initialBalance: '' });
+    setF({ bank: 'Nubank', agency: '', accountNumber: '' });
     setShowForm(true);
   };
 
@@ -38,8 +38,11 @@ export default function AccountsView({
     setShowForm(false);
   };
 
-  /** Saldo exibido no cartão / cabeçalho: valor da conta retornado pela API (não calculado pelo período local). */
-  const accountBalance = acc => parseMoneyAmount(acc?.balance ?? acc?.Balance);
+  /** Saldo do mês selecionado: receitas − despesas do período. */
+  const accountBalance = acc => {
+    const { income, expense } = monthFlow(acc?.id);
+    return income - expense;
+  };
 
   /**
    * Movimento da conta no mês em exibição, para o card dar uma prévia sem
@@ -51,7 +54,6 @@ export default function AccountsView({
     const rows = (transactions || []).filter(t =>
       t.accountId === accountId &&
       !t.cardId &&
-      t.status !== 'cancelled' &&
       txBelongsToMonth(t, activeMonth));
     const sum = (type) => rows
       .filter(t => t.type === type)
@@ -74,8 +76,12 @@ export default function AccountsView({
   }, [accounts, members, sidebarSearch]);
 
   const totalBalance = useMemo(() =>
-    checkingOnly(accounts).reduce((sum, a) => sum + parseMoneyAmount(a?.balance ?? a?.Balance), 0),
-  [accounts]);
+    checkingOnly(accounts).reduce((sum, a) => {
+      const { income, expense } = monthFlow(a.id);
+      return sum + (income - expense);
+    }, 0),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [accounts, transactions, activeMonth]);
 
   const confirmDeleteAccount = () => {
     if (!deleteTarget) return;
