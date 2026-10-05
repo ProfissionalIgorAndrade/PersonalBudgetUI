@@ -2375,3 +2375,79 @@ canvas { max-height: 220px; }
   .hl-card { padding: 16px; }
   .hl-rank-row { grid-template-columns: minmax(80px, 36%) 1fr auto; }
 }
+
+/* ── Saúde Financeira: extras (catálogo opcional) ───────────────────
+   Paleta categórica: slots 1-6 da paleta documentada do dataviz, validada
+   com scripts/validate_palette.js nos dois temas (adjacente: ΔE CVD 9.1 claro
+   / 8.4 escuro, visão normal 19.6 / 19.3). No claro, magenta, amarelo e aqua
+   ficam abaixo de 3:1 contra a superfície: o alívio é a legenda com nome e
+   valor e a visão em tabela de cada gráfico. "Outras" usa o cinza. */
+.hl-root {
+  --hl-cat-1: #3987e5; --hl-cat-2: #d95926; --hl-cat-3: #199e70;
+  --hl-cat-4: #c98500; --hl-cat-5: #d55181; --hl-cat-6: #008300;
+}
+[data-theme="light"] .hl-root {
+  --hl-cat-1: #2a78d6; --hl-cat-2: #eb6834; --hl-cat-3: #1baf7a;
+  --hl-cat-4: #eda100; --hl-cat-5: #e87ba4; --hl-cat-6: #008300;
+}
+.hl-cat-1 { background: var(--hl-cat-1); } .hl-cat-2 { background: var(--hl-cat-2); }
+.hl-cat-3 { background: var(--hl-cat-3); } .hl-cat-4 { background: var(--hl-cat-4); }
+.hl-cat-5 { background: var(--hl-cat-5); } .hl-cat-6 { background: var(--hl-cat-6); }
+.hl-cat-other { background: var(--muted); opacity: .8; }
+.hl-sw-a { background: var(--hl-cat-1); } .hl-sw-b { background: var(--hl-cat-2); }
+.hl-bar-a { fill: var(--hl-cat-1); } .hl-bar-b { fill: var(--hl-cat-2); }
+.hl-sw-line { width: 16px; height: 3px; border-radius: 2px; background: var(--primary); }
+.hl-sw-dash { width: 16px; height: 0; border-top: 2px dashed var(--muted); border-radius: 0; background: transparent; }
+.hl-line-expected { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 5 4; stroke-linecap: round; }
+
+.hl-header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hl-extras { display: flex; flex-direction: column; gap: 16px; margin-top: 8px; }
+.hl-extras-title { font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .6px; }
+.hl-extras-hint { font-size: 12.5px; color: var(--text-2); }
+.hl-extras-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.hl-extras-grid > .hl-wide { grid-column: 1 / -1; }
+.hl-extras-grid > * { min-width: 0; }
+
+.hl-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hl-stack-tall { height: 22px; }
+.hl-table tfoot th, .hl-table tfoot td { font-weight: 700; border-top: 1px solid var(--border-hi); border-bottom: 0; }
+.hl-table tfoot th { font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--text); }
+.hl-table-scroll { max-height: 260px; overflow-y: auto; }
+
+.hl-pace-head { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.hl-pace-verdict { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--text-2); margin-bottom: 14px; }
+
+.hl-trend { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.hl-trend-row { display: grid; grid-template-columns: minmax(90px, 30%) auto 1fr; align-items: center; gap: 12px; padding: 6px; border-radius: 8px; font-size: 13px; }
+.hl-trend-row:hover { background: var(--surface2); }
+.hl-trend-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hl-trend-values { display: flex; flex-direction: column; text-align: right; font-size: 11.5px; color: var(--text-2); }
+.hl-trend-values strong { font-size: 13px; color: var(--text); }
+
+.hl-invoices, .hl-rule { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.hl-invoice, .hl-rule-row { display: flex; flex-direction: column; gap: 6px; padding: 4px 6px; border-radius: 8px; }
+.hl-meter-wrap { position: relative; }
+.hl-meter-target { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--text); border-radius: 1px; }
+.hl-review-groups { margin-top: 14px; }
+
+/* Personalizador */
+.hl-custom { list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 52vh; overflow-y: auto; margin-bottom: 14px; }
+.hl-custom-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); }
+.hl-custom-row.is-on { border-color: var(--primary); }
+.hl-custom-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+.hl-custom-text { display: flex; flex-direction: column; gap: 2px; cursor: pointer; min-width: 0; }
+.hl-custom-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.hl-custom-desc { font-size: 12px; color: var(--text-2); }
+.hl-custom-move { display: inline-flex; gap: 4px; }
+.hl-custom-move .btn-icon:disabled { opacity: .35; cursor: default; }
+.hl-custom-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.hl-custom-row input:focus-visible, .hl-custom-move .btn-icon:focus-visible,
+.hl-trend-row:focus-visible, .hl-invoice:focus-visible, .hl-rule-row:focus-visible {
+  outline: 2px solid var(--hl-focus); outline-offset: 2px;
+}
+
+@media (max-width: 780px) {
+  .hl-extras-grid, .hl-pace-head { grid-template-columns: minmax(0, 1fr); }
+  .hl-trend-row { grid-template-columns: 1fr auto; }
+  .hl-trend-values { grid-column: 1 / -1; text-align: left; flex-direction: row; gap: 8px; align-items: baseline; }
+}
