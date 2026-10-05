@@ -2126,3 +2126,78 @@ canvas { max-height: 220px; }
 .btn-icon.review-off:hover { color: var(--red);   background: rgba(248,113,113,.12); border-color: var(--red); }
 [data-theme="light"] .btn-icon.review-on  { color: var(--green); border-color: var(--green); }
 [data-theme="light"] .btn-icon.review-off { color: var(--red);   border-color: var(--red); }
+
+/* ═══════════════════════════════════════════════════════════════
+   CATEGORIAS
+   A cor da categoria é só acento (--cat); fundo, borda e texto vêm
+   dos tokens do tema, então valem igual no claro e no escuro.
+═══════════════════════════════════════════════════════════════ */
+.cat-section { margin-bottom: 16px; }
+.cat-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 16px;
+}
+.cat-section-title {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; font-weight: 700; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--text-2);
+}
+.cat-grid {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.cat-empty {
+  grid-column: 1 / -1; padding: 18px; text-align: center;
+  font-size: 13px; color: var(--muted);
+  border: 1px dashed var(--border); border-radius: 12px;
+}
+.cat-tile {
+  --cat: var(--primary);
+  display: flex; align-items: center; gap: 12px;
+  min-width: 0; padding: 10px 12px; border-radius: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  transition: border-color var(--t), transform var(--t), box-shadow var(--t);
+}
+.cat-tile:hover,
+.cat-tile:focus-within {
+  border-color: var(--border-hi); transform: translateY(-1px); box-shadow: var(--shadow-sm);
+}
+.cat-chip {
+  width: 38px; height: 38px; flex-shrink: 0; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+  background: color-mix(in srgb, var(--cat) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cat) 40%, transparent);
+}
+.cat-name {
+  flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cat-actions { display: flex; gap: 4px; flex-shrink: 0; opacity: 0; transition: opacity var(--t-fast); }
+.cat-tile:hover .cat-actions,
+.cat-tile:focus-within .cat-actions { opacity: 1; }
+@media (hover: none) { .cat-actions { opacity: 1; } }
+[data-theme="light"] .cat-tile { background: var(--surface); }
+.cat-preview { margin-bottom: 18px; pointer-events: none; }
+
+/* Controle segmentado (Despesa / Receita) e grade de ícones do formulário */
+.seg {
+  display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.seg button {
+  border: 0; background: transparent; color: var(--text-2); cursor: pointer;
+  padding: 7px 14px; border-radius: 9px; font: inherit; font-size: 13px; font-weight: 600;
+  transition: all var(--t-fast);
+}
+.seg button:hover { color: var(--text); }
+.seg button[aria-pressed="true"] {
+  background: var(--primary-dim); color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.icon-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.icon-opt {
+  font-size: 22px; line-height: 1; padding: 5px; border-radius: 8px; cursor: pointer;
+  background: var(--surface2); border: 2px solid transparent; transition: all var(--t-fast);
+}
+.icon-opt:hover { border-color: var(--border-hi); }
+.icon-opt[aria-pressed="true"] { background: var(--primary-dim); border-color: var(--primary); }
