@@ -117,7 +117,9 @@ export function evaluateHealth(transactions, accounts, ym) {
 
   const scored = pillars.filter(p => p.score !== null);
   const weightSum = scored.reduce((s, p) => s + p.weight, 0);
-  if (weightSum === 0) {
+  // Mês vazio e sem histórico: "sem caixinhas" sozinho não é um veredito.
+  const noActivity = summary.income === 0 && summary.expense === 0 && avgExpense === null;
+  if (weightSum === 0 || noActivity) {
     return {
       score: null, level: 'unknown', label: 'Sem dados suficientes', capped: false,
       headline: 'Sem dados suficientes neste mês para calcular a saúde financeira.', pillars, summary,

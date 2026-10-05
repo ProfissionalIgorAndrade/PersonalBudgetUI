@@ -97,8 +97,9 @@ describe('evaluateHealth', () => {
 
   it('no data at all: explicit empty verdict', () => {
     const r = evaluateHealth([], [], '2026-06');
-    // no boxes is a concrete 0 for reserve, so the score exists but only on that pillar
-    expect(r.pillars.find(p => p.id === 'reserve').score).toBe(0);
+    // "no boxes" alone is not a verdict: an empty month with no history stays unknown
+    expect(r.score).toBeNull();
+    expect(r.level).toBe('unknown');
     const empty = evaluateHealth([], [box({ balance: 100 })], '2026-06');
     expect(empty.score).toBeNull();
     expect(empty.level).toBe('unknown');

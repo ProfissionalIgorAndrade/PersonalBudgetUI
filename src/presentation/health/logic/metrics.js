@@ -35,7 +35,6 @@ export function monthRange(ym, count) {
 
 const isExpense = (t) => t?.type === 'expense';
 const isIncome = (t) => t?.type === 'income';
-const isCommitment = (t) => t.recurrence === 'fixed' || t.recurrence === 'installment';
 
 /** Linhas de um mês, só receita e despesa (defesa extra contra transferência/caixinha). */
 function monthRows(transactions, ym) {
