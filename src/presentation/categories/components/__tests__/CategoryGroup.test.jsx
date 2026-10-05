@@ -1,49 +1,56 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import React from 'react';
 import CategoryGroup from '../CategoryGroup';
-import { PALETTE, inkOn } from '../../../../core/constants/palette';
 
 afterEach(cleanup);
 
-const hex = (rgb) => {
-  const m = rgb.match(/\d+/g);
-  return m ? '#' + m.slice(0, 3).map(n => (+n).toString(16).padStart(2, '0')).join('') : rgb;
-};
+const tileFor = (name) => screen.getByText(name).closest('.cat-tile');
 
-const cardFor = (name) => screen.getByText(name).closest('.card-sm');
-
-const group = (cats) => (
+const group = (cats, over = {}) => (
   <CategoryGroup title="Despesas" cats={cats} type="expense"
-    onEdit={() => {}} onDelete={() => {}} onAddForType={() => {}} />
+    onEdit={() => {}} onDelete={() => {}} onAddForType={() => {}} {...over} />
 );
 
-describe('CategoryGroup colouring', () => {
-  it('paints the card background with the category colour', () => {
+describe('CategoryGroup', () => {
+  it('exposes the category colour as an accent, never as the tile background', () => {
     render(group([{ id: '1', name: 'Moradia', icon: '🏠', color: '#f87171' }]));
-    expect(hex(cardFor('Moradia').style.background)).toBe('#f87171');
+    const tile = tileFor('Moradia');
+    expect(tile.style.getPropertyValue('--cat')).toBe('#f87171');
+    expect(tile.style.background).toBe('');
+    expect(tile.style.color).toBe('');
   });
 
-  it('uses dark ink on a pale colour', () => {
-    render(group([{ id: '1', name: 'Lazer', icon: '📺', color: '#fde047' }]));
-    const card = cardFor('Lazer');
-    expect(hex(card.style.color)).toBe('#0b0f14');
-    expect(card.style.border).toContain('rgb(11, 15, 20)');
+  it('shows name, icon and the section count', () => {
+    render(group([
+      { id: '1', name: 'Moradia', icon: '🏠', color: '#f87171' },
+      { id: '2', name: 'Lazer', icon: '📺', color: '#fde047' },
+    ]));
+    expect(screen.getByText('Moradia')).toBeTruthy();
+    expect(screen.getByText('🏠')).toBeTruthy();
+    expect(screen.getByText('2')).toBeTruthy();
   });
 
-  it('uses light ink on a deep colour', () => {
-    render(group([{ id: '1', name: 'Viagens', icon: '✈️', color: '#0d9488' }]));
-    const card = cardFor('Viagens');
-    expect(hex(card.style.color)).toBe('#ffffff');
-    expect(card.style.border).toContain('rgb(255, 255, 255)');
+  it('labels the row actions and wires them to the handlers', () => {
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
+    const cat = { id: '1', name: 'Moradia', icon: '🏠', color: '#f87171' };
+    render(group([cat], { onEdit, onDelete }));
+    fireEvent.click(screen.getByLabelText('Editar Moradia'));
+    fireEvent.click(screen.getByLabelText('Excluir Moradia'));
+    expect(onEdit).toHaveBeenCalledWith(cat);
+    expect(onDelete).toHaveBeenCalledWith('1');
   });
 
-  it('border and text always agree, across the whole palette', () => {
-    for (const color of PALETTE) {
-      cleanup();
-      render(group([{ id: '1', name: 'X', icon: '📦', color }]));
-      const card = cardFor('X');
-      expect(hex(card.style.color)).toBe(inkOn(color));
-    }
+  it('add button calls onAddForType with the section type', () => {
+    const onAddForType = vi.fn();
+    render(group([], { onAddForType }));
+    fireEvent.click(screen.getByText('＋ Adicionar'));
+    expect(onAddForType).toHaveBeenCalledWith('expense');
+  });
+
+  it('shows an empty state when the section has no categories', () => {
+    render(group([]));
+    expect(screen.getByText(/Nenhuma categoria de despesas/)).toBeTruthy();
   });
 });
