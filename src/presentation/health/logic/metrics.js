@@ -37,7 +37,7 @@ const isExpense = (t) => t?.type === 'expense';
 const isIncome = (t) => t?.type === 'income';
 
 /** Linhas de um mês, só receita e despesa (defesa extra contra transferência/caixinha). */
-function monthRows(transactions, ym) {
+export function monthRows(transactions, ym) {
   return (transactions || []).filter(
     t => t && (isIncome(t) || isExpense(t)) && txBelongsToMonth(t, ym));
 }
@@ -124,7 +124,7 @@ export function stability(transactions, ym) {
 }
 
 /** Despesa por categoria num mês: { [categoryId]: total }. */
-function expenseByCategory(transactions, ym) {
+export function expenseByCategory(transactions, ym) {
   const acc = {};
   for (const t of monthRows(transactions, ym)) {
     if (!isExpense(t)) continue;
@@ -134,7 +134,7 @@ function expenseByCategory(transactions, ym) {
   return acc;
 }
 
-function categoryInfo(categories, id) {
+export function categoryInfo(categories, id) {
   const c = (categories || []).find(x => x.id === id);
   return { id, name: c?.name || 'Sem categoria', icon: c?.icon || '📦' };
 }

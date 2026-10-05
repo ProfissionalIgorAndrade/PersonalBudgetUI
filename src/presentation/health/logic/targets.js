@@ -43,3 +43,24 @@ export const WEIGHTS = {
 /** Nota mínima de cada veredito. Abaixo de ATTENTION_MIN é crítico. */
 export const HEALTHY_MIN = 75;
 export const ATTENTION_MIN = 50;
+
+/* ── Catálogo (widgets opcionais) ─────────────────────────────── */
+
+/** Regra 50/30/20 sobre a renda do mês: necessidades <= 50%, desejos <= 30%, poupança >= 20%. */
+export const RULE_NEEDS = 0.50;
+export const RULE_WANTS = 0.30;
+export const RULE_SAVINGS = 0.20;
+
+/** Uso do limite do cartão: acima de WARN é atenção, acima de CRITICAL é crítico. */
+export const CARD_USAGE_WARN = 0.30;
+export const CARD_USAGE_CRITICAL = 0.70;
+
+/** Ritmo de gasto: até a tolerância acima do esperado é atenção; além disso, crítico. */
+export const PACE_TOLERANCE = 0.15;
+
+/** Participação por categoria: quantas categorias aparecem antes de "Outras". */
+export const SHARE_TOP_N = 6;
+/** Horizonte da projeção de saldo, em meses. */
+export const PROJECTION_MONTHS = 6;
+/** Janelas oferecidas na tendência por categoria, em meses. */
+export const TREND_WINDOWS = [3, 6, 12];
