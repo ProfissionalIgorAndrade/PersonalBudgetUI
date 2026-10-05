@@ -2110,3 +2110,6 @@ canvas { max-height: 220px; }
 [data-theme="light"] .sim-insight.positive { background: rgba(22,163,74,0.06); }
 [data-theme="light"] .sim-insight.negative { background: rgba(220,38,38,0.04); }
 
+
+/* Lançamento já conferido: atenua a linha sem esconder o conteúdo */
+.csv-table tbody tr.tx-reviewed td { opacity: .6; }
