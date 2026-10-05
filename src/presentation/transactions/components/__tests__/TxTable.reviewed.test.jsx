@@ -12,42 +12,50 @@ const tx = (over = {}) => ({
   ...over,
 });
 
-describe('TxTable reviewed checkbox', () => {
-  it('renders a checkbox reflecting the reviewed flag', () => {
+describe('TxTable reviewed action', () => {
+  it('shows the green "mark" button for an unreviewed row', () => {
+    render(<TxTable rows={[tx()]} onToggleReviewed={() => {}} />);
+    const btn = screen.getByLabelText('Marcar como revisado');
+    expect(btn.getAttribute('aria-pressed')).toBe('false');
+    expect(btn.classList.contains('review-on')).toBe(true);
+  });
+
+  it('shows the red "unmark" button for a reviewed row', () => {
     render(<TxTable rows={[tx({ reviewed: true })]} onToggleReviewed={() => {}} />);
-    expect(screen.getByLabelText('Revisado').checked).toBe(true);
+    const btn = screen.getByLabelText('Desmarcar revisão');
+    expect(btn.getAttribute('aria-pressed')).toBe('true');
+    expect(btn.classList.contains('review-off')).toBe(true);
   });
 
   it('calls onToggleReviewed with the row when clicked', () => {
     const onToggleReviewed = vi.fn();
     const row = tx();
     render(<TxTable rows={[row]} onToggleReviewed={onToggleReviewed} />);
-    fireEvent.click(screen.getByLabelText('Revisado'));
+    fireEvent.click(screen.getByLabelText('Marcar como revisado'));
     expect(onToggleReviewed).toHaveBeenCalledWith(row);
   });
 
   it('stays enabled when the table is read-only (no onEdit)', () => {
     render(<TxTable rows={[tx()]} onToggleReviewed={() => {}} />);
-    expect(screen.getByLabelText('Revisado').disabled).toBe(false);
+    expect(screen.getByLabelText('Marcar como revisado').disabled).toBe(false);
   });
 
-  it('marks reviewed rows with a class', () => {
+  it('does not render the button without onToggleReviewed', () => {
+    render(<TxTable rows={[tx()]} />);
+    expect(screen.queryByLabelText('Marcar como revisado')).toBeNull();
+    expect(screen.queryByLabelText('Desmarcar revisão')).toBeNull();
+  });
+
+  it('marks reviewed rows with a class and a text badge', () => {
     const { container } = render(<TxTable rows={[tx({ reviewed: true })]} />);
     expect(container.querySelector('tbody tr.tx-reviewed')).not.toBeNull();
+    expect(screen.getByText('✓ revisado')).toBeTruthy();
   });
 
-  it('can be hidden and keeps header and body aligned', () => {
-    const { container, rerender } = render(<TxTable rows={[tx()]} />);
-    const count = () => [
-      container.querySelectorAll('thead th').length,
-      container.querySelectorAll('tbody tr')[0].querySelectorAll('td').length,
-    ];
-    const [h1, b1] = count();
-    expect(h1).toBe(b1);
-    rerender(<TxTable rows={[tx()]} hideCols={['reviewed']} />);
-    expect(screen.queryByLabelText('Revisado')).toBeNull();
-    const [h2, b2] = count();
-    expect(h2).toBe(b2);
-    expect(h2).toBe(h1 - 1);
+  it('has no dedicated reviewed column and keeps header and body aligned', () => {
+    const { container } = render(<TxTable rows={[tx()]} onToggleReviewed={() => {}} />);
+    expect(container.querySelector('thead th[title="Revisado"]')).toBeNull();
+    expect(container.querySelectorAll('thead th').length)
+      .toBe(container.querySelectorAll('tbody tr')[0].querySelectorAll('td').length);
   });
 });

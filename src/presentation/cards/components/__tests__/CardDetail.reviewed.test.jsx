@@ -50,19 +50,19 @@ describe('CardDetail review buttons', () => {
     await waitFor(() => expect(onReviewStatement).toHaveBeenCalledWith('c1', 's1', false));
   });
 
-  it('stays enabled on a paid statement, and the row checkbox too', async () => {
+  it('stays enabled on a paid statement, and the row action too', async () => {
     cardRepo.getStatement.mockResolvedValue(statementOf('Paid'));
-    renderDetail({ onReviewStatement: vi.fn() });
+    renderDetail({ onReviewStatement: vi.fn(), onToggleReviewed: vi.fn() });
     await waitFor(() => expect(screen.getByTitle(/Revisar todos/).disabled).toBe(false));
-    expect(screen.getByLabelText('Revisado').disabled).toBe(false);
+    expect(screen.getByLabelText('Marcar como revisado').disabled).toBe(false);
   });
 
   it('row toggle calls onToggleReviewed and refetches', async () => {
     cardRepo.getStatement.mockResolvedValue(statementOf('Open'));
     const onToggleReviewed = vi.fn().mockResolvedValue();
     renderDetail({ onToggleReviewed });
-    const box = await screen.findByLabelText('Revisado');
-    fireEvent.click(box);
+    const btn = await screen.findByLabelText('Marcar como revisado');
+    fireEvent.click(btn);
     await waitFor(() => expect(onToggleReviewed).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(cardRepo.getStatement).toHaveBeenCalledTimes(2));
   });
