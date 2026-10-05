@@ -180,7 +180,6 @@ export default function TxTable({
                 </th>
               )}
               <th className="csv-col-n">#</th>
-              {show('reviewed') && <th style={{ width: 36, textAlign: 'center' }} title="Revisado">✅</th>}
               <Th col="date">Data</Th>
               {show('type')       && <Th col="type">Tipo</Th>}
               <Th col="desc">Descrição</Th>
@@ -222,21 +221,13 @@ export default function TxTable({
                     </td>
                   )}
                   <td className="csv-col-n">{rowNum}</td>
-                  {show('reviewed') && (
-                    <td style={{ textAlign: 'center' }}>
-                      <input
-                        type="checkbox"
-                        checked={!!t.reviewed}
-                        onChange={() => onToggleReviewed?.(t)}
-                        title={t.reviewed ? 'Desmarcar revisão' : 'Marcar como revisado'}
-                        aria-label="Revisado"
-                      />
-                    </td>
-                  )}
                   <td className="csv-col-date">{fdate(t.date)}</td>
                   {show('type') && <td>{TYPE_BADGE[t.type] ?? <span className="tmuted">—</span>}</td>}
                   <td className="csv-col-desc">
-                    <div style={{ fontWeight: 600, fontSize: 12 }}>{t.description}</div>
+                    <div style={{ fontWeight: 600, fontSize: 12 }}>
+                      {t.description}
+                      {t.reviewed && <span className="tx-reviewed-badge">✓ revisado</span>}
+                    </div>
                     {t.installments && <div className="txxs tmuted">{t.installmentCurrent}/{t.installments}x</div>}
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>
@@ -270,7 +261,18 @@ export default function TxTable({
                     {isIncome ? '+' : isExpense ? '−' : ''}{R$(t.amount)}
                   </td>
                   <td className="csv-col-act">
-                    <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'nowrap' }}>
+                      {onToggleReviewed && (
+                        <button
+                          type="button"
+                          className={`btn-icon ${t.reviewed ? 'review-off' : 'review-on'}`}
+                          style={{ padding: '3px 7px', fontSize: 12 }}
+                          onClick={() => onToggleReviewed(t)}
+                          title={t.reviewed ? 'Desmarcar revisão' : 'Marcar como revisado'}
+                          aria-label={t.reviewed ? 'Desmarcar revisão' : 'Marcar como revisado'}
+                          aria-pressed={!!t.reviewed}
+                        >{t.reviewed ? '↩' : '✓'}</button>
+                      )}
                       {onEdit && (
                         <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setEditingTx(t)} title="Editar">✏️</button>
                       )}
