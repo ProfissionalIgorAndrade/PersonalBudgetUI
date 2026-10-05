@@ -37,6 +37,7 @@ export default function TxTable({
   onEdit,
   onDelete,
   onBatchDelete,
+  onToggleReviewed,
   hideCols = [],
   emptyMsg = 'Nenhum lançamento encontrado',
 }) {
@@ -179,6 +180,7 @@ export default function TxTable({
                 </th>
               )}
               <th className="csv-col-n">#</th>
+              {show('reviewed') && <th style={{ width: 36, textAlign: 'center' }} title="Revisado">✅</th>}
               <Th col="date">Data</Th>
               {show('type')       && <Th col="type">Tipo</Th>}
               <Th col="desc">Descrição</Th>
@@ -209,7 +211,7 @@ export default function TxTable({
               const isIncome  = t.type === 'income';
               const isExpense = t.type === 'expense';
               return (
-                <tr key={t.id} style={selected.has(t.id) ? { background: 'color-mix(in srgb, var(--primary) 8%, transparent)' } : {}}>
+                <tr key={t.id} className={t.reviewed ? 'tx-reviewed' : undefined} style={selected.has(t.id) ? { background: 'color-mix(in srgb, var(--primary) 8%, transparent)' } : {}}>
                   {onBatchDelete && (
                     <td style={{ textAlign: 'center' }}>
                       <input
@@ -220,6 +222,17 @@ export default function TxTable({
                     </td>
                   )}
                   <td className="csv-col-n">{rowNum}</td>
+                  {show('reviewed') && (
+                    <td style={{ textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={!!t.reviewed}
+                        onChange={() => onToggleReviewed?.(t)}
+                        title={t.reviewed ? 'Desmarcar revisão' : 'Marcar como revisado'}
+                        aria-label="Revisado"
+                      />
+                    </td>
+                  )}
                   <td className="csv-col-date">{fdate(t.date)}</td>
                   {show('type') && <td>{TYPE_BADGE[t.type] ?? <span className="tmuted">—</span>}</td>}
                   <td className="csv-col-desc">

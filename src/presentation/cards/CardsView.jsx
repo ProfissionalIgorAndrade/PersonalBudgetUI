@@ -13,7 +13,7 @@ import CardTile from './components/CardTile';
 export default function CardsView({
   cards, members, transactions, categories, accounts,
   onAdd, onEdit, onDelete,
-  onEditTx, onDeleteTx, onBatchDeleteTx,
+  onEditTx, onDeleteTx, onBatchDeleteTx, onToggleReviewed, onReviewStatement,
   activeMonth, setActiveMonth,
   notify, loadTransactions,
 }) {
@@ -163,6 +163,8 @@ export default function CardsView({
                   onEditTx={onEditTx}
                   onDeleteTx={onDeleteTx}
                   onBatchDeleteTx={onBatchDeleteTx}
+                  onToggleReviewed={onToggleReviewed}
+                  onReviewStatement={onReviewStatement}
                   activeMonth={activeMonth}
                   notify={notify}
                   loadTransactions={loadTransactions}

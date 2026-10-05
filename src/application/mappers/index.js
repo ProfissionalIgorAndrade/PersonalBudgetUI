@@ -202,6 +202,7 @@ export function normalizeTransaction(t) {
     statementMonth: t.statementMonth      ?? t.StatementMonth      ?? null,
     statementYear:  t.statementYear       ?? t.StatementYear       ?? null,
     notes:          t.observations        ?? t.Observations        ?? '',
+    reviewed:       t.reviewed            ?? t.isReviewed          ?? false,
   };
 }
 

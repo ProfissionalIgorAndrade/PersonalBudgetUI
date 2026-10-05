@@ -27,6 +27,7 @@ export default function AccountDetail({
   onEditTx,
   onDeleteTx,
   onBatchDeleteTx,
+  onToggleReviewed,
   activeMonth,
   notify,
 }) {
@@ -110,6 +111,7 @@ export default function AccountDetail({
         onEdit={onEditTx}
         onDelete={onDeleteTx}
         onBatchDelete={onBatchDeleteTx}
+        onToggleReviewed={onToggleReviewed}
         hideCols={['account']}
         emptyMsg={loadingTx ? 'Carregando…' : 'Nenhum lançamento neste mês'}
       />

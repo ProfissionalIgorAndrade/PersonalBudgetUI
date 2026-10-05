@@ -160,6 +160,8 @@ export default function CardDetail({
   onEditTx,
   onDeleteTx,
   onBatchDeleteTx,
+  onToggleReviewed,
+  onReviewStatement,
   activeMonth,
   notify = () => {},
   loadTransactions = async () => {},
@@ -252,6 +254,12 @@ export default function CardDetail({
 
   const cfg = STATUS_CFG[faturaStatus];
 
+  const reviewAll = async (reviewed) => {
+    await onReviewStatement?.(card.id, statement.statementId, reviewed);
+    await refetchStatement();
+  };
+  const canReviewAll = !!statement.statementId && !statement.loading;
+
 
   return (
     <div>
@@ -283,6 +291,24 @@ export default function CardDetail({
             </span>
           )}
         </div>
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          <button
+            type="button"
+            className="btn-icon"
+            style={{ padding: '3px 7px', fontSize: 14 }}
+            disabled={!canReviewAll}
+            onClick={() => reviewAll(true)}
+            title="Revisar todos os lançamentos da fatura"
+          >✅</button>
+          <button
+            type="button"
+            className="btn-icon"
+            style={{ padding: '3px 7px', fontSize: 14 }}
+            disabled={!canReviewAll}
+            onClick={() => reviewAll(false)}
+            title="Desmarcar revisão de todos os lançamentos da fatura"
+          >↩️</button>
+        </div>
       </div>
 
       <div className="summary-grid" style={{ marginBottom: 18 }}>
@@ -311,6 +337,7 @@ export default function CardDetail({
         onEdit={faturaStatus === 'paga' ? undefined : async (...args) => { await onEditTx?.(...args); await refetchStatement(); }}
         onDelete={faturaStatus === 'paga' ? undefined : async (...args) => { await onDeleteTx?.(...args); await refetchStatement(); }}
         onBatchDelete={faturaStatus === 'paga' ? undefined : async (...args) => { await onBatchDeleteTx?.(...args); await refetchStatement(); }}
+        onToggleReviewed={async (...args) => { await onToggleReviewed?.(...args); await refetchStatement(); }}
         hideCols={['card', 'statement']}
         emptyMsg={statement.loading ? 'Carregando…' : statement.error ? 'Não foi possível carregar a fatura' : 'Nenhum lançamento neste mês'}
       />
