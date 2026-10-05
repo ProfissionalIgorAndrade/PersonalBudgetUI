@@ -12,24 +12,24 @@ export const MANDATORY_IDS = ['verdict', 'month-result', 'pillars', 'savings', '
 
 export const CATALOG = [
   { id: 'cashflow', title: 'Fluxo de caixa (6 meses)', group: 'Fluxo e tendências', description: 'Receita contra despesa nos 6 meses até o mês selecionado.' },
-  { id: 'pace', title: 'Ritmo de gasto no mês', group: 'Fluxo e tendências', description: 'Quanto já gastou contra o esperado para o dia do mês.' },
+  { id: 'pace', wide: true, title: 'Ritmo de gasto no mês', group: 'Fluxo e tendências', description: 'Quanto já gastou contra o esperado para o dia do mês.' },
   { id: 'weekday', title: 'Padrão por dia da semana', group: 'Fluxo e tendências', description: 'Em que dias da semana a despesa se concentra.' },
   { id: 'share', title: 'Participação por categoria', group: 'Categorias', description: 'Peso de cada categoria na despesa, em uma barra única.' },
-  { id: 'trend', title: 'Tendência por categoria', group: 'Categorias', description: 'Evolução das maiores categorias em 3, 6 ou 12 meses.' },
+  { id: 'trend', wide: true, title: 'Tendência por categoria', group: 'Categorias', description: 'Evolução das maiores categorias em 3, 6 ou 12 meses.' },
   { id: 'increases', title: 'Maiores aumentos vs média', group: 'Categorias', description: 'Categorias que mais subiram contra a média dos 3 meses anteriores.' },
   { id: 'member-expense', title: 'Gasto por membro', group: 'Pessoas', description: 'Quanto cada membro da família gastou no mês.' },
   { id: 'member-income', title: 'Renda por membro', group: 'Pessoas', description: 'Quanto cada membro recebeu no mês.' },
   { id: 'income-sources', title: 'Fontes de renda', group: 'Pessoas', description: 'De onde vem a receita do mês.' },
-  { id: 'invoices', title: 'Faturas e uso do limite', group: 'Cartões e contas', description: 'Fatura do mês de cada cartão e quanto do limite está usado.' },
+  { id: 'invoices', wide: true, title: 'Faturas e uso do limite', group: 'Cartões e contas', description: 'Fatura do mês de cada cartão e quanto do limite está usado.' },
   { id: 'balances', title: 'Saldo das contas', group: 'Cartões e contas', description: 'Saldo atual de cada conta corrente.' },
-  { id: 'boxes', title: 'Caixinhas e metas', group: 'Cartões e contas', description: 'Saldo, meta e movimentos recentes de cada caixinha.' },
+  { id: 'boxes', wide: true, title: 'Caixinhas e metas', group: 'Cartões e contas', description: 'Saldo, meta e movimentos recentes de cada caixinha.' },
   { id: 'latest', title: 'Últimos lançamentos', group: 'Cartões e contas', description: 'Os lançamentos mais recentes do mês.' },
   { id: 'review', title: 'Progresso de revisão', group: 'Cartões e contas', description: 'Quanto dos lançamentos do mês já foi revisado.' },
   { id: 'fixed', title: 'Fixos do mês', group: 'Planejamento', description: 'Despesas fixas do mês e o peso delas na renda.' },
-  { id: 'installments', title: 'Parcelamentos ativos', group: 'Planejamento', description: 'Parcelas em andamento, meses e valor que faltam.' },
+  { id: 'installments', wide: true, title: 'Parcelamentos ativos', group: 'Planejamento', description: 'Parcelas em andamento, meses e valor que faltam.' },
   { id: 'subscriptions', title: 'Assinaturas', group: 'Planejamento', description: 'Fixos da categoria Assinaturas, com custo anual.' },
   { id: 'rule', title: 'Regra 50/30/20', group: 'Planejamento', description: 'Necessidades, desejos e poupança sobre a renda (aproximação).' },
-  { id: 'projection', title: 'Projeção de saldo (6 meses)', group: 'Planejamento', description: 'Saldo das contas somando renda média menos compromissos lançados.' },
+  { id: 'projection', wide: true, title: 'Projeção de saldo (6 meses)', group: 'Planejamento', description: 'Saldo das contas somando renda média menos compromissos lançados.' },
 ];
 
 const CATALOG_IDS = new Set(CATALOG.map(w => w.id));
