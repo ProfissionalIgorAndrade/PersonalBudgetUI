@@ -14,6 +14,7 @@ import Toast                 from './presentation/shared/components/Toast';
 import LoadingOverlay        from './presentation/shared/components/LoadingOverlay';
 import AuthView              from './presentation/auth/AuthView';
 import DashboardView         from './presentation/dashboard/DashboardView';
+import HealthView            from './presentation/health/HealthView';
 import TransactionsView      from './presentation/transactions/TransactionsView';
 import CardsView             from './presentation/cards/CardsView';
 import AccountsView          from './presentation/accounts/AccountsView';
@@ -79,6 +80,8 @@ export default function App() {
 
   const views = {
     dashboard:    <DashboardView    data={data} setView={setView} activeMonth={activeMonth} setActiveMonth={setActiveMonth} theme={theme} />,
+    health:       <HealthView       data={data} savingsTransactions={savingsTransactions} accounts={accounts}
+                                    activeMonth={activeMonth} setActiveMonth={setActiveMonth} theme={theme} />,
     transactions: <TransactionsView data={data} {...txOps} activeMonth={activeMonth} setActiveMonth={setActiveMonth}
                                     onImport={txOps.onImportOne} reloadTransactions={loadTx} />,
     cards:        <CardsView        cards={cards} members={members} transactions={transactions} categories={categories} accounts={accounts}
