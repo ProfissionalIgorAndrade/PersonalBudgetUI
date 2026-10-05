@@ -83,10 +83,12 @@ export default function App() {
                                     onImport={txOps.onImportOne} reloadTransactions={loadTx} />,
     cards:        <CardsView        cards={cards} members={members} transactions={transactions} categories={categories} accounts={accounts}
                                     {...cardOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete} onBatchDeleteTx={txOps.onBatchDelete}
+                                    onToggleReviewed={txOps.onToggleReviewed} onReviewStatement={cardOps.onReviewStatement}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth}
                                     notify={notify} loadTransactions={loadTx} />,
     accounts:     <AccountsView     accounts={accounts} members={members} categories={categories} cards={cards} transactions={transactions}
                                     {...accOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete} onBatchDeleteTx={txOps.onBatchDelete}
+                                    onToggleReviewed={txOps.onToggleReviewed}
                                     notify={notify} transactionsReloadGeneration={transactionsReloadGeneration}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
     savings:      <SavingsView      accounts={accounts} members={members} movements={savingsTransactions} theme={theme}

@@ -21,3 +21,10 @@ export const getStatementById = (creditCardId, statementId, page) => {
     ? http.get(`${base}?page=${page}`)
     : http.get(base);
 };
+
+/** Marca (ou desmarca) como revisados todos os lançamentos da fatura. */
+export const setStatementReviewed = (creditCardId, statementId, reviewed) =>
+  http.patch(
+    `/api/credit-cards/${encodeURIComponent(creditCardId)}/statement/${encodeURIComponent(statementId)}/reviewed`,
+    { reviewed },
+  );

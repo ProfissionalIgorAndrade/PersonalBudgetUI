@@ -208,6 +208,12 @@ export function useAppData(notify) {
         }
       } catch (e) { notify(e.message, 'error'); }
     },
+    onToggleReviewed: async (tx) => {
+      try {
+        await txRepo.setReviewed(tx.id, !tx.reviewed);
+        await loadTx();
+      } catch (e) { notify(e.message, 'error'); }
+    },
     onBatchDelete: async (ids) => {
       try {
         await txRepo.batchDelete(ids);
@@ -344,6 +350,12 @@ export function useAppData(notify) {
         });
         await loadCards();
         notify('Cartão atualizado');
+      } catch (e) { notify(e.message, 'error'); }
+    },
+    onReviewStatement: async (cardId, statementId, reviewed) => {
+      try {
+        await cardRepo.setStatementReviewed(cardId, statementId, reviewed);
+        await loadTx();
       } catch (e) { notify(e.message, 'error'); }
     },
     onDelete: async (id) => {
