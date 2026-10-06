@@ -2329,3 +2329,67 @@ canvas { max-height: 220px; }
   .hl-trend-row { grid-template-columns: 1fr auto; }
   .hl-trend-values { grid-column: 1 / -1; text-align: left; flex-direction: row; gap: 8px; align-items: baseline; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   FAMÍLIA (.mbr-*)
+   A cor do membro é só acento (--mbr); fundo, borda e texto vêm dos
+   tokens do tema, então valem igual no claro e no escuro.
+═══════════════════════════════════════════════════════════════ */
+.mbr-layout {
+  display: grid; grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 20px; align-items: start;
+}
+.mbr-main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+@media (max-width: 1100px) {
+  .mbr-layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+.mbr-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 8px;
+}
+.mbr-section-title { display: flex; align-items: center; gap: 10px; }
+.mbr-section-title h2 {
+  margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--text-2);
+}
+.mbr-hint { margin: 0 0 14px; font-size: 12px; line-height: 1.5; color: var(--muted); }
+.mbr-note { margin: 12px 0 0; }
+.mbr-grid {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.mbr-empty {
+  padding: 18px; text-align: center; font-size: 13px; color: var(--muted);
+  border: 1px dashed var(--border); border-radius: 12px;
+}
+
+.mbr-tile {
+  --mbr: var(--primary);
+  display: flex; align-items: center; gap: 12px;
+  min-width: 0; padding: 10px 12px; border-radius: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  transition: border-color var(--t), transform var(--t), box-shadow var(--t);
+}
+.mbr-tile:hover,
+.mbr-tile:focus-within {
+  border-color: var(--border-hi); transform: translateY(-1px); box-shadow: var(--shadow-sm);
+}
+.mbr-avatar {
+  width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 26px; line-height: 1;
+  background: color-mix(in srgb, var(--mbr) 16%, transparent);
+  border: 2px solid var(--mbr);
+}
+.mbr-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mbr-name {
+  font-size: 14px; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mbr-tag { font-size: 11px; color: var(--muted); }
+.mbr-actions { display: flex; gap: 4px; flex-shrink: 0; opacity: 0; transition: opacity var(--t-fast); }
+.mbr-tile:hover .mbr-actions,
+.mbr-tile:focus-within .mbr-actions { opacity: 1; }
+@media (hover: none) { .mbr-actions { opacity: 1; } }
+[data-theme="light"] .mbr-tile { background: var(--surface); }
+.mbr-preview { margin-bottom: 18px; pointer-events: none; }
