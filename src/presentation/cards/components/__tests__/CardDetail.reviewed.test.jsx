@@ -74,4 +74,15 @@ describe('CardDetail review buttons', () => {
     expect(screen.getByTitle('Editar')).toBeDefined();
     expect(screen.getByTitle('Excluir')).toBeDefined();
   });
+
+  it('hides the origin column (it is the card itself) and keeps four action slots', async () => {
+    cardRepo.getStatement.mockResolvedValue(statementOf());
+    const { container } = renderDetail({ onEditTx: vi.fn(), onToggleReviewed: vi.fn() });
+    await screen.findByText('NuTag');
+    const headers = [...container.querySelectorAll('thead th')].map(th => th.textContent);
+    expect(headers.some(h => /Origem|Conta|Cartão|Fatura/.test(h))).toBe(false);
+    expect(container.querySelector('.tx-actions').children.length).toBe(4);
+    expect(container.querySelectorAll('thead th').length)
+      .toBe(container.querySelector('tbody tr').querySelectorAll('td').length);
+  });
 });

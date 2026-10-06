@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import React from 'react';
 import TxTable from '../TxTable';
 import { txBelongsToMonth, statementLabel } from '../../../../core/utils/billing';
@@ -36,7 +36,7 @@ const props = {
   categories: [],
   members: [{ id: 'm1', name: 'Igor', emoji: '🧑' }],
   accounts: [{ id: 'a1', name: 'Conta', type: 'checking' }],
-  cards: [{ id: 'c1', name: 'Nubank Ultravioleta' }],
+  cards: [{ id: 'c1', name: 'Nubank Ultravioleta', dueDay: 7 }],
 };
 
 describe('statement month resolution', () => {
@@ -60,16 +60,30 @@ describe('statement month resolution', () => {
   });
 });
 
-describe('TxTable statement column', () => {
-  it('shows the statement month while keeping the purchase date', () => {
-    render(<TxTable {...props} />);
-    expect(screen.getByText('09/2026', { exact: false })).toBeTruthy();
+describe('TxTable without a statement column', () => {
+  it('does not list the statement, account or card as separate columns', () => {
+    const { container } = render(<TxTable {...props} />);
+    const headers = [...container.querySelectorAll('thead th')].map(th => th.textContent);
+    expect(headers.some(h => h.includes('Fatura'))).toBe(false);
+    expect(headers.some(h => h.includes('Conta'))).toBe(false);
+    expect(headers.some(h => h.includes('Cartão'))).toBe(false);
+    expect(headers.some(h => h.includes('Origem'))).toBe(true);
+    expect(screen.queryByText('09/2026', { exact: false })).toBeNull();
     expect(screen.getByText('18/08/2026')).toBeTruthy();
   });
 
-  it('hides the column when asked', () => {
-    render(<TxTable {...props} hideCols={['statement']} />);
-    expect(screen.queryByText('Fatura')).toBeNull();
+  it('shows the statement month and due date in the details modal', () => {
+    render(<TxTable {...props} rows={[cardTx]} />);
+    fireEvent.click(screen.getByTitle('Detalhes'));
+    expect(screen.getByText(/09\/2026/)).toBeTruthy();
+    expect(screen.getByText(/vence 07\/09\/2026/)).toBeTruthy();
+  });
+
+  it('shows the origin but no statement in the details of an account transaction', () => {
+    render(<TxTable {...props} rows={[accountTx]} />);
+    fireEvent.click(screen.getByTitle('Detalhes'));
+    expect(screen.queryByText(/vence/)).toBeNull();
+    expect(screen.getAllByText(/🏦 Conta/).length).toBeGreaterThan(1);
   });
 
   it('keeps header and body cell counts aligned', () => {
@@ -79,11 +93,12 @@ describe('TxTable statement column', () => {
     expect(firstRow).toBe(headers);
   });
 
-  it('stays aligned when a column is hidden', () => {
-    const { container } = render(<TxTable {...props} hideCols={['statement', 'card']} />);
+  it('stays aligned when the origin column is hidden', () => {
+    const { container } = render(<TxTable {...props} hideCols={['origin']} />);
     const headers = container.querySelectorAll('thead th').length;
     const firstRow = container.querySelectorAll('tbody tr')[0].querySelectorAll('td').length;
     expect(firstRow).toBe(headers);
+    expect(screen.queryByText('Origem')).toBeNull();
   });
 });
 
@@ -110,6 +125,6 @@ describe('October statement, September purchase date', () => {
   it('still shows its own purchase date, not the statement date', () => {
     render(<TxTable {...props} rows={[octTx]} />);
     expect(screen.getByText('01/09/2026')).toBeTruthy();
-    expect(screen.getByText('10/2026', { exact: false })).toBeTruthy();
+    expect(screen.queryByText('10/2026', { exact: false })).toBeNull();
   });
 });
