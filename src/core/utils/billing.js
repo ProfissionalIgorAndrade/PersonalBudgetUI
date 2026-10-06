@@ -59,3 +59,27 @@ export const statementNet = (rows = []) =>
 
 /** Lançamentos que compõem a fatura. */
 export const statementRows = (rows = []) => rows.filter(t => !!t);
+
+/**
+ * Due date of a card statement: the card's dueDay inside the statement month,
+ * clamped to that month's last day (dueDay 31 in February is the 28th/29th),
+ * the same rule as the backend's DueDateFor.
+ *
+ * The Date is built from numbers in local time (no ISO string round trip), so
+ * the day never drifts with the timezone.
+ *
+ * @param {{dueDay?: number}} card
+ * @param {number} month statement month, 1-12
+ * @param {number} year statement year
+ * @returns {Date|null} null when the card, dueDay, month or year is missing/invalid
+ */
+export const statementDueDate = (card, month, year) => {
+  const dueDay = Number(card?.dueDay);
+  const m = Number(month);
+  const y = Number(year);
+  if (!Number.isInteger(dueDay) || dueDay < 1) return null;
+  if (!Number.isInteger(m) || m < 1 || m > 12) return null;
+  if (!Number.isInteger(y) || y < 1) return null;
+  const lastDay = new Date(y, m, 0).getDate();
+  return new Date(y, m - 1, Math.min(dueDay, lastDay));
+};
