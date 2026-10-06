@@ -22,7 +22,7 @@ const props = {
   categories: [],
   members: [{ id: 'm1', name: 'Igor', emoji: '🧑' }],
   accounts: [{ id: 'a1', name: 'Conta', type: 'checking' }],
-  cards: [{ id: 'c1', name: 'Nubank', lastDigits: '4417' }],
+  cards: [{ id: 'c1', name: 'Nubank' }],
   onEdit: () => {},
   onDelete: () => {},
 };

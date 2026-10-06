@@ -36,7 +36,7 @@ const props = {
   categories: [],
   members: [{ id: 'm1', name: 'Igor', emoji: '🧑' }],
   accounts: [{ id: 'a1', name: 'Conta', type: 'checking' }],
-  cards: [{ id: 'c1', name: 'Nubank Ultravioleta', lastDigits: '4417' }],
+  cards: [{ id: 'c1', name: 'Nubank Ultravioleta' }],
 };
 
 describe('statement month resolution', () => {
