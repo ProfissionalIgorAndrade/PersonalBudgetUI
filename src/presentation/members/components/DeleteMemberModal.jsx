@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Modal from '../../shared/components/Modal';
 
 /**
  * mergeCandidates — todos os perfis do lar exceto o removido (inclui usuários e membros).
+ *
+ * `choice` guarda só o que a pessoa escolheu; o destino efetivo é derivado
+ * dele e da lista atual, caindo no primeiro candidato quando a escolha não
+ * existe mais (ou ainda não foi feita).
  */
 export default function DeleteMemberModal({
   memberToRemove,
@@ -11,39 +15,30 @@ export default function DeleteMemberModal({
   onConfirm,
   loading,
 }) {
-  const [mergeInto, setMergeInto] = useState('');
-
-  useEffect(() => {
-    if (!memberToRemove || !mergeCandidates?.length) {
-      setMergeInto('');
-      return;
-    }
-    setMergeInto((prev) => {
-      if (prev && mergeCandidates.some(m => m.id === prev)) return prev;
-      return mergeCandidates[0]?.id || '';
-    });
-  }, [memberToRemove, mergeCandidates]);
+  const [choice, setChoice] = useState('');
 
   if (!memberToRemove) return null;
 
-  const canSubmit = mergeInto && mergeInto !== memberToRemove.id && !loading;
+  const mergeInto = mergeCandidates.some(m => m.id === choice)
+    ? choice
+    : (mergeCandidates[0]?.id || '');
+  const canSubmit = !!mergeInto && !loading;
 
   return (
-    <Modal
-      title="Remover membro (perfil)"
-      onClose={onClose}
-    >
-      <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, marginTop: 0, marginBottom: 16 }}>
-        Os lançamentos atribuídos a <strong style={{ color: 'var(--text)' }}>{memberToRemove.name}</strong> serão
-        migrados para o perfil abaixo. Contas e cartões seguem as regras do servidor (titularidade).
+    <Modal title="Remover membro?" onClose={onClose}>
+      <p style={{ marginBottom: 18, lineHeight: 1.5, color: 'var(--muted)' }}>
+        Tem certeza que deseja remover <strong style={{ color: 'var(--text)' }}>{memberToRemove.name}</strong>?
+        Os lançamentos atribuídos a esse perfil serão migrados para o perfil escolhido abaixo.
+        Contas e cartões seguem as regras do servidor (titularidade). Esta ação não pode ser desfeita.
       </p>
 
       <div className="form-group">
-        <label className="form-label">Migrar dados para o perfil</label>
+        <label className="form-label" htmlFor="member-merge-into">Migrar dados para o perfil</label>
         <select
+          id="member-merge-into"
           className="form-select"
           value={mergeInto}
-          onChange={e => setMergeInto(e.target.value)}
+          onChange={e => setChoice(e.target.value)}
           disabled={loading || mergeCandidates.length === 0}
         >
           {mergeCandidates.map(m => (
@@ -60,8 +55,8 @@ export default function DeleteMemberModal({
         </button>
         <button
           type="button"
-          className="btn btn-primary"
-          onClick={() => canSubmit && onConfirm(mergeInto)}
+          className="btn btn-danger"
+          onClick={() => onConfirm(mergeInto)}
           disabled={!canSubmit}
         >
           {loading ? '⏳ Removendo…' : '🗑️ Remover e migrar'}
