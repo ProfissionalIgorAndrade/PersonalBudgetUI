@@ -153,6 +153,20 @@ describe('accountBalances', () => {
   });
 });
 
+describe('account labels in the catalog', () => {
+  const members = [{ id: 'm1', name: 'Igor' }];
+
+  it('labels balances like accountLabel, nickname first', () => {
+    const r = accountBalances([acct({ name: 'Salário', bank: 'Nubank', memberId: 'm1', balance: 1 })], members);
+    expect(r.items[0].name).toBe('Salário - Igor');
+  });
+
+  it('labels review groups like accountLabel', () => {
+    const p = reviewProgress([tx({ accountId: 'a1' })], [{ id: 'a1', name: 'Itaú', bank: 'Itau', memberId: 'm1' }], [], M, members);
+    expect(p.groups[0].label).toBe('Itaú - Igor');
+  });
+});
+
 describe('fixedOfMonth / subscriptions', () => {
   it('lists fixed expenses with total and income share', () => {
     const rows = [income(1000), tx({ recurrence: 'fixed', amount: 200, description: 'Aluguel' }), tx({ recurrence: 'fixed', amount: 50 }),

@@ -13,7 +13,7 @@ vi.mock('../components/SavingsEvolution', () => ({
 afterEach(cleanup);
 
 const members = [{ id: 'm1', name: 'Igor Andrade' }];
-const conta = { id: 'a1', kind: 'checking', bank: 'nubank', agency: '0001', accountNumber: '123456', balance: 2000, memberId: 'm1', isActive: true, name: 'Nubank' };
+const conta = { id: 'a1', kind: 'checking', bank: 'nubank', balance: 2000, memberId: 'm1', isActive: true, name: 'Nubank' };
 const reserva = { id: 'b1', kind: 'savings', parentAccountId: 'a1', name: 'Reserva', balance: 5000, isActive: true };
 const viagem  = { id: 'b2', kind: 'savings', parentAccountId: 'a1', name: 'Viagem',  balance: 1500, isActive: true };
 
