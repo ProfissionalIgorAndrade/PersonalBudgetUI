@@ -220,7 +220,7 @@ export default function CardDetail({
         onDelete={withRefetch(onDeleteTx)}
         onBatchDelete={withRefetch(onBatchDeleteTx)}
         onToggleReviewed={withRefetch(onToggleReviewed)}
-        hideCols={['card', 'statement']}
+        hideCols={['origin']}
         emptyMsg={statement.loading ? 'Carregando…' : statement.error ? 'Não foi possível carregar a fatura' : 'Nenhum lançamento neste mês'}
       />
 

@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { R$, fdate } from '../../../core/utils/format';
-import { statementLabel } from '../../../core/utils/billing';
 
 import { accountLabel } from '../../../application/mappers/index';
 import Modal from '../../shared/components/Modal';
@@ -198,9 +197,7 @@ export default function TxTable({
               <Th col="desc">Descrição</Th>
               <Th col="cat">Categoria</Th>
               {show('member')     && <Th col="member">Membro</Th>}
-              {show('account')    && <th>Conta</th>}
-              {show('card')       && <th>Cartão</th>}
-              {show('statement') && <th title="Fatura em que o lançamento entra">Fatura</th>}
+              {show('origin')     && <th>Origem</th>}
               {show('recurrence') && <Th col="recurrence">Recorrência</Th>}
               <Th col="amount" style={{ textAlign: 'right' }}>Valor</Th>
               <th className="csv-col-act" scope="col">Ações</th>
@@ -252,21 +249,13 @@ export default function TxTable({
                       {mem ? <>{mem.emoji} {mem.name}</> : <span className="tmuted">—</span>}
                     </td>
                   )}
-                  {show('account') && (
+                  {show('origin') && (
                     <td style={{ fontSize: 11 }}>
-                      {acc ? <span style={{ color: 'var(--muted)' }}>{accountLabel(acc, members)}</span> : <span className="tmuted">—</span>}
-                    </td>
-                  )}
-                  {show('card') && (
-                    <td style={{ fontSize: 11 }}>
-                      {crd ? <span style={{ color: 'var(--muted)' }}>💳 {crd.name}</span> : <span className="tmuted">—</span>}
-                    </td>
-                  )}
-                  {show('statement') && (
-                    <td style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
-                      {statementLabel(t)
-                        ? <span style={{ color: 'var(--muted)' }}>🧾 {statementLabel(t)}</span>
-                        : <span className="tmuted">—</span>}
+                      {crd
+                        ? <span style={{ color: 'var(--muted)' }}>💳 {crd.name}</span>
+                        : acc
+                          ? <span style={{ color: 'var(--muted)' }}>🏦 {accountLabel(acc, members)}</span>
+                          : <span className="tmuted">—</span>}
                     </td>
                   )}
                   {show('recurrence') && <td>{REC[t.recurrence] ?? REC.none}</td>}
@@ -274,28 +263,26 @@ export default function TxTable({
                     {isIncome ? '+' : isExpense ? '−' : ''}{R$(t.amount)}
                   </td>
                   <td className="csv-col-act">
-                    <div style={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'nowrap' }}>
-                      {onToggleReviewed && (
+                    {/* Four fixed slots (revisar, editar, excluir, detalhes). A missing
+                        action keeps its slot as a spacer so icons line up on every row. */}
+                    <div className="tx-actions">
+                      {onToggleReviewed ? (
                         <button
                           type="button"
-                          className={`btn-icon ${t.reviewed ? 'review-off' : 'review-on'}`}
-                          style={{ padding: '3px 7px', fontSize: 12 }}
+                          className={`btn-icon tx-act-btn ${t.reviewed ? 'review-off' : 'review-on'}`}
                           onClick={() => onToggleReviewed(t)}
                           title={t.reviewed ? 'Desmarcar revisão' : 'Marcar como revisado'}
                           aria-label={t.reviewed ? 'Desmarcar revisão' : 'Marcar como revisado'}
                           aria-pressed={!!t.reviewed}
                         >{t.reviewed ? '↩' : '✓'}</button>
-                      )}
-                      {onEdit && (
-                        <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setEditingTx(t)} title="Editar">✏️</button>
-                      )}
-                      {onDelete && (
-                        <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setConfirmDel(t)} title="Excluir">🗑️</button>
-                      )}
-                      <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setDetailTx(t)} title="Detalhes">🔍</button>
-                      {t.notes && (
-                        <button type="button" className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setDetailTx(t)} title="Ver observações">💬</button>
-                      )}
+                      ) : <span className="tx-act-spacer" aria-hidden="true" />}
+                      {onEdit ? (
+                        <button type="button" className="btn-icon tx-act-btn" onClick={() => setEditingTx(t)} title="Editar">✏️</button>
+                      ) : <span className="tx-act-spacer" aria-hidden="true" />}
+                      {onDelete ? (
+                        <button type="button" className="btn-icon tx-act-btn" onClick={() => setConfirmDel(t)} title="Excluir">🗑️</button>
+                      ) : <span className="tx-act-spacer" aria-hidden="true" />}
+                      <button type="button" className="btn-icon tx-act-btn" onClick={() => setDetailTx(t)} title="Detalhes">🔍</button>
                     </div>
                   </td>
                 </tr>
