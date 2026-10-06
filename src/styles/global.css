@@ -2393,3 +2393,26 @@ canvas { max-height: 220px; }
 @media (hover: none) { .mbr-actions { opacity: 1; } }
 [data-theme="light"] .mbr-tile { background: var(--surface); }
 .mbr-preview { margin-bottom: 18px; pointer-events: none; }
+
+/* Painel de convites (coluna à direita da tela Família) */
+.mbr-invite-heading {
+  margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--text-2);
+}
+.mbr-invite-form {
+  padding: 14px; border-radius: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+[data-theme="light"] .mbr-invite-form { background: var(--surface); }
+.mbr-invite-block { margin-top: 18px; }
+.mbr-invite-sub { margin: 0 0 10px; font-size: 12px; font-weight: 700; color: var(--text); }
+.mbr-invite-msg { margin: 0; font-size: 12px; color: var(--muted); }
+.mbr-invite-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.mbr-invite-item {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; border-radius: 10px; font-size: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+[data-theme="light"] .mbr-invite-item { background: var(--surface); }
+.mbr-invite-title { font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
+.mbr-invite-hint { margin-top: 4px; font-size: 11px; color: var(--muted); }
