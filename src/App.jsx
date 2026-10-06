@@ -8,6 +8,7 @@ import { curMonth }          from './core/utils/format';
 import { useNotify }         from './application/hooks/useNotify';
 import { useAppData }        from './application/hooks/useAppData';
 import { useAuth }           from './application/hooks/useAuth';
+import { redirectToDashboardAfter } from './application/authRedirect';
 
 import Sidebar               from './presentation/shared/components/Sidebar';
 import Toast                 from './presentation/shared/components/Toast';
@@ -64,12 +65,8 @@ export default function App() {
         <AuthView
           notice={expired ? 'Sua sessão expirou. Entre novamente para continuar.' : ''}
           onDismissNotice={clearExpired}
-          onLogin={async (creds) => {
-            await login(creds);
-          }}
-          onSignup={async (data) => {
-            await signup(data);
-          }}
+          onLogin={redirectToDashboardAfter(login, setView)}
+          onSignup={redirectToDashboardAfter(signup, setView)}
         />
         {toast && <Toast msg={toast.msg} type={toast.type} onClose={clearToast} />}
       </>

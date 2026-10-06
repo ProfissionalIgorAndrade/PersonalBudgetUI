@@ -112,7 +112,7 @@ export default function AccountDetail({
         onDelete={onDeleteTx}
         onBatchDelete={onBatchDeleteTx}
         onToggleReviewed={onToggleReviewed}
-        hideCols={['account']}
+        hideCols={['origin']}
         emptyMsg={loadingTx ? 'Carregando…' : 'Nenhum lançamento neste mês'}
       />
     </div>

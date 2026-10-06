@@ -748,7 +748,12 @@ canvas { max-height: 220px; }
 .csv-col-date { white-space: nowrap; font-family: monospace; font-size: 11.5px; }
 .csv-col-desc { min-width: 160px; max-width: 260px; }
 .csv-col-val { text-align: right !important; font-family: 'Syne', sans-serif; font-weight: 700; white-space: nowrap; }
-.csv-col-act { text-align: center !important; width: 150px; min-width: 150px; padding: 4px 6px !important; }
+.csv-col-act { text-align: left !important; width: 142px; min-width: 142px; padding: 4px 6px !important; }
+/* Actions cell: 4 fixed slots (4 x 30px + 3 x 3px gap = 129px) so icons keep the
+   same position on every row, whichever actions the screen enables. */
+.tx-act-grid { display: grid; grid-template-columns: repeat(4, 30px); gap: 3px; width: 129px; }
+.tx-act-grid .tx-act-btn { width: 30px; height: 26px; padding: 0; justify-content: center; font-size: 12px; box-sizing: border-box; }
+.tx-act-grid .tx-act-spacer { display: block; width: 30px; height: 26px; }
 .csv-footer {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   padding: 10px 15px; background: var(--surface2);

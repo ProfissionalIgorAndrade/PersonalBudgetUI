@@ -58,4 +58,12 @@ describe('TxTable reviewed action', () => {
     expect(container.querySelectorAll('thead th').length)
       .toBe(container.querySelectorAll('tbody tr')[0].querySelectorAll('td').length);
   });
+
+  it('keeps the review slot (spacer) when the action is absent, with the same slot count', () => {
+    const { container: withBtn } = render(<TxTable rows={[tx()]} onToggleReviewed={() => {}} />);
+    const withCount = withBtn.querySelector('.tx-act-grid').children.length;
+    cleanup();
+    const { container: without } = render(<TxTable rows={[tx()]} />);
+    expect(without.querySelector('.tx-act-grid').children.length).toBe(withCount);
+  });
 });

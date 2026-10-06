@@ -22,7 +22,7 @@ const props = {
   categories: [],
   members: [{ id: 'm1', name: 'Igor', emoji: '🧑' }],
   accounts: [{ id: 'a1', name: 'Conta', type: 'checking' }],
-  cards: [{ id: 'c1', name: 'Nubank' }],
+  cards: [{ id: 'c1', name: 'Nubank', dueDay: 10 }],
   onEdit: () => {},
   onDelete: () => {},
 };
@@ -60,5 +60,25 @@ describe('TxTable — read-only details view', () => {
     fireEvent.click(screen.getByTitle('Detalhes'));
     expect(screen.queryByText(/Salvar/)).toBeNull();
     expect(screen.getByText('Fechar')).toBeTruthy();
+  });
+
+  it('has no separate observations button, even when the row has notes', () => {
+    render(<TxTable {...props} />);
+    expect(screen.queryByTitle('Ver observações')).toBeNull();
+    expect(screen.queryByText('💬')).toBeNull();
+  });
+
+  it('shows the origin and the statement with its due date for a card purchase', () => {
+    render(<TxTable {...props} />);
+    fireEvent.click(screen.getByTitle('Detalhes'));
+    expect(screen.getAllByText(/💳 Nubank/).length).toBeGreaterThan(1);
+    expect(screen.getByText(/09\/2027/)).toBeTruthy();
+    expect(screen.getByText(/vence 10\/09\/2027/)).toBeTruthy();
+  });
+
+  it('omits the due date when the card is unknown', () => {
+    render(<TxTable {...props} cards={[]} rows={[{ ...tx, cardId: 'gone' }]} />);
+    fireEvent.click(screen.getByTitle('Detalhes'));
+    expect(screen.queryByText(/vence/)).toBeNull();
   });
 });
