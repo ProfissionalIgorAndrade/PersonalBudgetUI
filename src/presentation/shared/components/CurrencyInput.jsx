@@ -12,7 +12,7 @@ function strToNum(str) {
   return isNaN(num) ? 0 : num;
 }
 
-export default function CurrencyInput({ value, onChange, placeholder = '0,00', className = 'form-input', required, style }) {
+export default function CurrencyInput({ value, onChange, placeholder = '0,00', className = 'form-input', required, style, ...aria }) {
   const [display, setDisplay] = useState(() => (value ? numToStr(Number(value)) : ''));
   const [focused, setFocused] = useState(false);
 
@@ -50,6 +50,7 @@ export default function CurrencyInput({ value, onChange, placeholder = '0,00', c
       placeholder={placeholder}
       required={required}
       inputMode="decimal"
+      {...aria}
     />
   );
 }

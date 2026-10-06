@@ -1,77 +1,110 @@
-import { useState, useCallback } from 'react';
-import { useLocalStorage } from '../../core/hooks/useLocalStorage';
-import { calculateScenario } from '../../data/repositories/simulatorRepository';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { projectScenario } from '../../data/repositories/simulatorRepository';
+import {
+  loadSimulations, saveSimulations, newSimulationId, MAX_SIMULATIONS,
+} from '../../core/utils/simulatorStorage';
+import { projectionImpacts, localToday, round2 } from '../../core/utils/simulatorMath';
 
-const BLANK_SCENARIO = { name: '', impacts: [] };
+export const HORIZONS = [1, 3, 6, 12, 24];
+export const DEFAULT_HORIZON = 6;
+export const DEBOUNCE_MS = 450;
 
-export function useSimulator() {
-  const [stored, setStored] = useLocalStorage('pb_simulator_scenario', BLANK_SCENARIO);
-  const [months, setMonths] = useState(6);
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+/** Formato canônico de uma simulação a partir dos campos do formulário. */
+const normalize = (data) => ({
+  description: data.description.trim(),
+  type: data.type,
+  mode: data.mode,
+  startMonth: data.startMonth,
+  amount: round2(data.amount),
+  amountKind: data.mode === 'Installment' ? data.amountKind : 'PerInstallment',
+  installments: data.mode === 'Installment' ? Number(data.installments) : null,
+  months: data.mode === 'Monthly' && data.months ? Number(data.months) : null,
+});
 
-  const addImpact = useCallback((impact) => {
-    setStored(s => ({ ...s, impacts: [...s.impacts, { ...impact, id: crypto.randomUUID() }] }));
-    setResult(null);
-  }, [setStored]);
+/**
+ * Estado do "E se...?".
+ *
+ * Só guarda as simulações (persistidas no navegador) e o horizonte. A
+ * projeção é DERIVADA: toda mudança no que vai para a API (adicionar, editar,
+ * remover, trocar o horizonte) agenda uma nova chamada com debounce. Ligar ou
+ * desligar uma simulação não altera o pedido, portanto não chama a API; a
+ * tela recompõe o cenário no cliente.
+ *
+ * Enquanto a nova resposta não chega, `result` continua sendo a anterior
+ * (`refetching`), para a tela não piscar. O erro vale só para o pedido atual:
+ * mudar o pedido o apaga sem estado manual.
+ */
+export function useSimulator({ fetcher = projectScenario, debounceMs = DEBOUNCE_MS } = {}) {
+  const [simulations, setSimulations] = useState(loadSimulations);
+  const [months, setMonths] = useState(DEFAULT_HORIZON);
+  const [snap, setSnap] = useState({ data: null, key: null, error: null, errorKey: null });
+  const [fetching, setFetching] = useState(false);
+  const [retryNonce, setRetryNonce] = useState(0);
 
-  const editImpact = useCallback((id, updated) => {
-    setStored(s => ({ ...s, impacts: s.impacts.map(i => i.id === id ? { ...updated, id } : i) }));
-    setResult(null);
-  }, [setStored]);
+  useEffect(() => { saveSimulations(simulations); }, [simulations]);
 
-  const removeImpact = useCallback((id) => {
-    setStored(s => ({ ...s, impacts: s.impacts.filter(i => i.id !== id) }));
-    setResult(null);
-  }, [setStored]);
+  const requestKey = useMemo(
+    () => JSON.stringify({ months, impacts: projectionImpacts(simulations) }),
+    [months, simulations],
+  );
 
-  const setName = useCallback((name) => {
-    setStored(s => ({ ...s, name }));
-  }, [setStored]);
+  useEffect(() => {
+    let cancelled = false;
+    setFetching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const { months: horizon, impacts } = JSON.parse(requestKey);
+        const data = await fetcher({ today: localToday(), months: horizon, impacts });
+        if (!cancelled) setSnap({ data, key: requestKey, error: null, errorKey: null });
+      } catch (e) {
+        if (!cancelled) {
+          setSnap((s) => ({ ...s, error: e?.message || 'Não foi possível calcular a projeção.', errorKey: requestKey }));
+        }
+      } finally {
+        if (!cancelled) setFetching(false);
+      }
+    }, debounceMs);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [requestKey, retryNonce, fetcher, debounceMs]);
 
-  const calculate = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const payload = {
-        scenarioName: stored.name || 'Cenário',
-        impacts: stored.impacts.map(({ description, amount, type, mode, startDate, installmentCount }) => ({
-          description,
-          amount,
-          type,
-          mode,
-          startDate,
-          installmentCount: mode === 'Installment' ? Number(installmentCount) : 1,
-        })),
-      };
-      const data = await calculateScenario(payload, months);
-      setResult(data);
-    } catch (e) {
-      setError(e?.message ?? 'Erro ao calcular cenário');
-    } finally {
-      setLoading(false);
-    }
-  }, [stored, months]);
+  const addSimulation = useCallback((data) => {
+    if (simulations.length >= MAX_SIMULATIONS) return false;
+    setSimulations((list) => [...list, { ...normalize(data), id: newSimulationId(), enabled: true }]);
+    return true;
+  }, [simulations.length]);
 
-  const reset = useCallback(() => {
-    setStored(BLANK_SCENARIO);
-    setResult(null);
-    setError(null);
-  }, [setStored]);
+  const editSimulation = useCallback((id, data) => {
+    setSimulations((list) => list.map((s) => (s.id === id ? { ...normalize(data), id, enabled: s.enabled } : s)));
+  }, []);
+
+  const removeSimulation = useCallback((id) => {
+    setSimulations((list) => list.filter((s) => s.id !== id));
+  }, []);
+
+  const toggleSimulation = useCallback((id) => {
+    setSimulations((list) => list.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s)));
+  }, []);
+
+  const reset = useCallback(() => setSimulations([]), []);
+  const retry = useCallback(() => setRetryNonce((n) => n + 1), []);
+
+  const result = snap.data;
+  const error = snap.errorKey === requestKey ? snap.error : null;
 
   return {
-    scenario: stored,
+    simulations,
     months,
-    result,
-    loading,
-    error,
-    setName,
     setMonths,
-    addImpact,
-    editImpact,
-    removeImpact,
-    calculate,
+    result,
+    loading: fetching,
+    refetching: fetching && result !== null,
+    error,
+    retry,
+    addSimulation,
+    editSimulation,
+    removeSimulation,
+    toggleSimulation,
     reset,
+    limitReached: simulations.length >= MAX_SIMULATIONS,
   };
 }
