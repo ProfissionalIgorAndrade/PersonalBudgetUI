@@ -15,7 +15,6 @@ export default function CardsView({
   onAdd, onEdit, onDelete,
   onEditTx, onDeleteTx, onBatchDeleteTx, onToggleReviewed, onReviewStatement,
   activeMonth, setActiveMonth,
-  notify, loadTransactions,
 }) {
   // ── Formulário e exclusão ─────────────────────────────────────────────
   const [showForm,      setShowForm]      = useState(false);
@@ -169,8 +168,6 @@ export default function CardsView({
                   onToggleReviewed={onToggleReviewed}
                   onReviewStatement={onReviewStatement}
                   activeMonth={activeMonth}
-                  notify={notify}
-                  loadTransactions={loadTransactions}
                 />
               </>
             ) : (
