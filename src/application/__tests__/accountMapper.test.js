@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { BANKS } from '../../core/constants/banks';
 import {
   normalizeAccount, accountLabel, buildAccountPayload, accountEditFields,
 } from '../mappers';
@@ -66,5 +67,37 @@ describe('accountEditFields', () => {
   it('carries a real nickname', () => {
     const a = normalizeAccount({ id: 'a1', bank: 'Itau', memberId: 'm1', name: 'Salário' });
     expect(accountEditFields(a).name).toBe('Salário');
+  });
+});
+
+describe('new banks', () => {
+  const newBanks = Object.keys(BANKS).filter(k => !['Itau', 'Nubank', 'Inter', 'Santander', 'Bradesco', 'Caixa'].includes(k));
+
+  it('has a label and color for each of the 18 new banks', () => {
+    expect(newBanks).toHaveLength(18);
+    for (const k of newBanks) {
+      const a = normalizeAccount({ id: 'a1', bank: k, memberId: 'm1' });
+      expect(a.name).toBe(BANKS[k].label);
+      expect(a.color).toBe(BANKS[k].color);
+      expect(a.color === '#2dd4bf').toBe(false);
+    }
+  });
+
+  it('normalizes a new bank keeping the raw enum key in bank', () => {
+    const a = normalizeAccount({ id: 'a1', bank: 'BancoDoBrasil', memberId: 'm1', balance: 5 });
+    expect(a.bank).toBe('BancoDoBrasil');
+    expect(a.name).toBe('Banco do Brasil');
+    expect(a.color).toBe('#fcd116');
+  });
+
+  it('builds the label, edit fields and payload for a new bank', () => {
+    const acc = normalizeAccount({ id: 'a1', bank: 'MercadoPago', memberId: 'm1' });
+    expect(accountLabel(acc, members)).toBe('Mercado Pago - Igor');
+    expect(accountEditFields(acc)).toEqual({ id: 'a1', bank: 'MercadoPago', name: '', memberId: 'm1' });
+    expect(buildAccountPayload(accountEditFields(acc))).toEqual({ bank: 'MercadoPago', memberId: 'm1' });
+  });
+
+  it('keeps the default color for an unknown bank', () => {
+    expect(normalizeAccount({ id: 'a1', bank: 'Foo' }).color).toBe('#2dd4bf');
   });
 });
