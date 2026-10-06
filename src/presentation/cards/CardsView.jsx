@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { curMonth, R$ } from '../../core/utils/format';
 import { COLORS, FLAGS } from '../../core/constants/index';
 import { statementTotalsByCard } from './cardTotals';
-import { cardLabel } from '../../application/mappers/index';
+import { cardLabel, findMember } from '../../application/mappers/index';
 import { uid } from '../../core/utils/format';
 import MonthSelector from '../shared/components/MonthSelector';
 import Modal from '../shared/components/Modal';
@@ -40,8 +40,6 @@ export default function CardsView({
     [cards, totalsByCard],
   );
 
-  const findMember = useCallback(id => members.find(m => m.id === id), [members]);
-
   const select = c => setSelectedCardId(id => id === c.id ? null : c.id);
 
   const openNew = () => {
@@ -72,11 +70,11 @@ export default function CardsView({
     const q = listSearch.trim().toLowerCase();
     return cards.filter(c => {
       if (c.name.toLowerCase().includes(q)) return true;
-      const mem = findMember(c.memberId);
+      const mem = findMember(members, c.memberId);
       if (mem && mem.name.toLowerCase().includes(q)) return true;
       return false;
     });
-  }, [cards, findMember, listSearch]);
+  }, [cards, members, listSearch]);
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
