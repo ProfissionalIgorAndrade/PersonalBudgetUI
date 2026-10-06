@@ -6,7 +6,7 @@ import * as categoryRepo     from '../../data/repositories/categoryRepository';
 import * as cardRepo         from '../../data/repositories/cardRepository';
 import * as txRepo           from '../../data/repositories/transactionRepository';
 import {
-  normalizeAccount, normalizeCategory, normalizeCard, sortCategories, sortByName,
+  normalizeAccount, buildAccountPayload, normalizeCategory, normalizeCard, sortCategories, sortByName,
   normalizeTransaction, normalizeProfile,
   txToApi, CAT_TYPE_TO_API, TYPE_TO_API,
 } from '../mappers';
@@ -263,24 +263,14 @@ export function useAppData(notify) {
 
     onAdd: async (acc) => {
       try {
-        await accountRepo.createAccount({
-          bank:           acc.bank,
-          agency:         acc.agency         || '',
-          accountNumber:  acc.accountNumber  || '',
-          memberId:       acc.memberId,
-        });
+        await accountRepo.createAccount(buildAccountPayload(acc));
         await loadAcc();
         notify('Conta adicionada');
       } catch (e) { notify(e.message, 'error'); }
     },
     onEdit: async (acc) => {
       try {
-        await accountRepo.updateAccount(acc.id, {
-          bank:          acc.bank,
-          agency:        acc.agency         || '',
-          accountNumber: acc.accountNumber  || '',
-          memberId:      acc.memberId,
-        });
+        await accountRepo.updateAccount(acc.id, buildAccountPayload(acc));
         await loadAcc();
         notify('Conta atualizada');
       } catch (e) { notify(e.message, 'error'); }

@@ -1,11 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import React from 'react';
 import AccountTile from '../AccountTile';
 
 afterEach(cleanup);
 
-const account = { id: 'a1', bank: 'Nubank', agency: '0001', accountNumber: '123456', color: '#a78bfa', memberId: 'm1' };
+const account = { id: 'a1', bank: 'Nubank', color: '#a78bfa', memberId: 'm1' };
 const members = [{ id: 'm1', name: 'Igor Andrade', emoji: '🧑' }];
 
 const tile = (props) => (
@@ -46,9 +46,25 @@ describe('AccountTile', () => {
     expect(screen.getAllByText(/0,00/).length).toBeGreaterThanOrEqual(2);
   });
 
-  it('keeps agency and account visible', () => {
-    render(tile({ flow: { income: 0, expense: 0 } }));
-    expect(screen.getByText(/Agência 0001/)).toBeTruthy();
+  it('shows neither agency nor account number, keeping the month label', () => {
+    const { container } = render(tile({ flow: { income: 0, expense: 0 }, monthLabel: '2026-09' }));
+    expect(container.textContent).not.toMatch(/Agência|Conta \d|123456|0001/);
+    expect(container.textContent).toMatch(/09\/2026/);
+  });
+
+  it('passes the account to the action callbacks', () => {
+    const calls = [];
+    const { container } = render(tile({
+      flow: { income: 0, expense: 0 },
+      onSelect: a => calls.push(['select', a.id]),
+      onEdit: a => calls.push(['edit', a.id]),
+      onDelete: a => calls.push(['delete', a.id]),
+    }));
+    const [edit, del] = container.querySelectorAll('.card-sm button');
+    fireEvent.click(container.querySelector('.cc-visual'));
+    fireEvent.click(edit);
+    fireEvent.click(del);
+    expect(calls).toEqual([['select', 'a1'], ['edit', 'a1'], ['delete', 'a1']]);
   });
 });
 

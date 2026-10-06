@@ -9,7 +9,7 @@ vi.mock('../components/SavingsEvolution', () => ({ default: () => <div data-test
 afterEach(cleanup);
 
 const members = [{ id: 'm1', name: 'Igor Andrade' }];
-const conta = { id: 'a1', kind: 'checking', bank: 'Nubank', agency: '0001', accountNumber: '1', balance: 0, memberId: 'm1', isActive: true };
+const conta = { id: 'a1', kind: 'checking', bank: 'Nubank', balance: 0, memberId: 'm1', isActive: true };
 const reserva = { id: 'b1', kind: 'savings', parentAccountId: 'a1', name: 'Reserva', balance: 4000, isActive: true };
 
 const view = (props = {}) => (

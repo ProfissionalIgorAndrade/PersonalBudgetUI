@@ -18,15 +18,9 @@ export default function AccountForm({ f, onChange, onSave, onClose, members }) {
           {BANKS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
         </select>
       </div>
-      <div className="grid-2">
-        <div className="form-group">
-          <label className="form-label">Agência</label>
-          <input className="form-input" value={f.agency || ''} onChange={e => set('agency', e.target.value)} placeholder="0001" />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Número da Conta</label>
-          <input className="form-input" value={f.accountNumber || ''} onChange={e => set('accountNumber', e.target.value)} placeholder="12345-6" />
-        </div>
+      <div className="form-group">
+        <label className="form-label">Apelido (opcional)</label>
+        <input className="form-input" value={f.name || ''} onChange={e => set('name', e.target.value)} placeholder="Ex.: Conta salário" maxLength={80} />
       </div>
       <div className="form-group">
         <label className="form-label">Membro da família *</label>

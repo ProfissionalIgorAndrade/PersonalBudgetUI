@@ -5,9 +5,9 @@ import { HlCard, HlToggle, HlEmpty } from '../HlParts';
 import { HcTable } from './HcParts';
 
 /** Progresso de revisão: % dos lançamentos do mês marcados como revisados, por cartão ou conta. */
-export default function HcReview({ transactions, accounts, cards, month }) {
+export default function HcReview({ transactions, accounts, cards, members, month }) {
   const [mode, setMode] = useState('chart');
-  const p = useMemo(() => reviewProgress(transactions, accounts, cards, month), [transactions, accounts, cards, month]);
+  const p = useMemo(() => reviewProgress(transactions, accounts, cards, month, members), [transactions, accounts, cards, members, month]);
   const bar = (value, label) => (
     <div className="hl-meter" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100}
       aria-valuenow={Math.round(value * 100)} aria-valuetext={pct(value)}>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { R$ } from '../../../core/utils/format';
 import { findMember, BANK_LABELS } from '../../../application/mappers/index';
 import BankLogo from '../../shared/components/BankLogo';
@@ -34,7 +34,7 @@ const ymLabel = (ym) => {
   return `${m}/${y}`;
 };
 
-export default function AccountTile({ account, flow, monthLabel, members, selected, onSelect, onEdit, onDelete, compact = false }) {
+function AccountTile({ account, flow, monthLabel, members, selected, onSelect, onEdit, onDelete, compact = false }) {
   const mem = findMember(members, account.memberId);
 
   return (
@@ -42,7 +42,7 @@ export default function AccountTile({ account, flow, monthLabel, members, select
       <div
         className="cc-visual cc-clickable"
         style={{ background: getGrad(account.color), padding: compact ? '10px 12px' : '14px 16px', minHeight: compact ? 90 : 110 }}
-        onClick={onSelect}
+        onClick={() => onSelect(account)}
       >
         {/* Topo: logo + banco */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
@@ -57,7 +57,7 @@ export default function AccountTile({ account, flow, monthLabel, members, select
           </div>
         </div>
 
-        {/* Base: movimento do mês + agência/conta */}
+        {/* Base: movimento do mês */}
         <div>
           <div className="flex jcb aib" style={{ gap: 10, marginBottom: 6 }}>
             <div>
@@ -75,8 +75,7 @@ export default function AccountTile({ account, flow, monthLabel, members, select
           </div>
           {!compact && (
             <div className="flex jcb" style={{ fontSize: 9, opacity: .65 }}>
-              <span>Agência {account.agency || '—'} &nbsp;·&nbsp; Conta {account.accountNumber || '—'}</span>
-              {monthLabel && <span>{ymLabel(monthLabel)}</span>}
+              {monthLabel && <span style={{ marginLeft: 'auto' }}>{ymLabel(monthLabel)}</span>}
             </div>
           )}
         </div>
@@ -90,8 +89,8 @@ export default function AccountTile({ account, flow, monthLabel, members, select
         {/* Compact: botões de ação dentro da face */}
         {compact && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, marginTop: 6 }} onClick={e => e.stopPropagation()}>
-            <button className="btn-icon" style={{ padding: '2px 6px', fontSize: 11, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', borderRadius: 5 }} onClick={onEdit}>✏️</button>
-            <button className="btn-icon" style={{ padding: '2px 6px', fontSize: 11, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', borderRadius: 5 }} onClick={onDelete}>🗑️</button>
+            <button className="btn-icon" style={{ padding: '2px 6px', fontSize: 11, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', borderRadius: 5 }} onClick={() => onEdit(account)}>✏️</button>
+            <button className="btn-icon" style={{ padding: '2px 6px', fontSize: 11, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', borderRadius: 5 }} onClick={() => onDelete(account)}>🗑️</button>
           </div>
         )}
       </div>
@@ -103,8 +102,8 @@ export default function AccountTile({ account, flow, monthLabel, members, select
               {mem ? `${mem.emoji} ${mem.name}` : '—'}
             </span>
             <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-              <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onEdit}>✏️</button>
-              <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={onDelete}>🗑️</button>
+              <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => onEdit(account)}>✏️</button>
+              <button className="btn-icon" style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => onDelete(account)}>🗑️</button>
             </div>
           </div>
         </div>
@@ -112,3 +111,5 @@ export default function AccountTile({ account, flow, monthLabel, members, select
     </div>
   );
 }
+
+export default memo(AccountTile);

@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { checkingOnly } from '../../application/mappers/index';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { checkingOnly, findMember, accountLabel, accountEditFields } from '../../application/mappers/index';
 import { R$ } from '../../core/utils/format';
 
 import { ACC_TYPES } from '../../core/constants/index';
 import MonthSelector from '../shared/components/MonthSelector';
-import { txBelongsToMonth } from '../../core/utils/billing';
+import { groupMonthFlowByAccount, flowOf } from './logic/monthFlow';
 import Modal from '../shared/components/Modal';
 import AccountTile from './components/AccountTile';
 import AccountDetail from './components/AccountDetail';
@@ -29,7 +29,7 @@ export default function AccountsView({
   }, [accounts, selectedId]);
 
   const openNew = () => {
-    setF({ bank: 'Nubank', agency: '', accountNumber: '' });
+    setF({ bank: 'Nubank' });
     setShowForm(true);
   };
 
@@ -38,30 +38,21 @@ export default function AccountsView({
     setShowForm(false);
   };
 
-  /** Saldo do mês selecionado: receitas − despesas do período. */
-  const accountBalance = acc => {
-    const { income, expense } = monthFlow(acc?.id);
-    return income - expense;
-  };
-
   /**
-   * Movimento da conta no mês em exibição, para o card dar uma prévia sem
+   * Movimento de cada conta no mês em exibição, para o card dar uma prévia sem
    * exigir clique — o mesmo papel que o total da fatura cumpre no cartão.
    *
-   * O saldo acima vem da API e é acumulado; estes dois são do período.
+   * O saldo da API é acumulado; estes valores são do período. Calculado uma
+   * vez por mudança de lançamentos/mês, não por conta.
    */
-  const monthFlow = (accountId) => {
-    const rows = (transactions || []).filter(t =>
-      t.accountId === accountId &&
-      !t.cardId &&
-      txBelongsToMonth(t, activeMonth));
-    const sum = (type) => rows
-      .filter(t => t.type === type)
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
-    return { income: sum('income'), expense: sum('expense') };
-  };
+  const flowByAccount = useMemo(
+    () => groupMonthFlowByAccount(transactions, activeMonth),
+    [transactions, activeMonth],
+  );
 
-  const select = a => setSelectedAccount(sel => sel?.id === a.id ? null : a);
+  const select = useCallback(a => setSelectedAccount(sel => sel?.id === a.id ? null : a), []);
+  const editAccount = useCallback(a => { setF(accountEditFields(a)); setShowForm(true); }, []);
+  const askDelete = useCallback(a => setDeleteTarget({ id: a.id, name: accountLabel(a, members) }), [members]);
 
   const sidebarAccounts = useMemo(() => {
     const base = checkingOnly(accounts);
@@ -69,7 +60,7 @@ export default function AccountsView({
     const q = sidebarSearch.trim().toLowerCase();
     return base.filter(a => {
       if (a.bank && a.bank.toLowerCase().includes(q)) return true;
-      const mem = members.find(m => m.id === a.memberId);
+      const mem = findMember(members, a.memberId);
       if (mem && mem.name.toLowerCase().includes(q)) return true;
       return false;
     });
@@ -77,11 +68,13 @@ export default function AccountsView({
 
   const totalBalance = useMemo(() =>
     checkingOnly(accounts).reduce((sum, a) => {
-      const { income, expense } = monthFlow(a.id);
+      const { income, expense } = flowOf(flowByAccount, a.id);
       return sum + (income - expense);
     }, 0),
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [accounts, transactions, activeMonth]);
+  [accounts, flowByAccount]);
+
+  const selectedFlow = selectedAccount ? flowOf(flowByAccount, selectedAccount.id) : null;
+  const selectedBalance = selectedFlow ? selectedFlow.income - selectedFlow.expense : 0;
 
   const confirmDeleteAccount = () => {
     if (!deleteTarget) return;
@@ -132,13 +125,13 @@ export default function AccountsView({
                   <AccountTile
                     key={a.id}
                     account={a}
-                    flow={monthFlow(a.id)}
+                    flow={flowOf(flowByAccount, a.id)}
                     monthLabel={activeMonth}
                     members={members}
                     selected={selectedAccount?.id === a.id}
-                    onSelect={() => select(a)}
-                    onEdit={() => { setF(a); setShowForm(true); }}
-                    onDelete={() => setDeleteTarget({ id: a.id, name: a.name })}
+                    onSelect={select}
+                    onEdit={editAccount}
+                    onDelete={askDelete}
                     compact={true}
                   />
                 ))
@@ -157,8 +150,8 @@ export default function AccountsView({
                       {ACC_TYPES[selectedAccount.type] || selectedAccount.type}
                       {selectedAccount.bank ? ' · ' + selectedAccount.bank : ''}
                       {' · Saldo: '}
-                      <span style={{ fontWeight: 700, color: accountBalance(selectedAccount) >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                        {R$(accountBalance(selectedAccount))}
+                      <span style={{ fontWeight: 700, color: selectedBalance >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                        {R$(selectedBalance)}
                       </span>
                     </p>
                   </div>
@@ -166,7 +159,7 @@ export default function AccountsView({
                 </div>
                 <AccountDetail
                   account={selectedAccount}
-                  accountLedgerBalance={accountBalance(selectedAccount)}
+                  accountLedgerBalance={selectedBalance}
                   transactionsReloadGeneration={transactionsReloadGeneration}
                   categories={categories}
                   members={members}
