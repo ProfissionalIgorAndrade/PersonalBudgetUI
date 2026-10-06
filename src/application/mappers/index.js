@@ -10,9 +10,14 @@ export function findMember(members, memberId) {
   return members.find(m => String(m.id) === id || String(m.userId ?? '') === id) ?? null;
 }
 
-/** Rótulo de exibição de conta: "Banco - Titular" (ou só "Banco" se sem titular). */
+/**
+ * Rótulo de exibição de conta: "Apelido - Titular", ou "Banco - Titular" sem
+ * apelido (só o primeiro termo se sem titular). Caixinha sempre usa o banco:
+ * o `name` dela é o nome da caixinha, não um apelido da conta.
+ */
 export function accountLabel(account, members) {
-  const bank = BANK_LABELS[account.bank] || account.bank || 'Conta';
+  const bankLabel = BANK_LABELS[account.bank] || account.bank || 'Conta';
+  const bank = account.kind !== 'savings' && account.name ? account.name : bankLabel;
   const mem  = findMember(members, account.memberId);
   return mem ? `${bank} - ${mem.name}` : bank;
 }
@@ -48,24 +53,11 @@ export const BANK_COLORS = {
 
 
 /* ─── Normalizers ───────────────────────────────────────────── */
-function toStr(v) {
-  if (v == null) return '';
-  if (typeof v === 'string') return v;
-  if (typeof v === 'number') return String(v);
-  // .NET value object pattern: { value: "..." } or { $value: "..." }
-  if (typeof v === 'object') return String(v.value ?? v.Value ?? v.code ?? v.Code ?? '');
-  return '';
-}
-
 export function normalizeAccount(a) {
-  const rawNumber = a.accountNumber ?? a.AccountNumber ?? a.number ?? a.Number;
   return {
     id:            a.id,
-    name:          a.name || `${BANK_LABELS[a.bank] || a.bank}${rawNumber ? ` ···${toStr(rawNumber).slice(-4)}` : ''}`,
+    name:          a.name || BANK_LABELS[a.bank] || a.bank,
     bank:          a.bank ?? a.Bank ?? '',
-    agency:        toStr(a.agency ?? a.Agency),
-    accountNumber: toStr(rawNumber),
-    number:        toStr(rawNumber),
     balance:       parseMoneyAmount(a.balance ?? a.Balance),
     color:         BANK_COLORS[a.bank ?? a.Bank] || '#2dd4bf',
     // Caixinha é uma conta de tipo Savings com pai; o resto do app trata as

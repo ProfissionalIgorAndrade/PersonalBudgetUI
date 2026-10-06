@@ -5,9 +5,9 @@ import { HlCard, HlToggle, HlEmpty, HlRankBars } from '../HlParts';
 import { HcTable } from './HcParts';
 
 /** Saldo das contas correntes (caixinhas ficam em "Caixinhas e metas"). */
-export default function HcBalances({ accounts }) {
+export default function HcBalances({ accounts, members }) {
   const [mode, setMode] = useState('chart');
-  const { total, items } = useMemo(() => accountBalances(accounts), [accounts]);
+  const { total, items } = useMemo(() => accountBalances(accounts, members), [accounts, members]);
 
   const rows = items.map((a, i) => ({
     key: a.id, label: a.name, icon: a.balance < 0 ? '✕' : '🏦', value: Math.max(a.balance, 0),

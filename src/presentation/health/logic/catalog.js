@@ -8,7 +8,7 @@
  * `state` explícito para o widget mostrar um estado vazio.
  */
 import { txDisplayMonth, statementNet } from '../../../core/utils/billing';
-import { normalizeTransaction } from '../../../application/mappers';
+import { normalizeTransaction, accountLabel } from '../../../application/mappers';
 import {
   monthRange, monthTotals, monthRows, expenseByCategory, categoryInfo,
   averageIncome, baselineMonths, futurePlan, parseInstallment,
@@ -176,7 +176,7 @@ export function latestTransactions(transactions, ym, limit = 10) {
  * Progresso de revisão do mês: % de lançamentos com `reviewed`, geral e por
  * cartão (quando o lançamento é de cartão) ou conta. Pior grupo primeiro.
  */
-export function reviewProgress(transactions, accounts, cards, ym) {
+export function reviewProgress(transactions, accounts, cards, ym, members = []) {
   const rows = monthRows(transactions, ym);
   const groups = {};
   for (const t of rows) {
@@ -184,7 +184,7 @@ export function reviewProgress(transactions, accounts, cards, ym) {
     const acc = !card && t.accountId ? (accounts || []).find(a => String(a.id) === String(t.accountId)) : null;
     const key = card ? `card:${card.id}` : acc ? `acc:${acc.id}` : 'none';
     if (!groups[key]) {
-      groups[key] = { key, label: card ? card.name : acc ? acc.name : 'Sem conta', icon: card ? '💳' : '🏦', total: 0, reviewed: 0 };
+      groups[key] = { key, label: card ? card.name : acc ? accountLabel(acc, members) : 'Sem conta', icon: card ? '💳' : '🏦', total: 0, reviewed: 0 };
     }
     groups[key].total += 1;
     if (t.reviewed) groups[key].reviewed += 1;
@@ -199,10 +199,10 @@ export function reviewProgress(transactions, accounts, cards, ym) {
 /* ── Contas, fixos, parcelas, assinaturas ──────────────────────── */
 
 /** Contas correntes ativas com saldo, maior primeiro (caixinhas ficam de fora). */
-export function accountBalances(accounts) {
+export function accountBalances(accounts, members = []) {
   const items = (accounts || [])
     .filter(a => a && a.kind !== 'savings' && a.isActive !== false)
-    .map(a => ({ id: a.id, name: a.name, balance: num(a.balance), color: a.color }))
+    .map(a => ({ id: a.id, name: accountLabel(a, members), balance: num(a.balance), color: a.color }))
     .sort((a, b) => b.balance - a.balance);
   return { total: sum(items.map(a => a.balance)), items };
 }
