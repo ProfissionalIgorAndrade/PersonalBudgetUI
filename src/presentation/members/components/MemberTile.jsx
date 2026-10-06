@@ -1,4 +1,5 @@
 import React from 'react';
+import { countPeople } from '../../../core/constants/avatars';
 
 /**
  * A cor do membro entra só como acento (`--mbr`): o chip do avatar é uma
@@ -11,10 +12,15 @@ import React from 'react';
  */
 export default function MemberTile({ member, onEdit, onDelete }) {
   const linked = member.userId != null && member.userId !== '';
+  const count  = countPeople(member.emoji);
 
   return (
     <div className="mbr-tile" style={{ '--mbr': member.color }}>
-      <div className="mbr-avatar" aria-hidden="true">{member.emoji}</div>
+      <div
+        className={count > 1 ? 'mbr-avatar mbr-avatar-pill' : 'mbr-avatar'}
+        data-count={Math.min(count, 4) || 1}
+        aria-hidden="true"
+      >{member.emoji}</div>
       <div className="mbr-info">
         <span className="mbr-name" title={member.name}>{member.name}</span>
         <span className="mbr-tag">{linked ? 'Usuário' : 'Perfil'}</span>

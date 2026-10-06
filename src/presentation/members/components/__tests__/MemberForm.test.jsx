@@ -62,11 +62,32 @@ describe('MemberForm', () => {
     expect(onChange.mock.calls[0][0].emoji).toBe('👵\u{1F3FD}');
   });
 
-  it('selecting a family avatar drops the tone', () => {
+  it('selecting a family avatar keeps the tone on every person', () => {
     const onChange = vi.fn();
     render(form({ ...base, emoji: '👩\u{1F3FD}' }, { onChange }));
-    fireEvent.click(screen.getByLabelText('Avatar 👪'));
-    expect(onChange.mock.calls[0][0].emoji).toBe('👪');
+    fireEvent.click(screen.getByLabelText('Avatar 👨👩👧'));
+    expect(onChange.mock.calls[0][0].emoji).toBe('👨🏽👩🏽👧🏽');
+  });
+
+  it('family picker buttons use the wide class, person buttons do not', () => {
+    render(form());
+    expect(screen.getByLabelText('Avatar 👨👩👧👦').className).toContain('mbr-opt-wide');
+    expect(screen.getByLabelText('Avatar 👩').className).not.toContain('mbr-opt-wide');
+  });
+
+  it('shows the tone selector for a composed family and applies it to the whole group', () => {
+    const onChange = vi.fn();
+    render(form({ ...base, emoji: '👨👩👧👦' }, { onChange }));
+    expect(screen.getByRole('group', { name: 'Tom de pele' }).querySelectorAll('button').length).toBe(6);
+    fireEvent.click(screen.getByLabelText('Tom Médio'));
+    expect(onChange.mock.calls[0][0].emoji).toBe('👨🏽👩🏽👧🏽👦🏽');
+  });
+
+  it('changing the tone of an already toned family re-applies it to all people', () => {
+    const onChange = vi.fn();
+    render(form({ ...base, emoji: '👨🏻👩🏻' }, { onChange }));
+    fireEvent.click(screen.getByLabelText('Tom Escuro'));
+    expect(onChange.mock.calls[0][0].emoji).toBe('👨🏿👩🏿');
   });
 
   it('offers the six tone options only for a person base and applies them', () => {
@@ -78,7 +99,7 @@ describe('MemberForm', () => {
     expect(onChange.mock.calls[0][0].emoji).toBe('👩\u{1F3FF}');
   });
 
-  it('hides the tone control for family and non-person emoji', () => {
+  it('hides the tone control for legacy ZWJ family and non-person emoji', () => {
     const { rerender } = render(form({ ...base, emoji: '👨‍👩‍👧‍👦' }));
     expect(screen.queryByRole('group', { name: 'Tom de pele' })).toBeNull();
     rerender(form({ ...base, emoji: '💼' }));
