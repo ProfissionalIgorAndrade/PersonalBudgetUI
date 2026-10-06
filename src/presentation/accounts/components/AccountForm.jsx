@@ -2,7 +2,14 @@ import React from 'react';
 import { BANK_LABELS } from '../../../application/mappers/index';
 import Modal from '../../shared/components/Modal';
 
-const BANKS = Object.entries(BANK_LABELS).map(([k, v]) => ({ value: k, label: v }));
+// Ordem alfabética por rótulo (pt-BR), com "Outro" sempre por último.
+const BANKS = Object.entries(BANK_LABELS)
+  .map(([k, v]) => ({ value: k, label: v }))
+  .sort((a, b) => {
+    if (a.value === 'Outro') return 1;
+    if (b.value === 'Outro') return -1;
+    return a.label.localeCompare(b.label, 'pt-BR');
+  });
 
 export default function AccountForm({ f, onChange, onSave, onClose, members }) {
   const set = (k, v) => onChange({ ...f, [k]: v });
