@@ -1,30 +1,31 @@
 import React from 'react';
+import { BANKS } from '../../../core/constants/banks';
 
 /**
- * Mapa de bancos/instituições conhecidos.
+ * Índice de busca dos bancos conhecidos, derivado de core/constants/banks.js.
  *
- * A chave é a versão lowercase do campo `account.bank` (e.g. 'nubank',
- * 'itau'). Inclui variações com e sem acento para cobrir possíveis variações
- * de entrada, mesmo que o formulário normalmente use as chaves canônicas de
- * BANK_LABELS.
+ * A chave é a versão lowercase do campo `account.bank`: a chave do enum
+ * ('itau', 'bancodobrasil'), o rótulo ('itaú', 'banco do brasil', 'c6 bank')
+ * e os apelidos abaixo, para cobrir variações de entrada.
  */
-const BANK_MAP = {
-  nubank:           { abbr: 'NU',  bg: '#8a05be' },
-  inter:            { abbr: 'IN',  bg: '#ff7a00' },
-  itaú:             { abbr: 'IT',  bg: '#f47321' },
-  itau:             { abbr: 'IT',  bg: '#f47321' },
-  santander:        { abbr: 'S',   bg: '#cc0000' },
-  bradesco:         { abbr: 'BRA', bg: '#cc092f' },
-  caixa:            { abbr: 'CEF', bg: '#006f3d' },
-  bb:               { abbr: 'BB',  bg: '#005faf' },
-  'banco do brasil':{ abbr: 'BB',  bg: '#005faf' },
-  c6:               { abbr: 'C6',  bg: '#1a1a1a' },
-  xp:               { abbr: 'XP',  bg: '#1a1a1a' },
-  btg:              { abbr: 'BTG', bg: '#0c2340' },
+const ALIASES = {
+  bb: 'BancoDoBrasil',
+  c6: 'C6Bank',
+  xp: 'Xp',
+  btg: 'Btg',
 };
 
+const BANK_INDEX = {};
+for (const [key, bank] of Object.entries(BANKS)) {
+  BANK_INDEX[key.toLowerCase()] = bank.logo;
+  BANK_INDEX[bank.label.toLowerCase()] = bank.logo;
+}
+for (const [alias, key] of Object.entries(ALIASES)) {
+  BANK_INDEX[alias] = BANKS[key].logo;
+}
+
 /**
- * Resolve `bank` (string livre) para a entrada do BANK_MAP, ou null se não
+ * Resolve `bank` (string livre) para o logo do banco, ou null se não
  * reconhecido.
  *
  * A normalização é intencional: trim + lowercase. Não usamos remoção de
@@ -33,7 +34,7 @@ const BANK_MAP = {
 function resolveBank(bank) {
   if (!bank) return null;
   const key = String(bank).trim().toLowerCase();
-  return BANK_MAP[key] ?? null;
+  return Object.prototype.hasOwnProperty.call(BANK_INDEX, key) ? BANK_INDEX[key] : null;
 }
 
 /**
@@ -55,7 +56,7 @@ export default function BankLogo({ bank, size = 'md' }) {
   return (
     <span className={`bkl bkl-${size}`} aria-hidden="true">
       {entry ? (
-        <span className="bkl-badge" style={{ background: entry.bg }}>
+        <span className="bkl-badge" style={{ background: entry.bg, color: entry.fg }}>
           {entry.abbr}
         </span>
       ) : (
