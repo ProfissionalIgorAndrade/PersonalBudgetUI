@@ -15,7 +15,7 @@ export default function FaturasWidget({ faturasData, totalFaturas }) {
             return (
               <div key={c.id} style={{ marginBottom: 10 }}>
                 <div className="flex jcb aic mb2">
-                  <span style={{ fontSize: 12 }}>{c.name} <span className="tmuted txxs">···· {c.lastDigits || '????'}</span></span>
+                  <span style={{ fontSize: 12 }}>{c.name}</span>
                   <span style={{ fontSize: 12, fontWeight: 700 }}>{R$(c.spent)}</span>
                 </div>
                 <div className="progress-bar">
