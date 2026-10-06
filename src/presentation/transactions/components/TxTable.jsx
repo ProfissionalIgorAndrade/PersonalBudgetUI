@@ -23,6 +23,12 @@ const REC = {
   none:        <span style={{ color: 'var(--muted)', fontSize: 11 }}>—</span>,
 };
 
+function indexById(list) {
+  const byId = new Map();
+  for (const item of list) if (!byId.has(item.id)) byId.set(item.id, item);
+  return byId;
+}
+
 function SortArrow({ col, sortCol, sortDir }) {
   if (sortCol !== col) return <span className="csv-sort">⇅</span>;
   return <span className="csv-sort active">{sortDir === 'asc' ? '↑' : '↓'}</span>;
@@ -64,13 +70,20 @@ export default function TxTable({
     else { setSortCol(col); setSortDir('desc'); }
   };
 
+  // Índices por id (primeira ocorrência vence, como o find() anterior; chave
+  // estrita, sem coerção) para não varrer as listas a cada linha renderizada.
+  const categoriesById = useMemo(() => indexById(categories), [categories]);
+  const membersById    = useMemo(() => indexById(members), [members]);
+  const accountsById   = useMemo(() => indexById(accounts), [accounts]);
+  const cardsById      = useMemo(() => indexById(cards), [cards]);
+
   const sorted = useMemo(() => {
     const resolve = t => {
       if (sortCol === 'date')       return t.date || '';
       if (sortCol === 'desc')       return (t.description || '').toLowerCase();
       if (sortCol === 'amount')     return Number(t.amount);
-      if (sortCol === 'cat')        return categories.find(c => c.id === t.categoryId)?.name?.toLowerCase() || '';
-      if (sortCol === 'member')     return members.find(m => m.id === t.memberId)?.name?.toLowerCase() || '';
+      if (sortCol === 'cat')        return categoriesById.get(t.categoryId)?.name?.toLowerCase() || '';
+      if (sortCol === 'member')     return membersById.get(t.memberId)?.name?.toLowerCase() || '';
       if (sortCol === 'recurrence') return t.recurrence || '';
       if (sortCol === 'type')       return t.type || '';
       return '';
@@ -80,7 +93,7 @@ export default function TxTable({
       const cmp = typeof av === 'string' ? av.localeCompare(bv, 'pt-BR') : av - bv;
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [rows, sortCol, sortDir, categories, members]);
+  }, [rows, sortCol, sortDir, categoriesById, membersById]);
 
   const active     = rows;
   const totalIn    = active.filter(t => t.type === 'income').reduce((s, t)  => s + Number(t.amount), 0);
@@ -203,10 +216,10 @@ export default function TxTable({
               </tr>
             ) : paginated.map((t, i) => {
               const rowNum    = (page - 1) * PAGE_SIZE + i + 1;
-              const cat       = categories.find(c => c.id === t.categoryId);
-              const mem       = members.find(m => m.id === t.memberId);
-              const acc       = accounts.find(a => a.id === t.accountId);
-              const crd       = cards.find(c => c.id === t.cardId);
+              const cat       = categoriesById.get(t.categoryId);
+              const mem       = membersById.get(t.memberId);
+              const acc       = accountsById.get(t.accountId);
+              const crd       = cardsById.get(t.cardId);
               const isIncome  = t.type === 'income';
               const isExpense = t.type === 'expense';
               return (
