@@ -73,3 +73,13 @@ export const summaryAll = {
 };
 
 export const ALL_IDS = ['car', 'phone', 'salary', 'trip'];
+
+/**
+ * Mesma resposta com `fullMonth` (receita e despesa do MÊS INTEIRO). Nos meses
+ * futuros é igual a income / committed + variable. No mês atual (out/26) o
+ * `baseline` acima traz só o restante (500 / 1800 + 300); o mês inteiro é
+ * receita 4000,00, despesa 3400,00, sobra 600,00.
+ */
+const FM = (income, expense) => ({ income, expense, result: Math.round((income - expense) * 100) / 100 });
+const FULL = [FM(4000, 3400), FM(4000, 3400.75), FM(4000, 3700.75), FM(4000, 4700.25), FM(4000, 3400.75), FM(4000, 3400.75)];
+export const baselineFull = baseline.map((b, i) => ({ ...b, fullMonth: FULL[i] }));

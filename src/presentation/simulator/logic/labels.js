@@ -93,3 +93,85 @@ export function previewText(form) {
   }
   return `${R$(amount)} em ${shortMonth(form.startMonth)}`;
 }
+
+/* ── Visão mensal: nomes, veredito e situação do mês ─────────────── */
+
+/** Nome do cartão: a descrição, ou "Simulação N" (N = posição na lista, a partir de 1). */
+export const simulationName = (sim, index) => (sim.description?.trim() || `Simulação ${index + 1}`);
+
+/** Frase curta da parcela no cartão: "R$ 150,00/mês de mar/26 a fev/27". */
+export function simulationSummary(sim) {
+  const start = shortMonth(sim.startMonth);
+  if (sim.mode === 'Installment') {
+    const b = installmentBreakdown(sim);
+    if (!b) return '';
+    if (b.count === 1) return `${R$(b.per)} em ${start}`;
+    return `${R$(b.per)}/mês de ${start} a ${shortMonth(addMonths(sim.startMonth, b.count - 1))}`;
+  }
+  if (sim.mode === 'Monthly') {
+    return sim.months
+      ? `${R$(sim.amount)}/mês de ${start} a ${shortMonth(addMonths(sim.startMonth, sim.months - 1))}`
+      : `${R$(sim.amount)}/mês a partir de ${start}, até o fim do período`;
+  }
+  return `${R$(sim.amount)} em ${start}`;
+}
+
+/** Segunda linha, só para parcelada: "12× R$ 150,00 = R$ 1.800,00 (última R$ 83,37)". */
+export function installmentTotalText(sim) {
+  if (sim.mode !== 'Installment') return '';
+  const b = installmentBreakdown(sim);
+  if (!b) return '';
+  const last = b.per !== b.last ? ` (última ${R$(b.last)})` : '';
+  return `${b.count}× ${R$(b.per)}${last} = ${R$(b.total)}`;
+}
+
+export const VERDICT_STATUS = {
+  critical: 'Crítico', warning: 'Atenção', good: 'Tudo certo', unknown: 'Sem dados',
+};
+
+/** Situação de cada mês: ícone (via HlStatus) + texto. */
+export const MONTH_STATUS = {
+  negative: { level: 'critical', label: 'Negativo' },
+  tight: { level: 'warning', label: 'Apertado' },
+  ok: { level: 'good', label: 'Positivo' },
+};
+
+const monthsWord = (n) => `${n} ${n === 1 ? 'mês' : 'meses'}`;
+const baselineNote = (withSims, baselineValue) => (withSims ? ` (sem simulações: ${R$(baselineValue)})` : '');
+
+/** Veredito de 1 mês. */
+export function headlineSingle({ label, result, baselineResult, withSims }) {
+  const note = baselineNote(withSims, baselineResult);
+  if (result < 0) return `Em ${label} o mês fica negativo em ${R$(-result)}${note}.`;
+  if (result === 0) return `Em ${label} o mês fecha zerado${note}.`;
+  return `Em ${label} o mês fecha com sobra de ${R$(result)}${note}.`;
+}
+
+/** Veredito de N meses (N > 1). */
+export function headlineMulti({
+  n, total, baselineTotal, withSims, negativeCount, firstNegativeLabel, tightestLabel, tightestResult,
+}) {
+  const head = `Nos próximos ${monthsWord(n)}: ${total < 0 ? 'falta total' : 'sobra total'} de ${R$(Math.abs(total))}`
+    + `${baselineNote(withSims, baselineTotal)}.`;
+  if (negativeCount > 0) {
+    const count = negativeCount === 1 ? '1 mês fica negativo' : `${negativeCount} de ${n} meses ficam negativos`;
+    return `${head} ${count}; o primeiro é ${firstNegativeLabel}.`;
+  }
+  if (tightestResult === 0) {
+    return `${head} Nenhum mês fica no vermelho; o mais apertado é ${tightestLabel}, que fecha zerado.`;
+  }
+  return `${head} Todos os meses seguem positivos; o mais apertado é ${tightestLabel}, com ${R$(tightestResult)} de sobra.`;
+}
+
+export const lineSlack = (amount) => `Você ainda pode assumir até ${R$(amount)} por mês a mais sem ficar no vermelho.`;
+export const lineGap = (label, amount) => `Para ${label} fechar sem ficar no vermelho, faltam ${R$(amount)}.`;
+export const lineCommitment = (pct, label, withSims) =>
+  `${withSims ? 'Com as simulações, ' : ''}${pct}% da receita de ${label} fica comprometida.`;
+export const lineTight = (label, pct) =>
+  `A sobra de ${label} é menor que ${pct}% da receita do mês: qualquer imprevisto pode deixá-lo negativo.`;
+export const LINE_NO_SIMS = 'Nenhuma simulação ligada. Adicione uma compra, renda ou gasto para ver o que muda mês a mês.';
+
+export const HEADLINE_NO_HISTORY = 'Ainda não há histórico suficiente para projetar os meses.';
+export const lineNoHistory = (lookback) =>
+  `Não há lançamentos nos últimos ${lookback} meses, então receita e despesa não podem ser estimadas. Lance algumas transações e volte aqui.`;
+export const HEADLINE_NO_MONTHS = 'Sem meses para projetar.';
