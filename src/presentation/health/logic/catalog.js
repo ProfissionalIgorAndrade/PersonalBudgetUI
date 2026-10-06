@@ -7,6 +7,7 @@
  * resultado é NaN ou Infinity: sem base de cálculo, devolve null ou um
  * `state` explícito para o widget mostrar um estado vazio.
  */
+import { defaultAvatarFor } from '../../../core/constants/avatars';
 import { txDisplayMonth, statementNet } from '../../../core/utils/billing';
 import { normalizeTransaction, accountLabel } from '../../../application/mappers';
 import {
@@ -96,7 +97,7 @@ export function byMember(transactions, members, ym, kind = 'expense') {
       return {
         id, value, share: share(value, total),
         name: id === '' ? 'Sem membro' : (m?.name || 'Membro'),
-        emoji: id === '' ? '❔' : (m?.emoji || '👤'),
+        emoji: id === '' ? '❔' : (m?.emoji || defaultAvatarFor(m?.type)),
       };
     })
     .filter(i => i.value > 0)

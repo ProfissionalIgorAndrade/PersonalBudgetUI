@@ -1,4 +1,5 @@
 import { COLORS, FLAGS } from '../../core/constants/index';
+import { defaultAvatarFor } from '../../core/constants/avatars';
 import { BANK_LABELS, BANK_COLORS } from '../../core/constants/banks';
 import { parseMoneyAmount } from '../../core/utils/money';
 import { buildCreateTransactionPayload } from '../createTransactionPayload';
@@ -108,12 +109,14 @@ export function normalizeProfile(p) {
 
   const uid = p.userId ?? p.UserId ?? null;
 
+  const kind = p.kind ?? p.Kind ?? 'other';
+
   return {
     id:     String(id),
     name:   (p.displayName ?? p.name ?? p.Name ?? '').trim() || 'Membro',
-    emoji:  p.emoji ?? p.Emoji ?? '👤',
+    emoji:  (p.emoji ?? p.Emoji) || defaultAvatarFor(kind),
     color:  p.color ?? p.Color ?? '#2dd4bf',
-    type:   p.kind ?? p.Kind ?? 'other',
+    type:   kind,
     userId: uid,
   };
 }
