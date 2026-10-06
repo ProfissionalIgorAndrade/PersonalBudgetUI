@@ -61,9 +61,9 @@ describe('TxTable reviewed action', () => {
 
   it('keeps the review slot (spacer) when the action is absent, with the same slot count', () => {
     const { container: withBtn } = render(<TxTable rows={[tx()]} onToggleReviewed={() => {}} />);
-    const withCount = withBtn.querySelector('.tx-actions').children.length;
+    const withCount = withBtn.querySelector('.tx-act-grid').children.length;
     cleanup();
     const { container: without } = render(<TxTable rows={[tx()]} />);
-    expect(without.querySelector('.tx-actions').children.length).toBe(withCount);
+    expect(without.querySelector('.tx-act-grid').children.length).toBe(withCount);
   });
 });

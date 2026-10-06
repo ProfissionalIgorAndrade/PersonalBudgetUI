@@ -751,9 +751,9 @@ canvas { max-height: 220px; }
 .csv-col-act { text-align: left !important; width: 142px; min-width: 142px; padding: 4px 6px !important; }
 /* Actions cell: 4 fixed slots (4 x 30px + 3 x 3px gap = 129px) so icons keep the
    same position on every row, whichever actions the screen enables. */
-.tx-actions { display: grid; grid-template-columns: repeat(4, 30px); gap: 3px; width: 129px; }
-.tx-actions .tx-act-btn { width: 30px; height: 26px; padding: 0; justify-content: center; font-size: 12px; box-sizing: border-box; }
-.tx-actions .tx-act-spacer { display: block; width: 30px; height: 26px; }
+.tx-act-grid { display: grid; grid-template-columns: repeat(4, 30px); gap: 3px; width: 129px; }
+.tx-act-grid .tx-act-btn { width: 30px; height: 26px; padding: 0; justify-content: center; font-size: 12px; box-sizing: border-box; }
+.tx-act-grid .tx-act-spacer { display: block; width: 30px; height: 26px; }
 .csv-footer {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   padding: 10px 15px; background: var(--surface2);

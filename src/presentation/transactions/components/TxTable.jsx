@@ -265,7 +265,7 @@ export default function TxTable({
                   <td className="csv-col-act">
                     {/* Four fixed slots (revisar, editar, excluir, detalhes). A missing
                         action keeps its slot as a spacer so icons line up on every row. */}
-                    <div className="tx-actions">
+                    <div className="tx-act-grid">
                       {onToggleReviewed ? (
                         <button
                           type="button"

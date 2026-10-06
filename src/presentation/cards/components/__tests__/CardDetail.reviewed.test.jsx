@@ -81,7 +81,7 @@ describe('CardDetail review buttons', () => {
     await screen.findByText('NuTag');
     const headers = [...container.querySelectorAll('thead th')].map(th => th.textContent);
     expect(headers.some(h => /Origem|Conta|Cartão|Fatura/.test(h))).toBe(false);
-    expect(container.querySelector('.tx-actions').children.length).toBe(4);
+    expect(container.querySelector('.tx-act-grid').children.length).toBe(4);
     expect(container.querySelectorAll('thead th').length)
       .toBe(container.querySelector('tbody tr').querySelectorAll('td').length);
   });

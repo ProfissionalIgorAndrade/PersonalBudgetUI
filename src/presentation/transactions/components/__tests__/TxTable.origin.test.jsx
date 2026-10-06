@@ -63,7 +63,7 @@ describe('TxTable origin column', () => {
 describe('TxTable fixed actions layout', () => {
   const rows = [tx({ id: 'r1', notes: 'com observação' }), tx({ id: 'r2' }), tx({ id: 'r3', reviewed: true })];
   const slotsOf = (container) =>
-    [...container.querySelectorAll('tbody tr')].map(r => r.querySelector('.tx-actions').children.length);
+    [...container.querySelectorAll('tbody tr')].map(r => r.querySelector('.tx-act-grid').children.length);
 
   it('always renders four slots per row with every action enabled', () => {
     const { container } = render(
@@ -84,13 +84,13 @@ describe('TxTable fixed actions layout', () => {
     const { container } = render(
       <TxTable {...base} rows={[tx()]} onEdit={() => {}} onDelete={() => {}} onToggleReviewed={() => {}} />,
     );
-    const titles = [...container.querySelector('.tx-actions').children].map(c => c.getAttribute('title'));
+    const titles = [...container.querySelector('.tx-act-grid').children].map(c => c.getAttribute('title'));
     expect(titles).toEqual(['Marcar como revisado', 'Editar', 'Excluir', 'Detalhes']);
   });
 
   it('keeps a spacer in the slot of the missing action, not shifting the others', () => {
     const { container } = render(<TxTable {...base} rows={[tx()]} onEdit={() => {}} />);
-    const kids = [...container.querySelector('.tx-actions').children];
+    const kids = [...container.querySelector('.tx-act-grid').children];
     expect(kids.map(c => c.tagName)).toEqual(['SPAN', 'BUTTON', 'SPAN', 'BUTTON']);
     expect(kids[1].getAttribute('title')).toBe('Editar');
     expect(kids[3].getAttribute('title')).toBe('Detalhes');
