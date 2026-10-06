@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { curMonth, R$ } from '../../core/utils/format';
 import { COLORS, FLAGS } from '../../core/constants/index';
-import { txBelongsToMonth, statementNet } from '../../core/utils/billing';
+import { statementTotalsByCard } from './cardTotals';
 import { cardLabel } from '../../application/mappers/index';
 import { uid } from '../../core/utils/format';
 import MonthSelector from '../shared/components/MonthSelector';
@@ -30,23 +30,26 @@ export default function CardsView({
   const [listSearch, setListSearch] = useState('');
 
   // ── Helpers ───────────────────────────────────────────────────────────
-  const cardStatementTotal = useCallback(id => {
-    const m = activeMonth || curMonth();
-    return statementNet(transactions.filter(t => t.cardId === id && txBelongsToMonth(t, m)));
-  }, [transactions, activeMonth]);
+  const totalsByCard = useMemo(
+    () => statementTotalsByCard(transactions, activeMonth || curMonth()),
+    [transactions, activeMonth],
+  );
+  const cardStatementTotal = id => totalsByCard.get(id) ?? 0;
 
-  const totalAllCards = useMemo(() =>
-    cards.reduce((sum, c) => sum + cardStatementTotal(c.id), 0),
-  [cards, cardStatementTotal]);
+  const totalAllCards = useMemo(
+    () => cards.reduce((sum, c) => sum + (totalsByCard.get(c.id) ?? 0), 0),
+    [cards, totalsByCard],
+  );
+
+  const findMember = useCallback(id => members.find(m => m.id === id), [members]);
 
   const select = c => setSelectedCardId(id => id === c.id ? null : c.id);
 
   const openNew = () => {
     setF({
-      name: '', flag: 'visa', lastDigits: '', limit: '', closingDay: '', dueDay: '',
+      name: '', flag: 'visa', limit: '', dueDay: '',
       color: COLORS[0],
-      memberId:  members[0]?.id  || '',
-      accountId: accounts[0]?.id || '',
+      memberId: members[0]?.id || '',
     });
     setShowForm(true);
   };
@@ -70,11 +73,11 @@ export default function CardsView({
     const q = listSearch.trim().toLowerCase();
     return cards.filter(c => {
       if (c.name.toLowerCase().includes(q)) return true;
-      const mem = members.find(m => m.id === c.memberId);
+      const mem = findMember(c.memberId);
       if (mem && mem.name.toLowerCase().includes(q)) return true;
       return false;
     });
-  }, [cards, members, listSearch]);
+  }, [cards, findMember, listSearch]);
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
@@ -150,7 +153,7 @@ export default function CardsView({
                       {cardLabel(selectedCard, members)}
                     </h2>
                     <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
-                      {FLAGS[selectedCard.flag] || 'Cartão'} · Fecha dia {selectedCard.closingDay || '?'} · Vence dia {selectedCard.dueDay || '?'}
+                      {FLAGS[selectedCard.flag] || 'Cartão'} · Vence dia {selectedCard.dueDay || '?'}
                     </p>
                   </div>
                 </div>
@@ -185,7 +188,6 @@ export default function CardsView({
         <CardForm
           f={f}
           members={members}
-          accounts={accounts}
           onChange={setF}
           onSave={save}
           onClose={() => setShowForm(false)}
