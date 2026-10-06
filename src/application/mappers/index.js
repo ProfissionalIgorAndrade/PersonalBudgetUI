@@ -1,4 +1,5 @@
 import { COLORS, FLAGS } from '../../core/constants/index';
+import { BANK_LABELS, BANK_COLORS } from '../../core/constants/banks';
 import { parseMoneyAmount } from '../../core/utils/money';
 import { buildCreateTransactionPayload } from '../createTransactionPayload';
 
@@ -41,15 +42,8 @@ export const CAT_TYPE_TO_API   = { income: 'Income', expense: 'Expense' };
 export const CAT_TYPE_FROM_API = { Income: 'income', Expense: 'expense' };
 
 /* ─── Bank metadata ─────────────────────────────────────────── */
-export const BANK_LABELS = {
-  Itau: 'Itaú', Nubank: 'Nubank', Inter: 'Inter',
-  Santander: 'Santander', Bradesco: 'Bradesco', Caixa: 'Caixa',
-};
-
-export const BANK_COLORS = {
-  Itau: '#f47321', Nubank: '#8a05be', Inter: '#ff7a00',
-  Santander: '#cc0000', Bradesco: '#cc092f', Caixa: '#006f3d',
-};
+// Derivados de core/constants/banks.js (fonte única); nomes mantidos para os imports existentes.
+export { BANK_LABELS, BANK_COLORS };
 
 
 /* ─── Normalizers ───────────────────────────────────────────── */
