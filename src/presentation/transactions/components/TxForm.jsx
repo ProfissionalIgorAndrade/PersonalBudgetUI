@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { uid } from '../../../core/utils/format';
+import { statementDueDate } from '../../../core/utils/billing';
 import { accountLabel, cardLabel } from '../../../application/mappers/index';
 import CurrencyInput from '../../shared/components/CurrencyInput';
 import DateInput from '../../shared/components/DateInput';
@@ -167,6 +168,18 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
     }
   };
 
+  // Resumo do modo Detalhes: origem (cartão ou conta) e vencimento da fatura.
+  const originCard = (cards || []).find(c => c.id === f.cardId);
+  const originAccount = (accounts || []).find(a => a.id === f.accountId);
+  const originLabel = originCard
+    ? `💳 ${originCard.name}`
+    : originAccount ? `🏦 ${accountLabel(originAccount, members)}` : '—';
+  const dueDate = originCard ? statementDueDate(originCard, f.statementMonth, f.statementYear) : null;
+  const pad2 = n => String(n).padStart(2, '0');
+  const dueLabel = dueDate
+    ? `${pad2(dueDate.getDate())}/${pad2(dueDate.getMonth() + 1)}/${dueDate.getFullYear()}`
+    : '';
+
   const thisYear = new Date().getFullYear();
   const statementYearOpts = [thisYear - 1, thisYear, thisYear + 1, thisYear + 2];
 
@@ -206,8 +219,9 @@ export default function TxForm({ tx, cats, members, accounts, cards, onSave, onC
           gap: '2px 16px',
         }}>
           <span><strong>Pagamento:</strong> {PAYMENT_LABELS[f.paymentMethod] ?? f.paymentMethod ?? '—'}</span>
+          <span><strong>Origem:</strong> {originLabel}</span>
           {f.statementMonth && f.statementYear && (
-            <span><strong>Fatura:</strong> {String(f.statementMonth).padStart(2, '0')}/{f.statementYear}</span>
+            <span><strong>Fatura</strong> {String(f.statementMonth).padStart(2, '0')}/{f.statementYear}{dueLabel && ` · vence ${dueLabel}`}</span>
           )}
           {f.recurrenceId && (
             <span><strong>Grupo de recorrência:</strong> {String(f.recurrenceId).slice(0, 8)}</span>
