@@ -2,28 +2,17 @@ import React, { useMemo, useState } from 'react';
 import { useSimulator, HORIZONS } from '../../application/hooks/useSimulator';
 import { localToday } from '../../core/utils/simulatorMath';
 import Modal from '../shared/components/Modal';
-import { HlEmpty } from '../health/widgets/HlParts';
-import { composeScenario } from './logic/compose';
-import WiTabs, { panelId, tabId } from './components/WiTabs';
-import SummaryTiles from './components/SummaryTiles';
-import MonthTab from './components/MonthTab';
-import FlowTab from './components/FlowTab';
-import SimulationsTab from './components/SimulationsTab';
+import { HlCard, HlEmpty, HlToggle } from '../health/widgets/HlParts';
+import { composeMonthly, buildVerdict, assignSimColors } from './logic/compose';
+import { simulationName } from './logic/labels';
+import VerdictBanner from './components/VerdictBanner';
+import SimulationStrip from './components/SimulationStrip';
+import MonthlyChart from './components/MonthlyChart';
+import MonthlyTable from './components/MonthlyTable';
 import HowWeCalculate from './components/HowWeCalculate';
 import SimulationForm from './components/SimulationForm';
 
-const ID_BASE = 'wi';
-const TABS = [
-  { id: 'month', label: 'No mês' },
-  { id: 'flow', label: 'Mês a mês' },
-  { id: 'sims', label: 'Por simulação' },
-];
-
 const horizonLabel = (m) => `${m} ${m === 1 ? 'mês' : 'meses'}`;
-
-const hasNoData = (result) =>
-  result.assumptions.monthsWithData === 0
-  && result.baseline.every((b) => !b.income && !b.committed && !b.variable);
 
 export default function SimulatorView() {
   const {
@@ -31,22 +20,32 @@ export default function SimulatorView() {
     addSimulation, editSimulation, removeSimulation, toggleSimulation, reset, limitReached,
   } = useSimulator();
 
-  const [tab, setTab] = useState('month');
+  const [mode, setMode] = useState('chart');     // 'chart' | 'table'
   const [form, setForm] = useState(null);           // null | { editing: sim|null }
   const [confirmClear, setConfirmClear] = useState(false);
 
-  const enabledSims = useMemo(() => simulations.filter((s) => s.enabled), [simulations]);
+  const enabledIds = useMemo(() => simulations.filter((s) => s.enabled).map((s) => s.id), [simulations]);
   const impactById = useMemo(() => new Map((result?.impacts ?? []).map((i) => [i.id, i])), [result]);
 
+  // Nome e cor de cada cartão, pela posição na lista completa (liga/desliga não muda).
+  const infos = useMemo(() => {
+    const colors = assignSimColors(simulations);
+    return simulations.map((sim, i) => ({ sim, name: simulationName(sim, i), slot: colors[sim.id] }));
+  }, [simulations]);
+
   // Liga/desliga recompõe aqui, sem nova chamada à API.
-  const composed = useMemo(() => (result ? composeScenario({
+  const composed = useMemo(() => (result ? composeMonthly({
     baseline: result.baseline,
     impacts: result.impacts,
-    openingBalance: result.openingBalance.amount,
-    enabledIds: enabledSims.map((s) => s.id),
-  }) : null), [result, enabledSims]);
+    enabledIds,
+  }) : null), [result, enabledIds]);
 
-  const monthLabels = result ? result.baseline.map((b) => b.label) : [];
+  const hasHistory = (result?.assumptions.monthsWithData ?? 0) > 0;
+  const verdict = useMemo(() => (composed ? buildVerdict({
+    composed, hasHistory, lookbackMonths: result.assumptions.lookbackMonths,
+  }) : null), [composed, hasHistory, result]);
+  const noFlow = composed && !hasHistory && composed.months.every((m) => !m.income && !m.expense);
+
   const defaultMonth = result?.referenceMonth ?? localToday().slice(0, 7);
 
   const openAdd = () => setForm({ editing: null });
@@ -66,7 +65,7 @@ export default function SimulatorView() {
         <div>
           <h1 className="page-title">E se...?</h1>
           <p className="page-sub">
-            Simule compras, rendas e gastos futuros sobre o seu saldo real, sem alterar nenhum lançamento.
+            Veja, mês a mês, se o caixa fecha no verde ao assumir uma compra, renda ou gasto novo. Nenhum lançamento é alterado.
           </p>
         </div>
         <div className="wi-header-actions">
@@ -100,36 +99,32 @@ export default function SimulatorView() {
         <div className="hl-card"><HlEmpty>Não foi possível carregar a projeção. Tente de novo.</HlEmpty></div>
       )}
 
-      {result && composed && (
+      {result && composed && verdict && (
         <div className={`wi-body${refetching ? ' is-refetching' : ''}`} aria-busy={refetching}>
           {refetching && <p className="wi-updating" aria-hidden="true">Atualizando…</p>}
 
-          <SummaryTiles opening={result.openingBalance} composed={composed} baselineMonths={result.baseline} />
+          <VerdictBanner verdict={verdict} />
 
-          {hasNoData(result) && (
-            <p className="wi-callout" role="status">
-              <span aria-hidden="true">ℹ </span>
-              Não há lançamentos nos últimos 3 meses nem no período: a base é zero e só as simulações movem o saldo.
-            </p>
-          )}
+          <HlCard id="wi-sims" title="Simulações" subtitle="Ligue e desligue para ver o efeito em cada mês, sem refazer a conta no servidor.">
+            <SimulationStrip
+              infos={infos} impactById={impactById} warnings={result.warnings ?? []} limitReached={limitReached}
+              onToggle={toggleSimulation} onEdit={(sim) => setForm({ editing: sim })}
+              onRemove={removeSimulation} onAdd={openAdd}
+            />
+          </HlCard>
 
-          <section className="hl-card wi-card">
-            <WiTabs idBase={ID_BASE} tabs={TABS} value={tab} onChange={setTab} label="Visões da projeção" />
-            <div role="tabpanel" id={panelId(ID_BASE, tab)} aria-labelledby={tabId(ID_BASE, tab)} className="wi-panel">
-              {tab === 'month' && (
-                <MonthTab baseline={result.baseline} composed={composed} enabledSims={enabledSims} impactById={impactById} />
-              )}
-              {tab === 'flow' && <FlowTab baseline={result.baseline} composed={composed} />}
-              {tab === 'sims' && (
-                <SimulationsTab
-                  simulations={simulations} impactById={impactById} warnings={result.warnings} composed={composed}
-                  labels={monthLabels} limitReached={limitReached}
-                  onToggle={toggleSimulation} onEdit={(sim) => setForm({ editing: sim })}
-                  onRemove={removeSimulation} onAdd={openAdd}
-                />
-              )}
-            </div>
-          </section>
+          <HlCard
+            id="wi-monthly" title="Mês a mês" subtitle="Cada mês sozinho, sem acumular saldo."
+            actions={noFlow ? null : <HlToggle value={mode} onChange={setMode} label="Mês a mês: exibição" />}
+          >
+            {noFlow ? (
+              <HlEmpty>Sem histórico para estimar receita e despesa, não há mês para comparar.</HlEmpty>
+            ) : mode === 'chart' ? (
+              <MonthlyChart composed={composed} infos={infos} />
+            ) : (
+              <MonthlyTable composed={composed} infos={infos} lookbackMonths={result.assumptions.lookbackMonths} />
+            )}
+          </HlCard>
 
           <HowWeCalculate opening={result.openingBalance} assumptions={result.assumptions} />
         </div>

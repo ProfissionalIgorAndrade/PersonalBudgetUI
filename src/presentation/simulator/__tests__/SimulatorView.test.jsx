@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, within } from '@testing-library/react';
 import React from 'react';
-import { baseline, impacts, opening, scenarioAll, summaryAll } from '../logic/__tests__/fixtures';
+import { baseline, baselineFull, impacts, opening } from '../logic/__tests__/fixtures';
 
 const h = vi.hoisted(() => ({ state: {} }));
 vi.mock('../../../application/hooks/useSimulator', () => ({
@@ -27,7 +27,7 @@ const RESULT = {
   referenceMonth: '2026-10',
   openingBalance: opening,
   assumptions: { lookbackMonths: 3, monthsWithData: 3, averageIncome: 4000, averageVariableExpense: 900.25, notes: ['Nota de regra A', 'Nota de regra B'] },
-  baseline, impacts, scenario: scenarioAll, summary: summaryAll,
+  baseline: baselineFull, impacts, scenario: [], summary: {},
   warnings: [{ impactId: 'phone', code: 'AfterWindow', message: '"Celular" continua depois de mar/27: o total completo inclui todas as ocorrências.' }],
 };
 
@@ -39,254 +39,219 @@ const state = (over = {}) => ({
 
 beforeEach(() => { h.state = state(); });
 
-const norm = (s) => s.replace(/\u00a0/g, ' ');
-const rowText = (label) => norm(screen.getByText(label).closest('tr').textContent);
-const goTab = (name) => fireEvent.click(screen.getByRole('tab', { name }));
+const norm = (s) => s.replace(/ /g, ' ');
+const verdictText = () => norm(screen.getByRole('region', { name: 'Veredito da simulação' }).textContent);
+const withOff = (...ids) => SIMS.map((s) => (ids.includes(s.id) ? { ...s, enabled: false } : s));
 
-describe('SimulatorView: cabeçalho e resumo', () => {
-  it('título igual ao do menu e horizontes 1, 3, 6, 12 e 24', () => {
-    render(<SimulatorView />);
+describe('SimulatorView: uma página, sem abas nem tiles', () => {
+  it('título, horizontes 1, 3, 6, 12 e 24, e a ordem: veredito, simulações, mês a mês, como calculamos', () => {
+    const { container } = render(<SimulatorView />);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('E se...?');
     const seg = screen.getByRole('group', { name: 'Horizonte da projeção' });
-    expect(within(seg).getAllByRole('button').map(b => b.textContent)).toEqual(['1 mês', '3 meses', '6 meses', '12 meses', '24 meses']);
+    expect(within(seg).getAllByRole('button').map((b) => b.textContent)).toEqual(['1 mês', '3 meses', '6 meses', '12 meses', '24 meses']);
     expect(within(seg).getByText('6 meses').getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(within(seg).getByText('12 meses'));
     expect(h.state.setMonths).toHaveBeenCalledWith(12);
+
+    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Resumo da projeção' })).toBeNull();
+    expect(screen.queryByText(/Saldo hoje/)).toBeNull();
+
+    const order = ['Veredito da simulação', 'Simulações', 'Mês a mês'];
+    const nodes = [
+      screen.getByRole('region', { name: order[0] }),
+      screen.getByRole('heading', { name: order[1] }),
+      screen.getByRole('heading', { name: order[2] }),
+      container.querySelector('.wi-how'),
+    ];
+    for (let i = 0; i < nodes.length - 1; i++) {
+      expect(nodes[i].compareDocumentPosition(nodes[i + 1]) & 4).toBeTruthy();
+    }
   });
 
-  it('tiles: saldo hoje, menor saldo, primeiro negativo e impacto', () => {
+  it('o veredito de 6 meses com tudo ligado é crítico e cita o primeiro mês negativo', () => {
     render(<SimulatorView />);
-    const tiles = within(screen.getByRole('group', { name: 'Resumo da projeção' }));
-    const text = norm(screen.getByRole('group', { name: 'Resumo da projeção' }).textContent);
-    expect(text).toContain('R$ 5.000,00');
-    expect(text).toContain('sem caixinhas');
-    expect(text).toMatch(/Base: R\$ 3\.400,00 \(out\/26\)/);
-    expect(text).toMatch(/Com simulações: -R\$ 768,41 \(jan\/27\)/);
-    expect(tiles.getByText('Base: nenhum mês negativo')).toBeTruthy();
-    expect(tiles.getByText('Com simulações: negativo em jan/27')).toBeTruthy();
-    expect(text).toContain('No horizonte: −R$ 2.433,32');
-    expect(text).toContain('Total completo: −R$ 4.000,00');
+    const t = verdictText();
+    expect(t).toContain('Crítico');
+    expect(t).toContain('Nos próximos 6 meses: falta total de R$ 436,57 (sem simulações: R$ 1.996,75).');
+    expect(t).toContain('1 mês fica negativo; o primeiro é jan/27.');
   });
 
-  it('desligar uma simulação recalcula o resumo na hora', () => {
-    h.state = state({ simulations: SIMS.map(s => (s.id === 'trip' ? { ...s, enabled: false } : s)) });
+  it('o horizonte de 1 mês usa a frase do mês', () => {
+    h.state = state({
+      months: 1,
+      result: { ...RESULT, baseline: baselineFull.slice(0, 1), impacts: impacts.map((i) => ({ ...i, monthly: i.monthly.slice(0, 1) })) },
+    });
     render(<SimulatorView />);
-    const text = norm(screen.getByRole('group', { name: 'Resumo da projeção' }).textContent);
-    expect(text).toContain('Com simulações: nenhum mês negativo');
-    expect(text).toContain('No horizonte: +R$ 3.566,68');
+    expect(verdictText()).toContain('Em out/26 o mês fecha com sobra de R$ 450,00 (sem simulações: R$ 600,00).');
+    expect(screen.queryByText('Total do período')).toBeNull();
   });
 });
 
-describe('SimulatorView: abas', () => {
-  it('é um tablist com três abas; setas e Home/End movem a seleção', () => {
+describe('SimulatorView: liga/desliga recompõe sem nova chamada', () => {
+  it('desligar a viagem tira o mês negativo e muda o veredito para atenção', () => {
+    h.state = state({ simulations: withOff('trip') });
     render(<SimulatorView />);
-    expect(screen.getByRole('tablist', { name: 'Visões da projeção' })).toBeTruthy();
-    const tabs = screen.getAllByRole('tab');
-    expect(tabs.map(t => t.textContent)).toEqual(['No mês', 'Mês a mês', 'Por simulação']);
-    expect(tabs[0].getAttribute('aria-selected')).toBe('true');
-    expect(tabs[1].getAttribute('tabindex')).toBe('-1');
+    const t = verdictText();
+    expect(t).toContain('Atenção');
+    expect(t).toContain('Todos os meses seguem positivos; o mais apertado é jan/27, com R$ 266,42 de sobra.');
+  });
 
-    fireEvent.keyDown(tabs[0], { key: 'ArrowRight' });
-    expect(screen.getByRole('tab', { name: 'Mês a mês' }).getAttribute('aria-selected')).toBe('true');
-    expect(screen.getByRole('tabpanel').getAttribute('aria-labelledby')).toBe(screen.getByRole('tab', { name: 'Mês a mês' }).id);
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'Mês a mês' }), { key: 'End' });
-    expect(screen.getByRole('tab', { name: 'Por simulação' }).getAttribute('aria-selected')).toBe('true');
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'Por simulação' }), { key: 'ArrowRight' });
-    expect(screen.getByRole('tab', { name: 'No mês' }).getAttribute('aria-selected')).toBe('true');
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'No mês' }), { key: 'ArrowLeft' });
-    expect(screen.getByRole('tab', { name: 'Por simulação' }).getAttribute('aria-selected')).toBe('true');
+  it('o interruptor do cartão chama toggleSimulation e nada mais (nenhum refetch)', () => {
+    render(<SimulatorView />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Desligar Viagem' }));
+    expect(h.state.toggleSimulation).toHaveBeenCalledWith('trip');
+    expect(h.state.setMonths).not.toHaveBeenCalled();
+    expect(h.state.retry).not.toHaveBeenCalled();
+  });
+
+  it('mesma resposta, outra lista de ligadas: o resultado vem do cliente', () => {
+    const first = render(<SimulatorView />);
+    expect(verdictText()).toContain('Crítico');
+    first.unmount();
+    h.state = state({ simulations: withOff('trip', 'car', 'phone') });   // só Freela
+    render(<SimulatorView />);
+    expect(verdictText()).toContain('Tudo certo');
+    expect(verdictText()).toContain('o mais apertado é jan/27, com R$ 499,75 de sobra.');
+  });
+
+  it('todas desligadas: sem comparação com a base e com convite para ligar/adicionar', () => {
+    h.state = state({ simulations: SIMS.map((s) => ({ ...s, enabled: false })) });
+    render(<SimulatorView />);
+    const t = verdictText();
+    expect(t).not.toContain('sem simulações');
+    expect(t).toContain('Nenhuma simulação ligada');
+    fireEvent.click(screen.getByRole('button', { name: 'Tabela' }));
+    expect(screen.getAllByRole('columnheader').map((c) => c.textContent)).toEqual([
+      'Mês', 'Receita', 'Despesa', 'Sobra do mês', 'Situação',
+    ]);
   });
 });
 
-describe('SimulatorView: aba No mês', () => {
-  it('o primeiro mês é o restante do mês e mostra a conta linha a linha', () => {
-    render(<SimulatorView />);
-    expect(screen.getByText(/Restante de outubro/)).toBeTruthy();
-    expect(rowText('Receitas previstas')).toContain('R$ 500,00');
-    expect(rowText('Compromissos (fixos e parcelas)')).toContain('−R$ 1.800,00');
-    expect(rowText('Gastos variáveis estimados')).toContain('−R$ 300,00');
-    expect(rowText('Resultado base')).toContain('−R$ 1.600,00');
-    expect(rowText('Resultado base')).toContain('negativo');
-    expect(rowText('Carro')).toContain('−R$ 150,00');
-    expect(rowText('Resultado com simulações')).toContain('−R$ 1.750,00');
-    expect(rowText('Diferença para a base')).toContain('−R$ 150,00');
-  });
-
-  it('uma linha por simulação ligada; desligada some da conta', () => {
-    h.state = state({ simulations: SIMS.map(s => (s.id === 'phone' ? { ...s, enabled: false } : s)) });
-    render(<SimulatorView />);
-    expect(screen.getByText('Carro')).toBeTruthy();
-    expect(screen.getByText('Viagem')).toBeTruthy();
-    expect(screen.queryByText('Celular')).toBeNull();
-  });
-
-  it('trocar o mês pelos chips recalcula as linhas', () => {
-    render(<SimulatorView />);
-    fireEvent.click(screen.getByRole('button', { name: 'jan/27' }));
-    expect(screen.queryByText(/Restante de/)).toBeNull();
-    expect(rowText('Viagem')).toContain('−R$ 6.000,00');
-    expect(rowText('Resultado com simulações')).toContain('−R$ 5.733,58');
-    expect(rowText('Saldo no fim do mês (com simulações)')).toContain('-R$ 768,41');
-  });
-
-  it('sem simulações ligadas, avisa que o cenário é a base', () => {
-    h.state = state({ simulations: SIMS.map(s => ({ ...s, enabled: false })) });
-    render(<SimulatorView />);
-    expect(screen.getByText(/Nenhuma simulação ligada/)).toBeTruthy();
-  });
-});
-
-describe('SimulatorView: aba Mês a mês e tabela gêmea', () => {
-  it('mostra dois gráficos com marcas focáveis e legenda', () => {
+describe('SimulatorView: gráfico e tabela gêmeos', () => {
+  it('começa no gráfico; o toggle troca por uma tabela real com os mesmos números', () => {
     const { container } = render(<SimulatorView />);
-    goTab('Mês a mês');
-    expect(screen.getAllByRole('figure')).toHaveLength(2);
-    const hits = container.querySelectorAll('.wi-hit');
-    expect(hits).toHaveLength(12);
-    expect(hits[0].getAttribute('tabindex')).toBe('0');
-    const label = norm(hits[0].getAttribute('aria-label'));
-    expect(label).toContain('restante de outubro');
-    expect(label).toContain('Base');
-    expect(label).toContain('Com simulações');
-    expect(screen.getAllByRole('list', { name: 'Legenda' })).toHaveLength(2);
-    expect(screen.getByText(/Primeiro mês: só o que falta acontecer/)).toBeTruthy();
-    expect(screen.getByText(/negativo a partir de jan\/27/)).toBeTruthy();
-  });
+    expect(screen.getAllByRole('figure')).toHaveLength(1);
+    expect(container.querySelectorAll('.wi-hit')).toHaveLength(6);
+    const chartJan = norm(container.querySelectorAll('.wi-hit')[3].getAttribute('aria-label'));
+    expect(chartJan).toContain('sobra do mês -R$ 5.733,58 (negativo)');
 
-  it('o rótulo do mês negativo carrega texto, não só cor', () => {
-    const { container } = render(<SimulatorView />);
-    goTab('Mês a mês');
-    const jan = norm(container.querySelectorAll('.wi-hit')[3].getAttribute('aria-label'));
-    expect(jan).toContain('(negativo)');
-  });
-
-  it('o toggle Tabela troca os gráficos por uma tabela real com os mesmos números', () => {
-    render(<SimulatorView />);
-    goTab('Mês a mês');
     fireEvent.click(screen.getByRole('button', { name: 'Tabela' }));
     expect(screen.queryAllByRole('figure')).toHaveLength(0);
-    const rows = screen.getAllByRole('row');
-    expect(rows).toHaveLength(1 + 6);
-    expect(screen.getAllByRole('columnheader').map(c => c.textContent)).toEqual([
-      'Mês', 'Resultado base', 'Resultado com simulações', 'Saldo base', 'Saldo com simulações', 'Situação',
+    expect(screen.getAllByRole('columnheader').map((c) => c.textContent)).toEqual([
+      'Mês', 'Receita', 'Despesa', 'Carro', 'Celular', 'Freela', 'Viagem', 'Sobra do mês', 'Situação',
     ]);
-    const first = norm(rows[1].textContent);
-    expect(first).toContain('restante de outubro');
-    expect(first).toContain('R$ 3.250,00');
-    const jan = norm(rows[4].textContent);
-    expect(jan).toContain('-R$ 768,41');
-    expect(jan).toContain('Saldo negativo');
-    expect(norm(rows[1].textContent)).toContain('Saldo positivo');
+    const rows = screen.getAllByRole('row');
+    expect(rows).toHaveLength(1 + 6 + 1);
+    expect(norm(rows[4].textContent)).toContain('−R$ 5.733,58');
+    expect(norm(rows[4].textContent)).toContain('Negativo');
+    expect(norm(rows[7].textContent)).toContain('Total do período');
+
     fireEvent.click(screen.getByRole('button', { name: 'Gráfico' }));
-    expect(screen.getAllByRole('figure')).toHaveLength(2);
+    expect(screen.getAllByRole('figure')).toHaveLength(1);
+  });
+
+  it('a soma de cada linha da tabela fecha com a sobra do mês', () => {
+    render(<SimulatorView />);
+    fireEvent.click(screen.getByRole('button', { name: 'Tabela' }));
+    const cents = (txt) => {
+      const m = norm(txt).match(/([−-])?R\$ ([\d.]+),(\d{2})/);
+      return (m[1] ? -1 : 1) * (Number(m[2].replace(/\./g, '')) * 100 + Number(m[3]));
+    };
+    const body = screen.getAllByRole('row').slice(1, 7);
+    body.forEach((row) => {
+      const cells = within(row).getAllByRole('cell').slice(0, -1).map((c) => cents(c.textContent));
+      const result = cells[cells.length - 1];
+      const parts = cells.slice(0, -1);               // receita, despesa (negativa), simulações (assinadas)
+      expect(parts.reduce((a, b) => a + b, 0)).toBe(result);
+    });
+  });
+
+  it('desligar uma simulação remove a coluna dela na tabela e a faixa no gráfico', () => {
+    h.state = state({ simulations: withOff('phone') });
+    const { container } = render(<SimulatorView />);
+    expect(container.querySelectorAll('.wi-mc-seg.wi-cat-2')).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Tabela' }));
+    expect(screen.queryByRole('columnheader', { name: 'Celular' })).toBeNull();
+    expect(screen.getByRole('columnheader', { name: 'Carro' })).toBeTruthy();
   });
 });
 
-describe('SimulatorView: aba Por simulação', () => {
-  it('lista cada item com interruptor, descrição legível e totais', () => {
+describe('SimulatorView: cartões das simulações', () => {
+  it('um cartão por simulação, com parcela legível e aviso só no cartão certo', () => {
     render(<SimulatorView />);
-    goTab('Por simulação');
-    const switches = screen.getAllByRole('switch');
-    expect(switches).toHaveLength(4);
-    expect(switches[0].getAttribute('aria-checked')).toBe('true');
-    const car = norm(screen.getByText('Carro').closest('li').textContent);
-    expect(car).toContain('12× R$ 150,00 = R$ 1.800,00 · out/26 a set/27 · 6 parcelas dentro do horizonte');
-    expect(car).toContain('No horizonte: −R$ 900,00');
-    expect(car).toContain('Total completo: −R$ 1.800,00');
-    const phone = norm(screen.getByText('Celular').closest('li').textContent);
-    expect(phone).toContain('(última R$ 83,37)');
-    expect(norm(screen.getByText('Freela').closest('li').textContent)).toContain('por mês');
+    const cards = within(screen.getByRole('list', { name: 'Simulações' })).getAllByRole('listitem');
+    expect(cards).toHaveLength(4);
+    expect(norm(cards[0].textContent)).toContain('R$ 150,00/mês de out/26 a set/27');
+    expect(cards[1].textContent).toContain('Continua após o período');
+    expect(cards[0].textContent).not.toContain('Continua após o período');
   });
 
-  it('o interruptor chama toggleSimulation com o id', () => {
+  it('descrição vazia vira "Simulação N" e é usada no interruptor', () => {
+    h.state = state({ simulations: SIMS.map((s) => (s.id === 'trip' ? { ...s, description: '' } : s)) });
     render(<SimulatorView />);
-    goTab('Por simulação');
-    fireEvent.click(screen.getByRole('switch', { name: 'Desligar Carro' }));
-    expect(h.state.toggleSimulation).toHaveBeenCalledWith('car');
+    expect(screen.getByRole('switch', { name: 'Desligar Simulação 4' })).toBeTruthy();
   });
 
-  it('um item desligado aparece como desligado', () => {
-    h.state = state({ simulations: SIMS.map(s => (s.id === 'trip' ? { ...s, enabled: false } : s)) });
+  it('editar e adicionar abrem o formulário; remover chama removeSimulation', () => {
     render(<SimulatorView />);
-    goTab('Por simulação');
-    const sw = screen.getByRole('switch', { name: 'Ligar Viagem' });
-    expect(sw.getAttribute('aria-checked')).toBe('false');
-    expect(sw.textContent).toContain('Desligada');
-  });
-
-  it('mostra o aviso do backend junto do item certo e só dele', () => {
-    render(<SimulatorView />);
-    goTab('Por simulação');
-    const phone = screen.getByText('Celular').closest('li');
-    expect(phone.textContent).toContain('Continua após o horizonte');
-    expect(phone.textContent).toContain('continua depois de mar/27');
-    expect(screen.getByText('Carro').closest('li').textContent).not.toContain('Continua após o horizonte');
-  });
-
-  it('linha final "Todas juntas" soma as ligadas', () => {
-    render(<SimulatorView />);
-    goTab('Por simulação');
-    const all = screen.getByRole('group', { name: 'Todas juntas' });
-    const t = norm(all.textContent);
-    expect(t).toContain('4 ligadas');
-    expect(t).toContain('No horizonte: −R$ 2.433,32');
-    expect(t).toContain('Total completo: −R$ 4.000,00');
-  });
-
-  it('editar e adicionar abrem o formulário', () => {
-    render(<SimulatorView />);
-    goTab('Por simulação');
     fireEvent.click(screen.getByRole('button', { name: 'Editar Carro' }));
     expect(screen.getByRole('heading', { name: 'Editar simulação' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
-    expect(screen.queryByRole('heading', { name: 'Editar simulação' })).toBeNull();
     fireEvent.click(screen.getAllByRole('button', { name: '+ Nova simulação' })[0]);
     expect(screen.getByRole('heading', { name: 'Nova simulação' })).toBeTruthy();
-  });
-
-  it('remover chama removeSimulation', () => {
-    render(<SimulatorView />);
-    goTab('Por simulação');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
     fireEvent.click(screen.getByRole('button', { name: 'Remover Viagem' }));
     expect(h.state.removeSimulation).toHaveBeenCalledWith('trip');
   });
 });
 
-describe('SimulatorView: estados vazios, carregando e erro', () => {
-  it('sem simulações: mensagem e chamada para adicionar; Limpar desabilitado', () => {
+describe('SimulatorView: estados vazios, sem histórico, carregando e erro', () => {
+  it('sem simulações: veredito sem comparação, convite para adicionar e Limpar desabilitado', () => {
     h.state = state({ simulations: [], result: { ...RESULT, impacts: [], warnings: [] } });
     render(<SimulatorView />);
-    goTab('Por simulação');
     expect(screen.getByText(/Nenhuma simulação ainda/)).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: '+ Nova simulação' }).length).toBeGreaterThan(0);
+    expect(verdictText()).not.toContain('sem simulações');
+    expect(verdictText()).toContain('Adicione uma compra, renda ou gasto');
     expect(screen.getByRole('button', { name: 'Limpar' }).disabled).toBe(true);
   });
 
-  it('sem dados: avisa que a base é zero', () => {
-    const zero = baseline.slice(0, 2).map(b => ({ ...b, income: 0, committed: 0, variable: 0, result: 0, balance: 0 }));
+  it('sem histórico: diz que não há dados em vez de mostrar zeros', () => {
+    const zero = baselineFull.slice(0, 2).map((b) => ({ ...b, income: 0, committed: 0, variable: 0, result: 0, balance: 0, fullMonth: { income: 0, expense: 0, result: 0 } }));
     h.state = state({
       simulations: [], result: {
         ...RESULT, baseline: zero, impacts: [], warnings: [],
-        openingBalance: { ...opening, amount: 0, accounts: [] },
         assumptions: { ...RESULT.assumptions, monthsWithData: 0, averageIncome: null, averageVariableExpense: null },
       },
     });
+    const { container } = render(<SimulatorView />);
+    expect(verdictText()).toContain('Sem dados');
+    expect(verdictText()).toContain('Ainda não há histórico suficiente');
+    expect(screen.getByText(/Sem histórico para estimar receita e despesa/)).toBeTruthy();
+    expect(container.querySelector('.wi-hit')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Tabela' })).toBeNull();
+  });
+
+  it('backend sem fullMonth: a tela continua funcionando com o aviso do primeiro mês', () => {
+    h.state = state({ result: { ...RESULT, baseline } });
     render(<SimulatorView />);
-    expect(screen.getByText(/a base é zero/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Tabela' }));
+    expect(norm(screen.getAllByRole('row')[1].textContent)).toContain('R$ 500,00');
+    expect(screen.getByText(/ainda não envia o mês inteiro/)).toBeTruthy();
   });
 
   it('carregando pela primeira vez, sem resultado', () => {
     h.state = state({ result: null, loading: true });
     render(<SimulatorView />);
     expect(screen.getAllByText('Calculando projeção…').length).toBeGreaterThan(0);
-    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Veredito da simulação' })).toBeNull();
   });
 
   it('refazendo a chamada, o resultado anterior continua na tela, esmaecido', () => {
     h.state = state({ loading: true, refetching: true });
     const { container } = render(<SimulatorView />);
     expect(container.querySelector('.wi-body.is-refetching')).toBeTruthy();
-    expect(screen.getByRole('tablist')).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Veredito da simulação' })).toBeTruthy();
   });
 
   it('erro aparece em role=alert com "Tentar de novo"', () => {
@@ -298,11 +263,11 @@ describe('SimulatorView: estados vazios, carregando e erro', () => {
     expect(h.state.retry).toHaveBeenCalled();
   });
 
-  it('erro com resultado anterior mantém o resumo na tela', () => {
+  it('erro com resultado anterior mantém o veredito na tela', () => {
     h.state = state({ error: 'Falhou' });
     render(<SimulatorView />);
     expect(screen.getByRole('alert').textContent).toContain('Falhou');
-    expect(screen.getByRole('group', { name: 'Resumo da projeção' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Veredito da simulação' })).toBeTruthy();
   });
 });
 
@@ -325,14 +290,23 @@ describe('SimulatorView: Limpar pede confirmação', () => {
   });
 });
 
-describe('SimulatorView: Como calculamos', () => {
-  it('lista as contas do saldo de partida, as médias e as notas da API', () => {
+describe('SimulatorView: Como calculamos guarda o saldo de partida', () => {
+  it('lista as contas, as médias e as notas da API, e diz que o saldo não entra no veredito', () => {
     render(<SimulatorView />);
     expect(screen.getByText('Como calculamos')).toBeTruthy();
     expect(screen.getByText('Conta corrente')).toBeTruthy();
     expect(screen.getByText('Nota de regra A')).toBeTruthy();
-    expect(screen.getByText('Nota de regra B')).toBeTruthy();
     expect(screen.getByText('3 de 3')).toBeTruthy();
     expect(norm(screen.getByLabelText('Médias usadas').textContent)).toContain('R$ 4.000,00');
+    expect(screen.getByText(/O saldo de partida não entra no veredito/)).toBeTruthy();
+  });
+
+  it('o saldo de partida não aparece fora do bloco', () => {
+    const { container } = render(<SimulatorView />);
+    const how = container.querySelector('.wi-how');
+    const clone = container.cloneNode(true);
+    clone.querySelector('.wi-how').remove();
+    expect(norm(clone.textContent)).not.toContain('R$ 5.000,00');
+    expect(norm(how.textContent)).toContain('R$ 5.000,00');
   });
 });
