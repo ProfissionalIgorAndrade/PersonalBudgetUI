@@ -1,9 +1,11 @@
+import { AVATARS } from './avatars';
+
 export const COLORS = [
   '#2dd4bf','#fb923c','#4ade80','#f87171','#818cf8','#fbbf24',
   '#e879f9','#60a5fa','#34d399','#f472b6','#a78bfa','#6ee7b7',
 ];
 
-export const EMOJIS = ['👨','👩','👦','👧','👴','👵','👨‍👩‍👦','🧑','👮','💼','🧔','👱'];
+export const EMOJIS = AVATARS;
 
 export const ICONS = [
   '🍽️','🚗','🏥','🎮','📚','🏠','💰','💵','👕','📦','📈','📺',
@@ -55,6 +57,6 @@ export const NAV = [
   { id: 'accounts',     icon: '🏦', label: 'Contas' },
   { id: 'cards',        icon: '💳', label: 'Cartões' },
   { id: 'categories',   icon: '🏷️', label: 'Categorias' },
-  { id: 'members',      icon: '👨‍👩‍👦', label: 'Família' },
+  { id: 'members',      icon: '👪', label: 'Família' },
   { id: 'simulator',    icon: '🔮', label: 'E se...?' },
 ];
