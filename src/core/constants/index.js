@@ -57,6 +57,6 @@ export const NAV = [
   { id: 'accounts',     icon: '🏦', label: 'Contas' },
   { id: 'cards',        icon: '💳', label: 'Cartões' },
   { id: 'categories',   icon: '🏷️', label: 'Categorias' },
-  { id: 'members',      icon: '👪', label: 'Família' },
+  { id: 'members',      icon: '👫', label: 'Família' },
   { id: 'simulator',    icon: '🔮', label: 'E se...?' },
 ];

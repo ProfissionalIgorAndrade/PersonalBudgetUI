@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   AVATAR_GROUPS, AVATARS, SKIN_TONES,
-  applyTone, stripTone, getTone, supportsTone, defaultAvatarFor,
+  applyTone, stripTone, getTone, supportsTone, defaultAvatarFor, countPeople,
 } from '../avatars';
 import { EMOJIS, NAV } from '../index';
 
@@ -29,7 +29,19 @@ describe('applyTone', () => {
     expect(applyTone('👩\u{1F3FD}', '')).toBe('👩');
   });
 
-  it('leaves family sequences untouched', () => {
+  it('applies each tone to every person of a composed family', () => {
+    TONES.forEach(t => {
+      expect(applyTone('👨👩👧👦', t.mod)).toBe(`👨${t.mod}👩${t.mod}👧${t.mod}👦${t.mod}`);
+    });
+    expect(applyTone('👨👩👧👦', '\u{1F3FD}')).toBe('👨🏽👩🏽👧🏽👦🏽');
+  });
+
+  it('replaces a previous tone on a composed family instead of stacking', () => {
+    expect(applyTone('👨🏻👩🏻', '\u{1F3FF}')).toBe('👨🏿👩🏿');
+    expect(applyTone('👨🏻👩🏻', '')).toBe('👨👩');
+  });
+
+  it('leaves legacy ZWJ family sequences untouched', () => {
     expect(applyTone('👨‍👩‍👧‍👦', '\u{1F3FD}')).toBe('👨‍👩‍👧‍👦');
     expect(applyTone('👩‍👧', '\u{1F3FD}')).toBe('👩‍👧');
     expect(applyTone('👪', '\u{1F3FD}')).toBe('👪');
@@ -49,6 +61,24 @@ describe('stripTone / getTone', () => {
         expect(getTone(toned)).toBe(t.mod);
         expect(stripTone(toned)).toBe(base);
       });
+    });
+  });
+
+  it('round-trips for composed families', () => {
+    AVATAR_GROUPS.find(g => g.id === 'families').items.forEach(base => {
+      TONES.forEach(t => {
+        const toned = applyTone(base, t.mod);
+        expect(getTone(toned)).toBe(t.mod);
+        expect(stripTone(toned)).toBe(base);
+      });
+    });
+  });
+
+  it('legacy ZWJ family values round-trip unchanged', () => {
+    ['👨‍👩‍👧‍👦', '👩‍👧', '👪'].forEach(e => {
+      expect(stripTone(e)).toBe(e);
+      expect(getTone(e)).toBe('');
+      expect(applyTone(e, '')).toBe(e);
     });
   });
 
@@ -72,26 +102,64 @@ describe('catalog', () => {
     expect(EMOJIS).toEqual(AVATARS);
   });
 
-  it('only person groups support tone', () => {
-    AVATAR_GROUPS.forEach(g => {
-      g.items.forEach(e => expect(supportsTone(e)).toBe(g.id !== 'families'));
+  it('every catalog item supports tone, including composed families', () => {
+    AVATAR_GROUPS.forEach(g => g.items.forEach(e => expect(supportsTone(e)).toBe(true)));
+  });
+
+  it('family items are plain people without ZWJ', () => {
+    AVATAR_GROUPS.find(g => g.id === 'families').items.forEach(e => {
+      expect(e.includes('\u200D')).toBe(false);
+      expect(countPeople(e) > 1).toBe(true);
     });
   });
 
-  it('uses a single glyph for the Família nav icon', () => {
-    expect(NAV.find(n => n.id === 'members').icon).toBe('👪');
+  it('legacy ZWJ family values and 👪 do not support tone', () => {
+    ['👨‍👩‍👧‍👦', '👩‍👧', '🧑‍🧑‍🧒', '👪'].forEach(e => expect(supportsTone(e)).toBe(false));
+  });
+
+  it('uses 👫 (single code point) for the Família nav icon', () => {
+    const icon = NAV.find(n => n.id === 'members').icon;
+    expect(icon).toBe('\u{1F46B}');
+    expect(Array.from(icon)).toHaveLength(1);
   });
 });
 
 describe('defaultAvatarFor', () => {
   it('gives the family group to Joint profiles', () => {
-    expect(defaultAvatarFor('Joint')).toBe('👨‍👩‍👧‍👦');
-    expect(defaultAvatarFor('joint')).toBe('👨‍👩‍👧‍👦');
+    expect(defaultAvatarFor('Joint')).toBe('👨👩👧👦');
+    expect(defaultAvatarFor('joint')).toBe('👨👩👧👦');
+    expect(getTone(defaultAvatarFor('Joint'))).toBe('');
   });
 
   it('gives the neutral person to everyone else', () => {
     expect(defaultAvatarFor('User')).toBe('🧑');
     expect(defaultAvatarFor('other')).toBe('🧑');
     expect(defaultAvatarFor(undefined)).toBe('🧑');
+  });
+});
+
+describe('countPeople', () => {
+  it('counts 1 for a single person, with or without tone or hair sequence', () => {
+    expect(countPeople('👩')).toBe(1);
+    expect(countPeople('👩🏽')).toBe(1);
+    expect(countPeople('🧑‍🦱')).toBe(1);
+    expect(countPeople('🧑🏽‍🦱')).toBe(1);
+  });
+
+  it('counts each person of a composed family, toned or not', () => {
+    expect(countPeople('👨👩')).toBe(2);
+    expect(countPeople('👨👩👧')).toBe(3);
+    expect(countPeople('👨👩👧👦')).toBe(4);
+    expect(countPeople('👨🏽👩🏽👧🏽👦🏽')).toBe(4);
+  });
+
+  it('counts legacy ZWJ families as 1 glyph (they render as a single emoji)', () => {
+    expect(countPeople('👨‍👩‍👧‍👦')).toBe(1);
+    expect(countPeople('👪')).toBe(1);
+  });
+
+  it('is 0 for empty input', () => {
+    expect(countPeople('')).toBe(0);
+    expect(countPeople(undefined)).toBe(0);
   });
 });
