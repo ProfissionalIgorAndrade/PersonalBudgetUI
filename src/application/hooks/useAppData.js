@@ -6,7 +6,7 @@ import * as categoryRepo     from '../../data/repositories/categoryRepository';
 import * as cardRepo         from '../../data/repositories/cardRepository';
 import * as txRepo           from '../../data/repositories/transactionRepository';
 import {
-  normalizeAccount, buildAccountPayload, normalizeCategory, normalizeCard, sortCategories, sortByName,
+  normalizeAccount, buildAccountPayload, normalizeCategory, normalizeCard, buildCardPayload, sortCategories, sortByName,
   normalizeTransaction, normalizeProfile,
   txToApi, CAT_TYPE_TO_API, TYPE_TO_API,
 } from '../mappers';
@@ -307,37 +307,14 @@ export function useAppData(notify) {
   const cardOps = {
     onAdd: async (card) => {
       try {
-        const created = await cardRepo.createCard({
-          accountId:  card.accountId,
-          // Ausente até aqui: onEdit mandava memberId e onAdd não, então todo
-          // cartão nascia sem dono e só ganhava um se fosse editado depois.
-          memberId:   card.memberId || undefined,
-          name:       card.name,
-          limit:      Number(card.limit      || 0),
-          closingDay: Number(card.closingDay || 1),
-          dueDay:     Number(card.dueDay     || 10),
-          color:      card.color,
-          flag:       card.flag,
-          lastDigits: card.lastDigits || '',
-          memberId:   card.memberId || undefined,
-        });
+        await cardRepo.createCard(buildCardPayload(card));
         await loadCards();
         notify('Cartão adicionado');
       } catch (e) { notify(e.message, 'error'); }
     },
     onEdit: async (card) => {
       try {
-        await cardRepo.updateCard(card.id, {
-          accountId:  card.accountId,
-          name:       card.name,
-          limit:      Number(card.limit      || 0),
-          closingDay: Number(card.closingDay || 1),
-          dueDay:     Number(card.dueDay     || 10),
-          color:      card.color,
-          flag:       card.flag,
-          lastDigits: card.lastDigits || '',
-          memberId:   card.memberId || undefined,
-        });
+        await cardRepo.updateCard(card.id, buildCardPayload(card));
         await loadCards();
         notify('Cartão atualizado');
       } catch (e) { notify(e.message, 'error'); }

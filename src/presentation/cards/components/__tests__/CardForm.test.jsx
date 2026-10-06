@@ -9,17 +9,15 @@ const members = [
   { id: 'p-andreza', name: 'Andreza Maia', emoji: '👩' },
   { id: 'p-igor', name: 'Igor Andrade', emoji: '🧑' },
 ];
-const accounts = [{ id: 'a1', bank: 'nubank', memberId: 'p-andreza' }];
-
 const form = (f, onChange = () => {}) => (
-  <CardForm f={f} onChange={onChange} members={members} accounts={accounts}
+  <CardForm f={f} onChange={onChange} members={members}
     onSave={() => {}} onClose={() => {}} />
 );
 
 const memberSelect = () =>
   screen.getByText('Membro *').closest('.form-group').querySelector('select');
 
-const base = { name: 'Inter Black', flag: 'visa', limit: 15000, closingDay: 20, dueDay: 29, accountId: 'a1', color: '#f87171' };
+const base = { name: 'Inter Black', flag: 'visa', limit: 15000, dueDay: 29, color: '#f87171' };
 
 describe('CardForm member field', () => {
   // With no empty option, a blank memberId rendered as the first member,
@@ -51,5 +49,21 @@ describe('CardForm member field', () => {
   it('marks the field required', () => {
     render(form({ ...base, memberId: '' }));
     expect(memberSelect().required).toBe(true);
+  });
+});
+
+describe('CardForm fields', () => {
+  it('has no last digits, debit account or closing day field', () => {
+    render(form({ ...base, memberId: 'p-igor' }));
+    expect(screen.queryByText(/Últimos 4 Dígitos/i)).toBeNull();
+    expect(screen.queryByText(/Conta para débito/i)).toBeNull();
+    expect(screen.queryByText(/Fechamento/i)).toBeNull();
+  });
+
+  it('keeps name, flag, due day, limit, member and color', () => {
+    render(form({ ...base, memberId: 'p-igor' }));
+    for (const label of ['Nome do Cartão', 'Bandeira', 'Dia Vencimento', 'Limite (R$)', 'Membro *', 'Cor']) {
+      expect(screen.getByText(label)).toBeDefined();
+    }
   });
 });

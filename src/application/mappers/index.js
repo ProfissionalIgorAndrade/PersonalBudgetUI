@@ -165,16 +165,28 @@ export function normalizeCard(c) {
     id,
     name:       (c.name ?? c.Name ?? '').trim() || 'Cartão',
     limit:      Number(c.limit ?? c.Limit ?? 0),
-    closingDay: Number(c.closingDay ?? c.ClosingDay ?? 1),
     dueDay:     Number(c.dueDay ?? c.DueDay ?? 10),
-    accountId:  String(c.accountId ?? c.AccountId ?? ''),
     color:      normalizeCardHex(colorRaw),
     flag:       normalizeCardFlag(c),
-    lastDigits: String(c.lastDigits ?? c.lastFourDigits ?? c.LastFourDigits ?? '').replace(/\D/g, '').slice(-4),
     // Sem fallback para userId: ele identifica quem criou o cartão, não o
     // membro a quem ele pertence. Resolver por ali mostrava "Igor" num cartão
     // atribuído à Andreza, o que é pior do que não mostrar nada.
     memberId:   String(c.memberId ?? c.MemberId ?? c.member?.id ?? c.member?.Id ?? c.attributionProfileId ?? c.AttributionProfileId ?? c.ProfileId ?? ''),
+  };
+}
+
+/**
+ * Corpo de POST/PUT /api/credit-cards: nome, limite, vencimento, bandeira,
+ * membro e cor. O membro vai só quando preenchido; vazio deixa o backend recusar.
+ */
+export function buildCardPayload(card) {
+  return {
+    name:     card.name,
+    limit:    Number(card.limit || 0),
+    dueDay:   Number(card.dueDay || 10),
+    color:    card.color,
+    flag:     card.flag,
+    memberId: card.memberId || undefined,
   };
 }
 

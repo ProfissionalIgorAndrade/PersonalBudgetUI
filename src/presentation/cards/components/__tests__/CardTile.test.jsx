@@ -5,7 +5,7 @@ import CardTile from '../CardTile';
 
 afterEach(cleanup);
 
-const card = { id: 'c1', name: 'Inter Black', flag: 'master', lastDigits: '4417', limit: 15000, closingDay: 27, dueDay: 7, color: '#f87171', memberId: 'm1' };
+const card = { id: 'c1', name: 'Inter Black', flag: 'master', limit: 15000, dueDay: 7, color: '#f87171', memberId: 'm1' };
 const members = [{ id: 'm1', name: 'Igor', emoji: '🧑' }];
 
 const tile = (props) => (

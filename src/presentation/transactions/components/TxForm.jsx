@@ -50,9 +50,7 @@ const buildDraft = (members, sticky) => {
 const PAYMENT_LABELS = {
   CreditCard: 'Cartão de crédito',
   Transfer: 'Transferência',
-  Debit: 'Débito',
-  Cash: 'Dinheiro',
-  Pix: 'Pix',
+  Account: 'Conta',
 };
 
 export default function TxForm({ tx, cats, members, accounts, cards, onSave, onClose, readOnly = false }) {

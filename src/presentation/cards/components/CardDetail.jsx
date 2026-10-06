@@ -1,24 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { R$ } from '../../../core/utils/format';
+import { R$, curMonth } from '../../../core/utils/format';
 import { statementNet, statementRows } from '../../../core/utils/billing';
 import { normalizeTransaction } from '../../../application/mappers';
 import TxTable from '../../transactions/components/TxTable';
 import * as cardRepo from '../../../data/repositories/cardRepository';
 
 const NUM = { fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' };
-
-const STATUS_CFG = {
-  aberta:  { label: 'ABERTA',  color: 'var(--primary)', bg: 'rgba(45,212,191,.08)',  border: 'rgba(45,212,191,.25)', dot: '#2dd4bf' },
-  fechada: { label: 'FECHADA', color: 'var(--yellow)',  bg: 'rgba(251,191,36,.08)',  border: 'rgba(251,191,36,.25)', dot: '#fbbf24' },
-  paga:    { label: 'PAGA',    color: 'var(--green)',   bg: 'rgba(74,222,128,.08)',  border: 'rgba(74,222,128,.25)', dot: '#4ade80' },
-};
-
-function hasMeaningfulTimestamp(v) {
-  if (v == null || v === '') return false;
-  const s = String(v);
-  if (/^0001-01-01/i.test(s)) return false;
-  return true;
-}
 
 /** Merge nested DTOs common in ASP.NET responses (statement + root envelope). */
 function unwrapStatementPayload(raw) {
@@ -66,15 +53,9 @@ function extractStatementTransactions(raw) {
 }
 
 function normalizeStatementData(data) {
-  if (data == null) {
-    return { statementId: null, isClosed: false, isPaid: false };
-  }
-  if (Array.isArray(data) && data.length) {
-    return normalizeStatementData(data[0]);
-  }
-  if (typeof data !== 'object') {
-    return { statementId: null, isClosed: false, isPaid: false };
-  }
+  if (data == null) return { statementId: null };
+  if (Array.isArray(data) && data.length) return normalizeStatementData(data[0]);
+  if (typeof data !== 'object') return { statementId: null };
   const d = unwrapStatementPayload(data);
 
   const statementId =
@@ -85,69 +66,14 @@ function normalizeStatementData(data) {
     d.id ??
     d.Id;
 
-  const closedAt =
-    d.closedAt ?? d.ClosedAt ?? d.closureDate ?? d.ClosureDate ?? d.closedOn ?? d.ClosedOn ?? d.closingDate ?? d.ClosingDate;
-  const paidAt = d.paidAt ?? d.PaidAt ?? d.paidOn ?? d.PaidOn;
-
-  const statusRaw =
-    d.status ??
-    d.Status ??
-    d.statementStatus ??
-    d.StatementStatus ??
-    d.state ??
-    d.State ??
-    d.phase ??
-    d.Phase;
-
-  let isClosed = false;
-  let isPaid = false;
-
-  const bClosed = d.isClosed ?? d.IsClosed ?? d.closed ?? d.Closed;
-  const bPaid = d.isPaid ?? d.IsPaid ?? d.paid ?? d.Paid;
-  const bOpen = d.isOpen ?? d.IsOpen;
-
-  if (bPaid === true || bPaid === 'True' || bPaid === 'true' || bPaid === 1) isPaid = true;
-  if (bClosed === true || bClosed === 'True' || bClosed === 'true' || bClosed === 1) isClosed = true;
-  if (bOpen === false || bOpen === 'False' || bOpen === 'false' || bOpen === 0) isClosed = true;
-
-  if (hasMeaningfulTimestamp(paidAt)) isPaid = true;
-  if (hasMeaningfulTimestamp(closedAt)) isClosed = true;
-
-  if (statusRaw != null && statusRaw !== '') {
-    if (typeof statusRaw === 'number' && Number.isFinite(statusRaw)) {
-      if (statusRaw === 0) { /* open */ }
-      else if (statusRaw === 1) { isClosed = true; }
-      else if (statusRaw >= 2) { isClosed = true; isPaid = true; }
-    } else {
-      const s = String(statusRaw).trim().toLowerCase();
-      if (s.includes('paid') || s.includes('paga') || s.includes('pago') || s.includes('quitad') || s === '2') {
-        isPaid = true;
-        isClosed = true;
-      } else if (s.includes('clos') || s.includes('fechad') || s === 'closed' || s === 'fechada' || s === '1') {
-        isClosed = true;
-      } else if (s.includes('open') || s.includes('abert') || s === '0') {
-        isClosed = false;
-        isPaid = false;
-      }
-    }
-  }
-
-  if (isPaid) isClosed = true;
-
-  return { statementId: statementId ?? null, isClosed, isPaid };
+  return { statementId: statementId ?? null };
 }
 
 function applyPayloadToStatementState(data, setStatement, setStatementTxs) {
   const meta = normalizeStatementData(data);
   const rawList = extractStatementTransactions(data);
   const txs = (rawList || []).map(normalizeTransaction).filter(Boolean);
-  setStatement({
-    loading: false,
-    error: null,
-    statementId: meta.statementId,
-    isClosed: meta.isClosed,
-    isPaid: meta.isPaid,
-  });
+  setStatement({ loading: false, error: null, statementId: meta.statementId });
   setStatementTxs(txs);
 }
 
@@ -163,26 +89,15 @@ export default function CardDetail({
   onToggleReviewed,
   onReviewStatement,
   activeMonth,
-  notify = () => {},
-  loadTransactions = async () => {},
 }) {
-  const closingDay = Number(card.closingDay) || 1;
-  const dueDay     = Number(card.dueDay) || 10;
-  const now        = new Date();
-
-  const todayDay = now.getDate();
-  const base = todayDay > closingDay
-    ? new Date(now.getFullYear(), now.getMonth() + 1, 1)
-    : new Date(now.getFullYear(), now.getMonth(), 1);
-  const currentFatMonth = base.toISOString().slice(0, 7);
-
-  const monthStr = activeMonth || currentFatMonth;
+  const dueDay   = Number(card.dueDay) || 10;
+  const monthStr = activeMonth || curMonth();
   const [fatY, fatM] = monthStr.split('-').map(Number);
 
   const [statementTxs, setStatementTxs] = useState([]);
 
-  /* Período da fatura ≠ mês-calendário da data da compra (ex.: fecha dia 28 → 29/05 entra na fatura de junho).
-     Confiamos na lista retornada pelo statement (month/year); não filtramos por ano-mês do lançamento. */
+  /* A fatura é identificada por (cartão, mês, ano) e a lista vem pronta do statement;
+     não filtramos por ano-mês do lançamento. */
   const selTx = useMemo(
     () => statementRows(statementTxs),
     [statementTxs],
@@ -194,16 +109,11 @@ export default function CardDetail({
   const dueDate = new Date(fatY, fatM - 1, dueDay);
   const dueFmt  = dueDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 
-  const isPast  = monthStr < currentFatMonth;
-
   const [statement, setStatement] = useState({
     loading: true,
     error: null,
     statementId: null,
-    isClosed: false,
-    isPaid: false,
   });
-
 
   const refetchStatement = useCallback(async () => {
     const data = await cardRepo.getStatement(card.id, fatM, fatY);
@@ -226,33 +136,12 @@ export default function CardDetail({
         applyPayloadToStatementState(data, setStatement, setStatementTxs);
       } catch (e) {
         if (cancelled) return;
-        setStatement({
-          loading: false,
-          error: e.message,
-          statementId: null,
-          isClosed: false,
-          isPaid: false,
-        });
+        setStatement({ loading: false, error: e.message, statementId: null });
         setStatementTxs([]);
       }
     })();
     return () => { cancelled = true; };
   }, [card.id, monthStr, fatM, fatY]);
-
-  const apiPaid   = statement.isPaid;
-  const apiClosed = statement.isClosed;
-
-  let faturaStatus;
-  if (statement.statementId) {
-    if (apiPaid)   faturaStatus = 'paga';
-    else if (apiClosed) faturaStatus = 'fechada';
-    else           faturaStatus = 'aberta';
-  } else {
-    if (isPast) faturaStatus = 'fechada';
-    else        faturaStatus = 'aberta';
-  }
-
-  const cfg = STATUS_CFG[faturaStatus];
 
   const reviewAll = async (reviewed) => {
     await onReviewStatement?.(card.id, statement.statementId, reviewed);
@@ -260,34 +149,33 @@ export default function CardDetail({
   };
   const canReviewAll = !!statement.statementId && !statement.loading;
 
+  // Toda mutação de lançamento recarrega a fatura exibida.
+  const withRefetch = useCallback(
+    (fn) => async (...args) => { await fn?.(...args); await refetchStatement(); },
+    [refetchStatement],
+  );
+
+  const rows = useMemo(() => selTx.map(tx => ({
+    ...tx,
+    cardId:         tx.cardId         || String(card.id),
+    accountId:      '',
+    statementMonth: tx.statementMonth ?? fatM,
+    statementYear:  tx.statementYear  ?? fatY,
+  })), [selTx, card.id, fatM, fatY]);
 
   return (
     <div>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 16px', borderRadius: 12,
-        background: cfg.bg, border: `1px solid ${cfg.border}`,
-        marginBottom: 18, transition: 'background .4s, border-color .4s',
+        background: 'var(--surface2)', border: '1px solid var(--border)',
+        marginBottom: 18,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{
-            width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
-            background: cfg.dot,
-            boxShadow: faturaStatus === 'aberta' ? `0 0 0 4px ${cfg.dot}28, 0 0 8px ${cfg.dot}55` : 'none',
-            transition: 'background .4s, box-shadow .4s',
-          }} />
-          <span style={{ fontWeight: 800, fontSize: 11, letterSpacing: 1.3, textTransform: 'uppercase', color: cfg.color, transition: 'color .4s' }}>
-            {cfg.label}
-          </span>
-          {faturaStatus === 'paga' && <span style={{ fontSize: 13, color: cfg.color }}>✓</span>}
-          <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 2 }}>
-            {faturaStatus === 'aberta'  && '· ainda aberta para lançamentos'}
-            {faturaStatus === 'fechada' && `· vence ${dueFmt}`}
-            {faturaStatus === 'paga'    && '· fatura quitada'}
-          </span>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>Vence dia {dueDay}</span>
           {statement.error && (
             <span style={{ fontSize: 11, color: 'var(--yellow)' }} title={statement.error}>
-              · não foi possível carregar o status da fatura
+              · não foi possível carregar a fatura
             </span>
           )}
         </div>
@@ -323,21 +211,15 @@ export default function CardDetail({
       </div>
 
       <TxTable
-        rows={selTx.map(tx => ({
-          ...tx,
-          cardId:         tx.cardId         || String(card.id),
-          accountId:      '',
-          statementMonth: tx.statementMonth ?? fatM,
-          statementYear:  tx.statementYear  ?? fatY,
-        }))}
+        rows={rows}
         categories={categories}
         members={members}
         accounts={accounts}
         cards={cards}
-        onEdit={faturaStatus === 'paga' ? undefined : async (...args) => { await onEditTx?.(...args); await refetchStatement(); }}
-        onDelete={faturaStatus === 'paga' ? undefined : async (...args) => { await onDeleteTx?.(...args); await refetchStatement(); }}
-        onBatchDelete={faturaStatus === 'paga' ? undefined : async (...args) => { await onBatchDeleteTx?.(...args); await refetchStatement(); }}
-        onToggleReviewed={async (...args) => { await onToggleReviewed?.(...args); await refetchStatement(); }}
+        onEdit={withRefetch(onEditTx)}
+        onDelete={withRefetch(onDeleteTx)}
+        onBatchDelete={withRefetch(onBatchDeleteTx)}
+        onToggleReviewed={withRefetch(onToggleReviewed)}
         hideCols={['card', 'statement']}
         emptyMsg={statement.loading ? 'Carregando…' : statement.error ? 'Não foi possível carregar a fatura' : 'Nenhum lançamento neste mês'}
       />
