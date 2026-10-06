@@ -2278,7 +2278,7 @@ canvas { max-height: 220px; }
 
 /* ═══════════════════════════════════════════════════════════════
    E SE...? (.wi-*)
-   Simulador de cenários. Reaproveita os cartões, tiles, alternância e
+   Simulador de cenários. Reaproveita os cartões, alternância e
    status da Saúde Financeira (.hl-*) e o controle segmentado (.seg);
    aqui ficam só as peças próprias. Estados negativo/atenção sempre com
    ícone e texto; as cores vêm dos tokens e valem nos dois temas.
@@ -2301,7 +2301,6 @@ canvas { max-height: 220px; }
 .wi-root .hl-toggle button:focus-visible,
 .wi-root .btn:focus-visible,
 .wi-root .btn-icon:focus-visible,
-.wi-tab:focus-visible, .wi-chip:focus-visible, .wi-switch:focus-visible,
 .wi-how summary:focus-visible {
   outline: 2px solid var(--hl-focus); outline-offset: 2px;
 }
@@ -2317,106 +2316,39 @@ canvas { max-height: 220px; }
   border: 1px solid color-mix(in srgb, var(--red) 45%, var(--border));
 }
 .wi-error > span > span:first-child { color: var(--red); font-weight: 700; }
-.wi-callout {
-  padding: 10px 12px; border-radius: 10px; font-size: 13px; color: var(--text);
-  background: var(--surface2); border: 1px solid var(--border);
-}
 .wi-note { margin-top: 12px; font-size: 12.5px; color: var(--text-2); }
 .wi-hint { margin-top: 5px; font-size: 12px; line-height: 1.4; color: var(--text-2); }
 
-/* Resumo */
-.wi-tile-line { font-size: 13px; color: var(--text-2); }
-.wi-tile-line strong { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
-.wi-tiles .hl-tile { min-width: 0; }
-.wi-tiles .hl-status { font-size: 12.5px; }
-
-/* Abas */
-.wi-card { padding: 18px 22px 22px; }
-.wi-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px; overflow-x: auto; }
-.wi-tab {
-  border: 0; background: transparent; color: var(--text-2); cursor: pointer; font: inherit;
-  font-size: 13.5px; font-weight: 600; padding: 10px 14px; white-space: nowrap;
-  border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color var(--t-fast), border-color var(--t-fast);
-}
-.wi-tab:hover { color: var(--text); }
-.wi-tab.is-active { color: var(--text); border-bottom-color: var(--primary); }
-
-/* Aba "No mês" */
-.wi-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
-.wi-chip {
-  border: 1px solid var(--border); background: var(--surface2); color: var(--text-2); cursor: pointer;
-  font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px;
-  transition: all var(--t-fast);
-}
-.wi-chip:hover { color: var(--text); border-color: var(--border-hi); }
-.wi-chip[aria-pressed="true"] { background: var(--primary-dim); color: var(--text); box-shadow: inset 0 0 0 1px var(--primary); }
+/* Tabela e gráfico: peças genéricas da visão mensal */
 .wi-table { margin-top: 12px; }
 .wi-table caption { text-align: left; }
 .wi-table th, .wi-table td { white-space: normal; }
 .wi-table .wi-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.wi-row-total th, .wi-row-total td { font-weight: 700; border-top: 1px solid var(--border-hi); }
-.wi-row-sim th { font-weight: 500; padding-left: 22px; }
 .wi-neg-tag { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; }
 .wi-neg-tag > span { color: var(--red); }
 
-/* Aba "Mês a mês" */
-.wi-flow-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-.wi-charts { display: flex; flex-direction: column; gap: 26px; }
 .wi-chart { margin: 0; min-width: 0; }
 .wi-chart-title { font-size: 12px; font-weight: 600; color: var(--text-2); margin-bottom: 6px; }
 .wi-chart-svg { width: 100%; height: auto; display: block; overflow: visible; }
 .wi-grid { stroke: var(--border); stroke-width: 1; }
 .wi-zero { stroke: var(--border-hi); stroke-width: 1; }
 .wi-axis { fill: var(--text-2); font-size: 10px; font-family: 'Outfit', sans-serif; }
-.wi-bar-base { fill: color-mix(in srgb, var(--wi-base) 28%, transparent); stroke: var(--wi-base); stroke-width: 1.5; }
-.wi-bar-scenario { fill: var(--wi-scenario); stroke: var(--wi-scenario); stroke-width: 1.5; opacity: .85; }
-.wi-bar.is-active { opacity: 1; }
-.wi-bar-scenario.is-neg { stroke: var(--red); }
-.wi-line { fill: none; stroke-width: 2.25; stroke-linejoin: round; stroke-linecap: round; }
-.wi-line-base { stroke: var(--wi-base); stroke-dasharray: 6 4; }
-.wi-line-scenario { stroke: var(--wi-scenario); }
-.wi-dot-base { fill: var(--surface); stroke: var(--wi-base); stroke-width: 2; }
-.wi-dot-scenario { fill: var(--wi-scenario); stroke: var(--surface); stroke-width: 1.5; }
-.wi-dot.is-neg { stroke: var(--red); stroke-width: 2.5; }
-.wi-dot-scenario.is-neg { fill: var(--red); }
 .wi-hit { fill: transparent; cursor: default; }
 .wi-hit:hover { fill: var(--primary-dim); }
 .wi-hit:focus-visible { outline: 2px solid var(--hl-focus); fill: var(--primary-dim); }
 .wi-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 12.5px; color: var(--text-2); }
 .wi-legend li { display: inline-flex; align-items: center; gap: 7px; }
 .wi-swatch { display: inline-block; width: 18px; height: 10px; flex-shrink: 0; }
-.wi-swatch-columns-base { border-radius: 2px; border: 1.5px solid var(--wi-base); background: color-mix(in srgb, var(--wi-base) 28%, transparent); }
-.wi-swatch-columns-scenario { border-radius: 2px; background: var(--wi-scenario); }
-.wi-swatch-lines-base { height: 0; border-top: 2.5px dashed var(--wi-base); }
-.wi-swatch-lines-scenario { height: 0; border-top: 3px solid var(--wi-scenario); }
-.wi-swatch-neg { color: var(--red); font-size: 11px; line-height: 1; }
 .wi-readout { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 12.5px; color: var(--text-2); }
 .wi-readout > span:first-child { font-weight: 600; color: var(--text); }
 .wi-readout strong { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
 
-/* Aba "Por simulação" */
-.wi-sim-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-.wi-sim {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 12px 16px;
-  padding: 12px 14px; border-radius: 12px; background: var(--surface2); border: 1px solid var(--border);
-}
-.wi-sim.is-off .wi-sim-main, .wi-sim.is-off .wi-sim-totals { opacity: .75; }
-.wi-sim-all { grid-template-columns: minmax(0, 1fr) auto; margin-top: 10px; border-style: dashed; border-color: var(--border-hi); }
-.wi-sim-main { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.wi-sim-title { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14px; }
-.wi-tag { font-size: 11.5px; color: var(--text-2); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); }
-.wi-sim-desc { font-size: 12.5px; color: var(--text-2); line-height: 1.45; overflow-wrap: anywhere; }
 .wi-warn {
   display: block; font-size: 12.5px; line-height: 1.45; color: var(--text); padding: 6px 10px; border-radius: 8px;
   background: color-mix(in srgb, var(--yellow) 14%, var(--surface));
   border: 1px solid color-mix(in srgb, var(--yellow) 40%, var(--border));
 }
 .wi-warn > span:first-child { color: var(--yellow); font-weight: 700; }
-.wi-sim-totals { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 12.5px; color: var(--text-2); }
-.wi-sim-totals strong { color: var(--text); font-variant-numeric: tabular-nums; }
-.wi-sim-actions { display: flex; gap: 2px; }
-.wi-add-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
-.wi-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .wi-switch {
   display: inline-flex; align-items: center; gap: 8px; padding: 3px 10px 3px 3px; border-radius: 999px; cursor: pointer;
   font: inherit; font-size: 12px; font-weight: 600; color: var(--text-2);
@@ -2446,14 +2378,7 @@ canvas { max-height: 220px; }
 .wi-confirm-text { font-size: 13px; line-height: 1.5; color: var(--text-2); margin-bottom: 18px; }
 
 @media (max-width: 780px) {
-  .wi-card { padding: 14px 14px 18px; }
   .wi-how { padding: 2px 16px; }
-  .wi-sim { grid-template-columns: minmax(0, 1fr) auto; }
-  .wi-sim > .wi-switch { grid-column: 1; justify-self: start; }
-  .wi-sim-actions { grid-column: 2; grid-row: 1; justify-self: end; }
-  .wi-sim-main, .wi-sim-totals { grid-column: 1 / -1; }
-  .wi-sim-totals { align-items: flex-start; }
-  .wi-sim-all { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
   .wi-body, .wi-switch-knob { transition: none; }

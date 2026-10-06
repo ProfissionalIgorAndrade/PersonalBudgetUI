@@ -51,27 +51,6 @@ export const impacts = [
 export const opening = { amount: 5000, asOf: '2026-10-06', excludesSavings: true,
   accounts: [{ id: 'c1', name: 'Conta corrente', balance: 5000 }] };
 
-/** `scenario[]` e `summary` que o backend devolve com as quatro simulações ligadas. */
-export const scenarioAll = [
-  { year: 2026, month: 10, label: 'out/26', simulatedIncome: 0, simulatedExpense: 150, result: -1750, balance: 3250, delta: -150 },
-  { year: 2026, month: 11, label: 'nov/26', simulatedIncome: 0, simulatedExpense: 150, result: 449.25, balance: 3699.25, delta: -300 },
-  { year: 2026, month: 12, label: 'dez/26', simulatedIncome: 1200, simulatedExpense: 233.33, result: 1265.92, balance: 4965.17, delta: 666.67 },
-  { year: 2027, month: 1, label: 'jan/27', simulatedIncome: 1200, simulatedExpense: 6233.33, result: -5733.58, balance: -768.41, delta: -4366.66 },
-  { year: 2027, month: 2, label: 'fev/27', simulatedIncome: 1200, simulatedExpense: 233.33, result: 1565.92, balance: 797.51, delta: -3399.99 },
-  { year: 2027, month: 3, label: 'mar/27', simulatedIncome: 1200, simulatedExpense: 233.33, result: 1565.92, balance: 2363.43, delta: -2433.32 },
-];
-
-export const summaryAll = {
-  baselineMinBalance: { amount: 3400, monthIndex: 0 },
-  scenarioMinBalance: { amount: -768.41, monthIndex: 3 },
-  firstNegativeMonthIndexBaseline: null,
-  firstNegativeMonthIndexScenario: 3,
-  endBalanceBaseline: 4796.75,
-  endBalanceScenario: 2363.43,
-  totalImpactInHorizon: -2433.32,
-  totalImpactFull: -4000,
-};
-
 export const ALL_IDS = ['car', 'phone', 'salary', 'trip'];
 
 /**

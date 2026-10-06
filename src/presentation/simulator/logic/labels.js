@@ -6,13 +6,6 @@ export const MODE_LABEL = { Single: 'Única', Installment: 'Parcelada', Monthly:
 export const TYPE_LABEL = { Income: 'Receita', Expense: 'Despesa' };
 export const TYPE_ICON = { Income: '📥', Expense: '📤' };
 
-const MONTH_NAMES = [
-  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
-];
-
-export const monthName = (month) => MONTH_NAMES[month - 1] ?? '';
-
 /** "2026-03" -> "mar/26". */
 export const shortMonth = (ym) => monthLabel(ym).toLowerCase();
 
@@ -28,18 +21,6 @@ export function signedMoney(v) {
   if (!v) return R$(0);
   return `${v > 0 ? '+' : '−'}${R$(Math.abs(v))}`;
 }
-
-/**
- * Rótulo de um mês da projeção. O primeiro mês (índice 0) só traz o que ainda
- * falta acontecer: o que já aconteceu está dentro do saldo de hoje.
- */
-export function projectionMonthLabel(entry, index, { long = false } = {}) {
-  if (index === 0) return long ? `restante de ${monthName(entry.month)}` : `${entry.label}*`;
-  return entry.label;
-}
-
-export const FIRST_MONTH_NOTE =
-  '* Primeiro mês: só o que falta acontecer. O que já aconteceu no mês está dentro do saldo de hoje.';
 
 /**
  * Frase legível de uma simulação, ex.:

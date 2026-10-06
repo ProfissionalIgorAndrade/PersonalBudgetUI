@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  describeSimulation, previewText, simulationName, simulationSummary, installmentTotalText, addMonths, shortMonth, signedMoney, projectionMonthLabel, MODE_LABEL,
+  describeSimulation, previewText, simulationName, simulationSummary, installmentTotalText, addMonths, shortMonth, signedMoney, MODE_LABEL,
 } from '../labels';
 
 // Intl usa espaço não separável depois de "R$"; normaliza para comparar.
@@ -68,12 +68,6 @@ describe('helpers de rótulo', () => {
     expect(n(signedMoney(-5))).toBe('−R$ 5,00');
     expect(n(signedMoney(5))).toBe('+R$ 5,00');
     expect(n(signedMoney(0))).toBe('R$ 0,00');
-  });
-  it('primeiro mês é rotulado como restante', () => {
-    const e = { year: 2026, month: 10, label: 'out/26' };
-    expect(projectionMonthLabel(e, 0, { long: true })).toBe('restante de outubro');
-    expect(projectionMonthLabel(e, 0)).toBe('out/26*');
-    expect(projectionMonthLabel(e, 1)).toBe('out/26');
   });
   it('um só MODE_LABEL com as três modalidades', () => {
     expect(MODE_LABEL).toEqual({ Single: 'Única', Installment: 'Parcelada', Monthly: 'Mensal' });
