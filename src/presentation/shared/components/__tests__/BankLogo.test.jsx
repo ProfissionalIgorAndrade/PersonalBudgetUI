@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import React from 'react';
 import BankLogo from '../BankLogo';
+import { BANKS } from '../../../../core/constants/banks';
 
 afterEach(cleanup);
 
@@ -176,5 +177,49 @@ describe('BankLogo — contexto multi-titular', () => {
     const { container: cIn } = render(<BankLogo bank="Inter" />);
     expect(cNu.querySelector('.bkl-badge').textContent)
       .not.toBe(cIn.querySelector('.bkl-badge').textContent);
+  });
+});
+
+// ── Todos os bancos do módulo ─────────────────────────────────────────────────
+
+describe('BankLogo — módulo de bancos', () => {
+  it('renderiza sigla do módulo para cada chave do enum', () => {
+    for (const [key, b] of Object.entries(BANKS)) {
+      const { container, unmount } = render(<BankLogo bank={key} />);
+      const badge = container.querySelector('.bkl-badge');
+      expect(badge).toBeTruthy();
+      expect(badge.textContent).toBe(b.logo.abbr);
+      unmount();
+    }
+  });
+
+  it('renderiza o badge também pelo rótulo de exibição', () => {
+    for (const [, b] of Object.entries(BANKS)) {
+      const { container, unmount } = render(<BankLogo bank={b.label} />);
+      expect(container.querySelector('.bkl-badge').textContent).toBe(b.logo.abbr);
+      unmount();
+    }
+  });
+
+  it('aplica fundo e cor do texto do banco', () => {
+    const { container } = render(<BankLogo bank="BancoDoBrasil" />);
+    const badge = container.querySelector('.bkl-badge');
+    expect(badge.style.background).toBeTruthy();
+    expect(badge.style.color).toBeTruthy();
+    expect(badge.style.color === badge.style.backgroundColor).toBe(false);
+  });
+
+  it.each([
+    ['itaú', 'IT'], ['bb', 'BB'], ['banco do brasil', 'BB'],
+    ['c6', 'C6'], ['xp', 'XP'], ['btg', 'BTG'],
+    ['  BancoDoBrasil ', 'BB'], ['C6BANK', 'C6'], ['mercado pago', 'MP'],
+  ])('mantém o apelido/normalização %s -> %s', (bank, abbr) => {
+    const { container } = render(<BankLogo bank={bank} />);
+    expect(container.querySelector('.bkl-badge').textContent).toBe(abbr);
+  });
+
+  it('não confunde nomes do protótipo de objeto com bancos', () => {
+    const { container } = render(<BankLogo bank="constructor" />);
+    expect(container.querySelector('.bkl-fallback')).toBeTruthy();
   });
 });
