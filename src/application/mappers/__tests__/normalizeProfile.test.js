@@ -3,7 +3,7 @@ import { normalizeProfile } from '../index';
 
 describe('normalizeProfile default emoji', () => {
   it('uses the family avatar for a Joint profile without emoji', () => {
-    expect(normalizeProfile({ id: 'p1', displayName: 'Família', kind: 'Joint', emoji: null }).emoji).toBe('👨‍👩‍👧‍👦');
+    expect(normalizeProfile({ id: 'p1', displayName: 'Família', kind: 'Joint', emoji: null }).emoji).toBe('👨👩👧👦');
   });
 
   it('uses the neutral person for other kinds without emoji', () => {
@@ -12,7 +12,7 @@ describe('normalizeProfile default emoji', () => {
   });
 
   it('treats an empty string as missing', () => {
-    expect(normalizeProfile({ id: 'p4', displayName: 'X', kind: 'Joint', emoji: '' }).emoji).toBe('👨‍👩‍👧‍👦');
+    expect(normalizeProfile({ id: 'p4', displayName: 'X', kind: 'Joint', emoji: '' }).emoji).toBe('👨👩👧👦');
   });
 
   it('keeps a stored emoji, including legacy values outside the catalog', () => {

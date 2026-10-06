@@ -5,7 +5,7 @@ import MemberTile from '../MemberTile';
 
 afterEach(cleanup);
 
-const profile = { id: 'p1', name: 'Família', emoji: '👨‍👩‍👧‍👦', color: '#fb923c' };
+const profile = { id: 'p1', name: 'Família', emoji: '👨👩👧👦', color: '#fb923c' };
 const user    = { id: 'u1', name: 'Igor', emoji: '🧑', color: '#2dd4bf', userId: 'abc' };
 
 describe('MemberTile', () => {
@@ -17,10 +17,29 @@ describe('MemberTile', () => {
   it('shows name, avatar and the role tag', () => {
     const { container, rerender } = render(<MemberTile member={profile} />);
     expect(screen.getByText('Família')).toBeTruthy();
-    expect(container.querySelector('.mbr-avatar').textContent).toBe('👨‍👩‍👧‍👦');
+    expect(container.querySelector('.mbr-avatar').textContent).toBe('👨👩👧👦');
     expect(screen.getByText('Perfil')).toBeTruthy();
     rerender(<MemberTile member={user} />);
     expect(screen.getByText('Usuário')).toBeTruthy();
+  });
+
+  it('turns the avatar into a pill with data-count for a family', () => {
+    const { container } = render(<MemberTile member={profile} />);
+    const av = container.querySelector('.mbr-avatar');
+    expect(av.getAttribute('data-count')).toBe('4');
+    expect(av.className).toContain('mbr-avatar-pill');
+    expect(av.getAttribute('style')).toBeNull();
+  });
+
+  it('keeps the round chip for one person and for legacy ZWJ families', () => {
+    const { container, rerender } = render(<MemberTile member={user} />);
+    let av = container.querySelector('.mbr-avatar');
+    expect(av.getAttribute('data-count')).toBe('1');
+    expect(av.className).not.toContain('mbr-avatar-pill');
+    rerender(<MemberTile member={{ ...profile, emoji: '👨‍👩‍👧‍👦' }} />);
+    av = container.querySelector('.mbr-avatar');
+    expect(av.getAttribute('data-count')).toBe('1');
+    expect(av.className).not.toContain('mbr-avatar-pill');
   });
 
   it('renders no actions without handlers', () => {

@@ -61,7 +61,7 @@ export default function MemberForm({ f, onChange, onSave, onClose }) {
                 <button
                   key={base}
                   type="button"
-                  className="icon-opt"
+                  className={g.id === 'families' ? 'icon-opt mbr-opt-wide' : 'icon-opt'}
                   aria-pressed={baseEmoji === base}
                   aria-label={`Avatar ${base}`}
                   onClick={() => set('emoji', applyTone(base, currentTone))}
