@@ -71,6 +71,25 @@ export function normalizeAccount(a) {
   };
 }
 
+/**
+ * Corpo de POST/PUT /api/accounts: banco, titular e apelido opcional. O apelido
+ * só vai quando preenchido (aparado); vazio deixa o backend usar o banco.
+ */
+export function buildAccountPayload(acc) {
+  const name = typeof acc.name === 'string' ? acc.name.trim() : '';
+  return { bank: acc.bank, ...(name && { name }), memberId: acc.memberId };
+}
+
+/**
+ * Campos editáveis de uma conta normalizada para o formulário. `name` cai no
+ * rótulo do banco quando não há apelido; ali ele volta vazio, para não virar
+ * apelido ao salvar.
+ */
+export function accountEditFields(a) {
+  const fallback = BANK_LABELS[a.bank] || a.bank;
+  return { id: a.id, bank: a.bank, name: a.name && a.name !== fallback ? a.name : '', memberId: a.memberId };
+}
+
 export function normalizeCategory(c) {
   return {
     id:    c.id,
