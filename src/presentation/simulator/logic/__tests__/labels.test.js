@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  describeSimulation, previewText, simulationName, simulationSummary, installmentTotalText, addMonths, shortMonth, signedMoney, MODE_LABEL,
+  describeSimulation, previewText, simulationName, simulationSummary, installmentTotalText, addMonths, shortMonth, signedMoney, MODE_LABEL, ownerInfo, OWNER_FALLBACK,
 } from '../labels';
 
 // Intl usa espaço não separável depois de "R$"; normaliza para comparar.
@@ -97,5 +97,24 @@ describe('cartão de simulação: nome e parcela legível', () => {
     expect(n(simulationSummary(sim({ mode: 'Monthly', amount: 1200 })))).toBe('R$ 1.200,00/mês a partir de mar/26, até o fim do período');
     expect(n(simulationSummary(sim({ mode: 'Single', amount: 6000 })))).toBe('R$ 6.000,00 em mar/26');
     expect(installmentTotalText(sim({ mode: 'Single' }))).toBe('');
+  });
+});
+
+describe('ownerInfo', () => {
+  const members = [{ id: 'p2', name: 'Andreza', emoji: '👩', color: '#aa3366', userId: 'u2' }];
+  const base = { ownerUserId: 'u2', ownerName: 'Andreza (API)', isOwner: false };
+
+  it('usa o perfil achado pelo ownerUserId e "de Nome"', () => {
+    expect(ownerInfo(base, members)).toEqual({ name: 'Andreza', emoji: '👩', color: '#aa3366', text: 'de Andreza' });
+  });
+
+  it('"você" quando é o dono', () => {
+    expect(ownerInfo({ ...base, isOwner: true }, members).text).toBe('você');
+  });
+
+  it('sem perfil: usa o ownerName da API, sem avatar; sem nome, rótulo neutro', () => {
+    expect(ownerInfo({ ...base, ownerUserId: 'u9', ownerName: 'Bruno' }, members)).toEqual({ name: 'Bruno', emoji: null, color: null, text: 'de Bruno' });
+    expect(ownerInfo({ ownerUserId: 'u9', ownerName: '', isOwner: false }, members).name).toBe(OWNER_FALLBACK);
+    expect(ownerInfo({ ownerUserId: 'u9', isOwner: false }, undefined).text).toBe(`de ${OWNER_FALLBACK}`);
   });
 });

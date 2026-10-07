@@ -1,5 +1,6 @@
 import { R$, monthLabel } from '../../../core/utils/format';
 import { installmentBreakdown } from '../../../core/utils/simulatorMath';
+import { findMember } from '../../../application/mappers/index';
 
 /** Único rótulo de modalidade da tela (formulário, lista e tabelas). */
 export const MODE_LABEL = { Single: 'Única', Installment: 'Parcelada', Monthly: 'Mensal' };
@@ -173,3 +174,22 @@ export const HEADLINE_NO_DATA = 'Nenhum mês do período tem lançamentos, entã
 export const lineExcluded = (n) =>
   `${n} ${n === 1 ? 'mês sem lançamentos não entra' : 'meses sem lançamentos não entram'} na conta.`;
 export const HEADLINE_NO_MONTHS = 'Sem meses para projetar.';
+
+/** Texto neutro quando nem o perfil nem a API trazem o nome do dono. */
+export const OWNER_FALLBACK = 'Membro da família';
+
+/**
+ * Dono de uma simulação para o cartão: avatar e cor do perfil (achado pelo
+ * `ownerUserId`) e o nome. Sem perfil em `members`, usa o `ownerName` da API;
+ * sem nome, um rótulo neutro. `text` é "você" para quem criou, "de <Nome>" nos demais.
+ */
+export function ownerInfo(sim, members) {
+  const member = findMember(members || [], sim.ownerUserId);
+  const name = member?.name || sim.ownerName || OWNER_FALLBACK;
+  return {
+    name,
+    emoji: member?.emoji || null,
+    color: member?.color || null,
+    text: sim.isOwner ? 'você' : `de ${name}`,
+  };
+}
