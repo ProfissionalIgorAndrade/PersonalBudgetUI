@@ -115,6 +115,7 @@ export const MONTH_STATUS = {
   negative: { level: 'critical', label: 'Negativo' },
   tight: { level: 'warning', label: 'Apertado' },
   ok: { level: 'good', label: 'Positivo' },
+  nodata: { level: 'unknown', label: 'Sem lançamentos' },
 };
 
 const monthsWord = (n) => `${n} ${n === 1 ? 'mês' : 'meses'}`;
@@ -130,9 +131,10 @@ export function headlineSingle({ label, result, baselineResult, withSims }) {
 
 /** Veredito de N meses (N > 1). */
 export function headlineMulti({
-  n, total, baselineTotal, withSims, negativeCount, firstNegativeLabel, tightestLabel, tightestResult,
+  n, total, baselineTotal, withSims, negativeCount, firstNegativeLabel, tightestLabel, tightestResult, scoped = false,
 }) {
-  const head = `Nos próximos ${monthsWord(n)}: ${total < 0 ? 'falta total' : 'sobra total'} de ${R$(Math.abs(total))}`
+  const scope = scoped ? `Nos ${monthsWord(n)} com lançamentos` : `Nos próximos ${monthsWord(n)}`;
+  const head = `${scope}: ${total < 0 ? 'falta total' : 'sobra total'} de ${R$(Math.abs(total))}`
     + `${baselineNote(withSims, baselineTotal)}.`;
   if (negativeCount > 0) {
     const count = negativeCount === 1 ? '1 mês fica negativo' : `${negativeCount} de ${n} meses ficam negativos`;
@@ -144,6 +146,21 @@ export function headlineMulti({
   return `${head} Todos os meses seguem positivos; o mais apertado é ${tightestLabel}, com ${R$(tightestResult)} de sobra.`;
 }
 
+/**
+ * Veredito de N meses (N > 1) quando só ALGUNS meses ficam negativos e o total
+ * do período é positivo: o período como um todo sobra, mas há mês no vermelho.
+ */
+export function headlineMixed({ n, total, baselineTotal, withSims, negativeCount, firstNegativeLabel }) {
+  const note = baselineNote(withSims, baselineTotal);
+  const head = total > 0
+    ? `Em ${monthsWord(n)} sobram ${R$(total)}${note}`
+    : `Em ${monthsWord(n)} o total fecha zerado${note}`;
+  const but = negativeCount === 1
+    ? `${firstNegativeLabel} fecha negativo`
+    : `${negativeCount} meses fecham negativos; o primeiro é ${firstNegativeLabel}`;
+  return `${head}, mas ${but}.`;
+}
+
 export const lineSlack = (amount) => `Você ainda pode assumir até ${R$(amount)} por mês a mais sem ficar no vermelho.`;
 export const lineGap = (label, amount) => `Para ${label} fechar sem ficar no vermelho, faltam ${R$(amount)}.`;
 export const lineCommitment = (pct, label, withSims) =>
@@ -152,7 +169,7 @@ export const lineTight = (label, pct) =>
   `A sobra de ${label} é menor que ${pct}% da receita do mês: qualquer imprevisto pode deixá-lo negativo.`;
 export const LINE_NO_SIMS = 'Nenhuma simulação ligada. Adicione uma compra, renda ou gasto para ver o que muda mês a mês.';
 
-export const HEADLINE_NO_HISTORY = 'Ainda não há histórico suficiente para projetar os meses.';
-export const lineNoHistory = (lookback) =>
-  `Não há lançamentos nos últimos ${lookback} meses, então receita e despesa não podem ser estimadas. Lance algumas transações e volte aqui.`;
+export const HEADLINE_NO_DATA = 'Nenhum mês do período tem lançamentos, então não há base para comparar.';
+export const lineExcluded = (n) =>
+  `${n} ${n === 1 ? 'mês sem lançamentos não entra' : 'meses sem lançamentos não entram'} na conta.`;
 export const HEADLINE_NO_MONTHS = 'Sem meses para projetar.';

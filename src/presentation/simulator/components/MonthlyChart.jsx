@@ -37,8 +37,8 @@ export default function MonthlyChart({ composed, infos }) {
   const stacks = months.map((m) => {
     const up = [];
     const down = [];
-    if (m.income > 0) up.push({ key: 'income', c: toCents(m.income) });
-    if (m.expense > 0) down.push({ key: 'expense', c: toCents(m.expense) });
+    if (m.hasData && m.income > 0) up.push({ key: 'income', c: toCents(m.income) });
+    if (m.hasData && m.expense > 0) down.push({ key: 'expense', c: toCents(m.expense) });
     const per = new Map();
     m.sims.forEach((s) => {
       const info = byId.get(s.id);
@@ -55,7 +55,7 @@ export default function MonthlyChart({ composed, infos }) {
   });
 
   const sum = (arr) => arr.reduce((a, x) => a + x.c, 0) / 100;
-  let hi = Math.max(0, ...stacks.map((s) => sum(s.up)), ...months.map((m) => m.result));
+  let hi = Math.max(0, ...stacks.map((s) => sum(s.up)), ...months.filter((m) => m.hasData).map((m) => m.result));
   let lo = -Math.max(0, ...stacks.map((s) => sum(s.down)));
   if (hi === 0 && lo === 0) hi = 1;
   const pad = (hi - lo) * 0.08;
@@ -78,10 +78,9 @@ export default function MonthlyChart({ composed, infos }) {
   const shown = Math.min(active !== null ? active : firstShown, n - 1);
 
   const describe = (m) => [
-    `receita ${R$(m.income)}`,
-    `despesa ${R$(m.expense)}`,
+    ...(m.hasData ? [`receita ${R$(m.income)}`, `despesa ${R$(m.expense)}`] : ['sem lançamentos']),
     ...m.sims.map((s) => `${byId.get(s.id)?.name ?? s.id} ${R$(s.amount)}`),
-    `sobra do mês ${R$(m.result)}${m.result < 0 ? ' (negativo)' : ''}`,
+    ...(m.hasData ? [`sobra do mês ${R$(m.result)}${m.result < 0 ? ' (negativo)' : ''}`] : []),
   ].join('; ');
 
   const segments = (stack, i, dir) => {
@@ -119,30 +118,30 @@ export default function MonthlyChart({ composed, infos }) {
           <line x1={L} x2={W - R} y1={y(0)} y2={y(0)} className="wi-zero" />
 
           {stacks.map((s, i) => (
-            <g key={months[i].label} className={shown === i ? 'wi-mc-col is-active' : 'wi-mc-col'}>
+            <g key={months[i].ym} className={shown === i ? 'wi-mc-col is-active' : 'wi-mc-col'}>
               {segments(s.up, i, 1)}
               {segments(s.down, i, -1)}
             </g>
           ))}
 
-          {months.map((mm, i) => (mm.result < 0
+          {months.map((mm, i) => (!mm.hasData ? null : mm.result < 0
             ? (
-              <rect key={`r${mm.label}`} x={cx(i) - 5} y={y(mm.result) - 5} width="10" height="10"
+              <rect key={`r${mm.ym}`} x={cx(i) - 5} y={y(mm.result) - 5} width="10" height="10"
                 transform={`rotate(45 ${cx(i)} ${y(mm.result)})`} className="wi-mc-dot is-neg" />
             )
-            : <circle key={`r${mm.label}`} cx={cx(i)} cy={y(mm.result)} r="4.5" className="wi-mc-dot" />
+            : <circle key={`r${mm.ym}`} cx={cx(i)} cy={y(mm.result)} r="4.5" className="wi-mc-dot" />
           ))}
 
-          {months.map((mm, i) => mm.result < 0 && (
-            <text key={`f${mm.label}`} x={cx(i)} y={T - 5} textAnchor="middle" className="wi-mc-flag">✕</text>
+          {months.map((mm, i) => mm.hasData && mm.result < 0 && (
+            <text key={`f${mm.ym}`} x={cx(i)} y={T - 5} textAnchor="middle" className="wi-mc-flag">✕</text>
           ))}
 
           {months.map((mm, i) => i % step === 0 && (
-            <text key={`x${mm.label}`} x={cx(i)} y={H - 12} textAnchor="middle" className="wi-axis">{mm.label}</text>
+            <text key={`x${mm.ym}`} x={cx(i)} y={H - 12} textAnchor="middle" className="wi-axis">{mm.label}</text>
           ))}
 
           {months.map((mm, i) => (
-            <rect key={`h${mm.label}`} x={L + band * i} y={T} width={band} height={plotH + B - 8}
+            <rect key={`h${mm.ym}`} x={L + band * i} y={T} width={band} height={plotH + B - 8}
               className="wi-hit" tabIndex={0} role="img" aria-label={`${mm.label}: ${describe(mm)}`}
               onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)}
               onFocus={() => setActive(i)} onBlur={() => setActive(null)} />
@@ -162,15 +161,21 @@ export default function MonthlyChart({ composed, infos }) {
 
       <p className="wi-readout" aria-live="polite">
         <span>{m.label}</span>
-        <span className="wi-readout-item">Receita: <strong>{R$(m.income)}</strong></span>
-        <span className="wi-readout-item">Despesa: <strong>{R$(m.expense)}</strong></span>
+        {m.hasData ? (
+          <>
+            <span className="wi-readout-item">Receita: <strong>{R$(m.income)}</strong></span>
+            <span className="wi-readout-item">Despesa: <strong>{R$(m.expense)}</strong></span>
+          </>
+        ) : <span className="wi-readout-item">Sem lançamentos neste mês</span>}
         {m.sims.map((s) => (
           <span key={s.id} className="wi-readout-item">{byId.get(s.id)?.name ?? s.id}: <strong>{R$(s.amount)}</strong></span>
         ))}
-        <span className="wi-readout-item">
-          Sobra do mês: <strong>{R$(m.result)}</strong>
-          {m.result < 0 && <span className="wi-neg-tag"><span aria-hidden="true"> ✕</span> negativo</span>}
-        </span>
+        {m.hasData && (
+          <span className="wi-readout-item">
+            Sobra do mês: <strong>{R$(m.result)}</strong>
+            {m.result < 0 && <span className="wi-neg-tag"><span aria-hidden="true"> ✕</span> negativo</span>}
+          </span>
+        )}
       </p>
     </figure>
   );

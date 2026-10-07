@@ -1,8 +1,8 @@
 /**
- * Matemática pura do simulador, compartilhada entre o hook (pedido à API),
- * a composição no cliente e a prévia do formulário.
+ * Matemática pura do simulador, compartilhada entre o hook, o cronograma, a
+ * composição no cliente e a prévia do formulário.
  *
- * Dinheiro é somado em centavos inteiros: os valores da API têm no máximo
+ * Dinheiro é somado em centavos inteiros: os valores têm no máximo
  * 2 casas, e somar centavos reproduz exatamente os decimais do backend, sem
  * a deriva de ponto flutuante.
  */
@@ -46,25 +46,4 @@ export function installmentBreakdown({ amount, amountKind, installments }) {
 export function localToday(d = new Date()) {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
-/**
- * Impactos no formato da API. Não leva `enabled`: o pedido é o mesmo com a
- * simulação ligada ou desligada, então o liga/desliga não refaz a chamada.
- */
-export function projectionImpacts(simulations) {
-  return simulations.map((s) => {
-    const impact = {
-      id: s.id,
-      description: s.description,
-      type: s.type,
-      mode: s.mode,
-      startMonth: s.startMonth,
-      amount: s.amount,
-      amountKind: s.mode === 'Installment' ? s.amountKind : 'PerInstallment',
-    };
-    if (s.mode === 'Installment') impact.installments = s.installments;
-    if (s.mode === 'Monthly' && s.months) impact.months = s.months;
-    return impact;
-  });
 }

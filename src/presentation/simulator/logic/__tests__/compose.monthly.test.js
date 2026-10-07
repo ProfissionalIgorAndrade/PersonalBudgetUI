@@ -1,16 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import {
-  composeMonthly, buildVerdict, assignSimColors, monthStatus, fullMonthCents, ATTENTION_THRESHOLD_PCT,
+  composeMonthly, buildVerdict, assignSimColors, monthStatus, ATTENTION_THRESHOLD_PCT,
 } from '../compose';
-import { baseline, baselineFull, impacts, ALL_IDS } from './fixtures';
+import { buildSchedules } from '../schedule';
+import { baseline, schedules, ALL_IDS } from './fixtures';
 
-const norm = (s) => s.replace(/\u00a0/g, ' ');
-const monthly = (enabledIds, over = {}) => composeMonthly({ baseline: baselineFull, impacts, enabledIds, ...over });
-const verdict = (composed, over = {}) => {
-  const v = buildVerdict({ composed, ...over });
+const norm = (s) => s.replace(/ /g, ' ');
+const monthly = (enabledIds, over = {}) => composeMonthly({ baseline, schedules, enabledIds, ...over });
+const verdict = (composed) => {
+  const v = buildVerdict({ composed });
   return { ...v, headline: norm(v.headline), lines: v.lines.map((l) => ({ ...l, text: norm(l.text) })) };
 };
 const lineOf = (v, kind) => v.lines.find((l) => l.kind === kind)?.text;
+
+/** Base de teste: [receita, despesa] por mês; null = mês sem lançamentos. */
+const rows = (pairs) => pairs.map((p, i) => ({
+  ym: `2026-${String(i + 1).padStart(2, '0')}`, label: `m${i}`,
+  income: p ? p[0] : 0, expense: p ? p[1] : 0, result: p ? p[0] - p[1] : 0, hasData: p !== null,
+  committed: 0, variable: p ? p[1] : 0,
+}));
+const only = (pairs, over = {}) => verdict(composeMonthly({ baseline: rows(pairs), schedules: [], enabledIds: [], ...over }));
+const flat = (id, values) => ({ id, monthly: values });
 
 describe('composeMonthly: todas ligadas (números à mão)', () => {
   const c = monthly(ALL_IDS);
@@ -32,7 +42,6 @@ describe('composeMonthly: todas ligadas (números à mão)', () => {
       const sum = Math.round(m.income * 100) - Math.round(m.expense * 100)
         + m.sims.reduce((a, s) => a + Math.round(s.amount * 100), 0);
       expect(sum).toBe(Math.round(m.result * 100));
-      expect(Math.round(m.simTotal * 100)).toBe(m.sims.reduce((a, s) => a + Math.round(s.amount * 100), 0));
     });
   });
 
@@ -46,7 +55,8 @@ describe('composeMonthly: todas ligadas (números à mão)', () => {
     expect(c.tightest).toEqual({ index: 3, label: 'jan/27', result: -5733.58, income: 4000, baselineResult: -700.25 });
     expect(c.negativeCount).toBe(1);
     expect(c.firstNegative).toBe(3);
-    expect(c.fullMonthFallback).toBe(false);
+    expect(c.countedCount).toBe(6);
+    expect(c.excludedCount).toBe(0);
   });
 
   it('o total do período é a soma exata dos meses', () => {
@@ -56,12 +66,8 @@ describe('composeMonthly: todas ligadas (números à mão)', () => {
     expect(cents((m) => m.expense)).toBe(Math.round(c.totals.expense * 100));
   });
 
-  it('o mês atual usa o mês inteiro, não o restante (committed/variable seguem como detalhe do restante)', () => {
-    expect(c.months[0].income).toBe(4000);
-    expect(c.months[0].committed).toBe(1800);
-    expect(c.months[0].variable).toBe(300);
-    expect(c.months[0].detailIsRemaining).toBe(true);
-    expect(c.months[1].detailIsRemaining).toBe(false);
+  it('o detalhe fixos x demais vem da base', () => {
+    expect(c.months[1]).toMatchObject({ ym: '2026-11', committed: 2500.5, variable: 900.25 });
   });
 });
 
@@ -91,47 +97,61 @@ describe('composeMonthly: liga/desliga', () => {
   });
 });
 
-describe('composeMonthly: sem fullMonth (backend antigo)', () => {
-  const c = composeMonthly({ baseline, impacts, enabledIds: [] });
+describe('composeMonthly: o caso do usuário (Dashboard + simulações por cima)', () => {
+  // receita 27.200,00; despesa nov 12.989,29 e dez 11.489,29; 1.300/mês e 1.200 x 5 desde nov
+  const base = rows([[27200, 12989.29], [27200, 11489.29]]);
+  const sims = buildSchedules([
+    { id: 'a', description: 'A', type: 'Expense', mode: 'Monthly', startMonth: '2026-01', amount: 1300, months: null },
+    { id: 'b', description: 'B', type: 'Expense', mode: 'Installment', startMonth: '2026-01', amount: 1200, amountKind: 'PerInstallment', installments: 5 },
+  ], '2026-01', 2);
 
-  it('cai para income e committed + variable', () => {
-    expect(c.fullMonthFallback).toBe(true);
-    expect(c.months[0]).toMatchObject({ income: 500, expense: 2100, baselineResult: -1600, result: -1600, status: 'negative' });
-    expect(c.months[1]).toMatchObject({ income: 4000, expense: 3400.75, baselineResult: 599.25 });
-    expect(fullMonthCents(baseline[0])).toEqual({ incomeC: 50000, expenseC: 210000, fallback: true });
+  it('sobra de nov = 27.200 - 12.989,29 - 2.500 e de dez = 27.200 - 11.489,29 - 2.500', () => {
+    const c = composeMonthly({ baseline: base, schedules: sims, enabledIds: ['a', 'b'] });
+    expect(c.months.map((m) => m.result)).toEqual([11710.71, 13210.71]);
+    expect(c.months.map((m) => m.baselineResult)).toEqual([14210.71, 15710.71]);
+    expect(c.months[1]).toMatchObject({ income: 27200, expense: 11489.29 });
+  });
+});
+
+describe('composeMonthly: meses sem lançamentos', () => {
+  const base = rows([[4000, 3000], null, [4000, 5000], null]);
+  const sim = [flat('x', [-100, -100, -100, 500])];
+  const c = composeMonthly({ baseline: base, schedules: sim, enabledIds: ['x'] });
+
+  it('aparecem como "nodata" e as simulações continuam valendo neles', () => {
+    expect(c.months.map((m) => m.status)).toEqual(['ok', 'nodata', 'negative', 'nodata']);
+    expect(c.months[1]).toMatchObject({ hasData: false, income: 0, expense: 0, simTotal: -100, result: -100 });
+    expect(c.months[3].sims).toEqual([{ id: 'x', amount: 500 }]);
   });
 
-  it('um fullMonth parcial não conta como presente', () => {
-    expect(fullMonthCents({ ...baseline[0], fullMonth: { income: 1 } }).fallback).toBe(true);
+  it('ficam fora dos totais, da contagem de negativos e do mês mais apertado', () => {
+    expect(c.countedCount).toBe(2);
+    expect(c.excludedCount).toBe(2);
+    expect(c.negativeCount).toBe(1);
+    expect(c.firstNegative).toBe(2);
+    expect(c.totals).toMatchObject({ income: 8000, expense: 8000, simTotal: -200, result: -200, baselineResult: 0 });
+    expect(c.totals.sims).toEqual([{ id: 'x', amount: -200 }]);
+    expect(c.tightest).toMatchObject({ index: 2, label: 'm2' });
   });
 });
 
 describe('composeMonthly: 24 meses e centavos', () => {
-  const base24 = Array.from({ length: 24 }, (_, i) => {
-    const ord = 2026 * 12 + 9 + i;
-    const year = Math.floor(ord / 12);
-    const month = (ord % 12) + 1;
-    return {
-      year, month, label: `m${i}`, income: 3000, committed: 2000, variable: 900.5,
-      fullMonth: { income: 3000, expense: 2900.5, result: 99.5 },
-    };
-  });
-  const imp24 = [{ id: 'm', monthly: new Array(24).fill(-100) }];
-  const c = composeMonthly({ baseline: base24, impacts: imp24, enabledIds: ['m'] });
+  const base24 = Array.from({ length: 24 }, (_, i) => ({
+    ym: `m${i}`, label: `m${i}`, income: 3000, expense: 2900.5, hasData: true, committed: 2000, variable: 900.5,
+  }));
+  const c = composeMonthly({ baseline: base24, schedules: [flat('m', new Array(24).fill(-100))], enabledIds: ['m'] });
 
-  it('filtro de 24 meses: um item por mês, todos negativos por 50 centavos', () => {
+  it('um item por mês, todos negativos por 50 centavos', () => {
     expect(c.months).toHaveLength(24);
     expect(c.months.every((m) => m.result === -0.5 && m.status === 'negative')).toBe(true);
     expect(c.negativeCount).toBe(24);
-    expect(c.firstNegative).toBe(0);
     expect(c.totals.result).toBe(-12);
     expect(c.totals.baselineResult).toBe(2388);
-    expect(c.tightest.index).toBe(0);
   });
 
   it('sem deriva de ponto flutuante', () => {
-    const b = [{ label: 'a', fullMonth: { income: 0.3, expense: 0.1 } }];
-    const r = composeMonthly({ baseline: b, impacts: [{ id: 'x', monthly: [0.2] }], enabledIds: ['x'] });
+    const b = [{ ym: 'a', label: 'a', income: 0.3, expense: 0.1, hasData: true }];
+    const r = composeMonthly({ baseline: b, schedules: [flat('x', [0.2])], enabledIds: ['x'] });
     expect(r.months[0].result).toBe(0.4);
     expect(r.months[0].baselineResult).toBe(0.2);
   });
@@ -159,12 +179,9 @@ describe('assignSimColors', () => {
   });
 });
 
-describe('buildVerdict', () => {
-  it('1 mês positivo, com a simulação e a base', () => {
-    const c = composeMonthly({
-      baseline: baselineFull.slice(0, 1), enabledIds: ['car'],
-      impacts: [{ ...impacts[0], monthly: [-150] }],
-    });
+describe('buildVerdict: 1 mês', () => {
+  it('positivo, com a simulação e a base', () => {
+    const c = composeMonthly({ baseline: baseline.slice(0, 1), schedules: [flat('car', [-150])], enabledIds: ['car'] });
     const v = verdict(c);
     expect(v.level).toBe('good');
     expect(v.headline).toBe('Em out/26 o mês fecha com sobra de R$ 450,00 (sem simulações: R$ 600,00).');
@@ -172,38 +189,58 @@ describe('buildVerdict', () => {
     expect(lineOf(v, 'commitment')).toBe('Com as simulações, 89% da receita de out/26 fica comprometida.');
   });
 
-  it('1 mês negativo', () => {
-    const c = composeMonthly({
-      baseline: [{ label: 'out/26', fullMonth: { income: 1000, expense: 1300 } }],
-      enabledIds: ['x'], impacts: [{ id: 'x', monthly: [-200] }],
-    });
-    const v = verdict(c);
+  it('negativo é crítico', () => {
+    const v = only([[1000, 1300]], { schedules: [flat('x', [-200])], enabledIds: ['x'] });
     expect(v.level).toBe('critical');
-    expect(v.headline).toBe('Em out/26 o mês fica negativo em R$ 500,00 (sem simulações: -R$ 300,00).');
-    expect(lineOf(v, 'gap')).toBe('Para out/26 fechar sem ficar no vermelho, faltam R$ 500,00.');
+    expect(v.headline).toBe('Em m0 o mês fica negativo em R$ 500,00 (sem simulações: -R$ 300,00).');
+    expect(lineOf(v, 'gap')).toBe('Para m0 fechar sem ficar no vermelho, faltam R$ 500,00.');
     expect(v.slack).toBeNull();
   });
+});
 
-  it('3 meses com o primeiro negativo (crítico)', () => {
-    const c = composeMonthly({
-      baseline: baselineFull.slice(2, 5), enabledIds: ALL_IDS,
-      impacts: impacts.map((i) => ({ ...i, monthly: i.monthly.slice(2, 5) })),
-    });
-    // dez: 299,25+966,67 = 1265,92 | jan: -5733,58 | fev: 599,25+966,67 = 1565,92  => total -2901,74
-    const v = verdict(c);
+describe('buildVerdict: 3 ou mais meses', () => {
+  it('total do período negativo é crítico, mesmo com poucos meses negativos', () => {
+    const v = verdict(monthly(ALL_IDS));
     expect(v.level).toBe('critical');
-    expect(v.headline).toBe(
-      'Nos próximos 3 meses: falta total de R$ 2.901,74 (sem simulações: R$ 198,25). 1 mês fica negativo; o primeiro é jan/27.',
-    );
     expect(v.statusLabel).toBe('Crítico');
+    expect(v.headline).toBe(
+      'Nos próximos 6 meses: falta total de R$ 436,57 (sem simulações: R$ 1.996,75). 1 mês fica negativo; o primeiro é jan/27.',
+    );
   });
 
-  it('6 meses, vários negativos: K de N e o primeiro', () => {
-    const b = [-5, 10, -3].map((r, i) => ({ label: `m${i}`, fullMonth: { income: 100, expense: 100 - r } }));
-    const v = verdict(composeMonthly({ baseline: b, impacts: [], enabledIds: [] }));
+  it('mais da metade dos meses negativos é crítico, mesmo com total positivo', () => {
+    const v = only([[100, 110], [100, 110], [100, 10]]);   // -10, -10, +90 => total +70
+    expect(v.level).toBe('critical');
     expect(v.headline).toBe(
-      'Nos próximos 3 meses: sobra total de R$ 2,00. 2 de 3 meses ficam negativos; o primeiro é m0.',
+      'Nos próximos 3 meses: sobra total de R$ 70,00. 2 de 3 meses ficam negativos; o primeiro é m0.',
     );
+  });
+
+  it('exatamente metade negativa com total positivo não é maioria: atenção', () => {
+    const v = only([[100, 110], [100, 10], [100, 110], [100, 10]]);   // 2 de 4
+    expect(v.level).toBe('warning');
+  });
+
+  it('um mês negativo e total positivo é atenção, com a frase "sobram ... mas <mês> fecha negativo"', () => {
+    const v = verdict(monthly([]));
+    expect(v.level).toBe('warning');
+    expect(v.statusLabel).toBe('Atenção');
+    expect(v.headline).toBe('Em 6 meses sobram R$ 1.996,75, mas jan/27 fecha negativo.');
+    expect(lineOf(v, 'gap')).toBe('Para jan/27 fechar sem ficar no vermelho, faltam R$ 700,25.');
+  });
+
+  it('com simulações, a frase mantém a base entre parênteses e conta os negativos no plural', () => {
+    const v = only([[100, 110], [100, 10], [100, 10], [100, 110], [100, 10], [100, 10]],
+      { schedules: [flat('x', [0, -10, 0, 0, 0, 0])], enabledIds: ['x'] });   // 2 de 6, total +330 (base +340)
+    expect(v.level).toBe('warning');
+    expect(v.headline).toBe(
+      'Em 6 meses sobram R$ 330,00 (sem simulações: R$ 340,00), mas 2 meses fecham negativos; o primeiro é m0.',
+    );
+  });
+
+  it('2 meses, um negativo e total positivo: atenção', () => {
+    expect(only([[100, 110], [100, 10]]).level).toBe('warning');
+    expect(only([[100, 110], [100, 100]]).level).toBe('critical');   // total -10
   });
 
   it('nenhum negativo e folga: o mês mais apertado', () => {
@@ -219,10 +256,9 @@ describe('buildVerdict', () => {
     expect(lineOf(v, 'commitment')).toBe('Com as simulações, 88% da receita de jan/27 fica comprometida.');
   });
 
-  it('atenção por sobra baixa: nenhum negativo, mas um mês abaixo de 10% da receita', () => {
+  it('atenção por margem baixa: nenhum negativo, mas um mês abaixo de 10% da receita', () => {
     const v = verdict(monthly(['car', 'phone', 'salary']));
     expect(v.level).toBe('warning');
-    expect(v.statusLabel).toBe('Atenção');
     expect(v.headline).toContain('Todos os meses seguem positivos; o mais apertado é jan/27, com R$ 266,42 de sobra.');
     expect(lineOf(v, 'tight')).toBe(
       'A sobra de jan/27 é menor que 10% da receita do mês: qualquer imprevisto pode deixá-lo negativo.',
@@ -231,25 +267,30 @@ describe('buildVerdict', () => {
   });
 
   it('exatamente 10% da receita ainda é ok', () => {
-    const b = [{ label: 'a', fullMonth: { income: 1000, expense: 900 } }];
-    expect(buildVerdict({ composed: composeMonthly({ baseline: b, impacts: [], enabledIds: [] }) }).level).toBe('good');
-    const b2 = [{ label: 'a', fullMonth: { income: 1000, expense: 900.01 } }];
-    expect(buildVerdict({ composed: composeMonthly({ baseline: b2, impacts: [], enabledIds: [] }) }).level).toBe('warning');
+    expect(only([[1000, 900]]).level).toBe('good');
+    expect(only([[1000, 900.01]]).level).toBe('warning');
   });
 
   it('sobra zero: não diz "positivo" nem oferece folga', () => {
-    const b = [{ label: 'a', fullMonth: { income: 1000, expense: 1000 } }, { label: 'b', fullMonth: { income: 1000, expense: 500 } }];
-    const v = verdict(composeMonthly({ baseline: b, impacts: [], enabledIds: [] }));
-    expect(v.headline).toContain('Nenhum mês fica no vermelho; o mais apertado é a, que fecha zerado.');
+    const v = only([[1000, 1000], [1000, 500]]);
+    expect(v.headline).toContain('Nenhum mês fica no vermelho; o mais apertado é m0, que fecha zerado.');
     expect(v.slack).toBeNull();
     expect(v.level).toBe('warning');
   });
 
-  it('sem simulações ligadas: não compara com a base e incentiva adicionar uma', () => {
-    const v = verdict(monthly([]));
+  it('24 meses negativos: contagem no plural', () => {
+    const base24 = Array.from({ length: 24 }, () => [3000, 2900.5]);
+    const v = only(base24, { schedules: [flat('m', new Array(24).fill(-100))], enabledIds: ['m'] });
+    expect(v.level).toBe('critical');
     expect(v.headline).toBe(
-      'Nos próximos 6 meses: sobra total de R$ 1.996,75. 1 mês fica negativo; o primeiro é jan/27.',
+      'Nos próximos 24 meses: falta total de R$ 12,00 (sem simulações: R$ 2.388,00). 24 de 24 meses ficam negativos; o primeiro é m0.',
     );
+  });
+});
+
+describe('buildVerdict: sem simulações ligadas', () => {
+  it('descreve só a base e convida a adicionar uma', () => {
+    const v = verdict(monthly([]));
     expect(v.headline).not.toContain('sem simulações');
     expect(lineOf(v, 'hint')).toContain('Adicione uma compra, renda ou gasto');
     expect(lineOf(v, 'commitment')).toBe('118% da receita de jan/27 fica comprometida.');
@@ -257,27 +298,44 @@ describe('buildVerdict', () => {
 
   it('todas desligadas equivale a nenhuma simulação', () => {
     expect(verdict(monthly([])).lines.map((l) => l.kind)).toContain('hint');
+    expect(verdict(monthly(ALL_IDS)).lines.map((l) => l.kind)).not.toContain('hint');
   });
+});
 
-  it('sem histórico: diz que não há dados, sem números zerados', () => {
-    const v = verdict(monthly([]), { hasHistory: false, lookbackMonths: 3 });
-    expect(v.level).toBe('unknown');
-    expect(v.headline).toBe('Ainda não há histórico suficiente para projetar os meses.');
-    expect(v.lines).toHaveLength(1);
-    expect(v.lines[0].text).toContain('últimos 3 meses');
-    expect(v.headline).not.toContain('R$');
-  });
-
-  it('sem meses: nível desconhecido', () => {
-    const v = buildVerdict({ composed: composeMonthly({ baseline: [], impacts: [], enabledIds: [] }) });
-    expect(v.level).toBe('unknown');
-  });
-
-  it('24 meses negativos: contagem no plural', () => {
-    const base24 = Array.from({ length: 24 }, (_, i) => ({ label: `m${i}`, fullMonth: { income: 3000, expense: 2900.5 } }));
-    const c = composeMonthly({ baseline: base24, impacts: [{ id: 'm', monthly: new Array(24).fill(-100) }], enabledIds: ['m'] });
-    expect(verdict(c).headline).toBe(
-      'Nos próximos 24 meses: falta total de R$ 12,00 (sem simulações: R$ 2.388,00). 24 de 24 meses ficam negativos; o primeiro é m0.',
+describe('buildVerdict: meses sem lançamentos', () => {
+  it('ficam fora da conta e o veredito diz quantos', () => {
+    // nov e dez com dados; as outras 2 sem lançamentos (uma com simulação negativa grande, que não conta)
+    const v = only([[4000, 3000], null, [4000, 3500], null],
+      { schedules: [flat('x', [0, -99999, 0, -99999])], enabledIds: ['x'] });
+    expect(v.level).toBe('good');
+    expect(v.headline).toBe(
+      'Nos 2 meses com lançamentos: sobra total de R$ 1.500,00 (sem simulações: R$ 1.500,00). '
+      + 'Todos os meses seguem positivos; o mais apertado é m2, com R$ 500,00 de sobra.',
     );
+    expect(lineOf(v, 'excluded')).toBe('2 meses sem lançamentos não entram na conta.');
+  });
+
+  it('singular quando é um só', () => {
+    const v = only([[4000, 3000], null, [4000, 2000]]);
+    expect(lineOf(v, 'excluded')).toBe('1 mês sem lançamentos não entra na conta.');
+  });
+
+  it('só um mês com dados usa a frase do mês', () => {
+    const v = only([null, [1000, 1300], null]);
+    expect(v.level).toBe('critical');
+    expect(v.headline).toBe('Em m1 o mês fica negativo em R$ 300,00.');
+    expect(lineOf(v, 'excluded')).toBe('2 meses sem lançamentos não entram na conta.');
+  });
+
+  it('nenhum mês com lançamentos: desconhecido, sem cifras', () => {
+    const v = only([null, null]);
+    expect(v.level).toBe('unknown');
+    expect(v.statusLabel).toBe('Sem dados');
+    expect(v.headline).not.toContain('R$');
+    expect(lineOf(v, 'excluded')).toBe('2 meses sem lançamentos não entram na conta.');
+  });
+
+  it('sem meses: desconhecido', () => {
+    expect(buildVerdict({ composed: composeMonthly({ baseline: [], schedules: [], enabledIds: [] }) }).level).toBe('unknown');
   });
 });

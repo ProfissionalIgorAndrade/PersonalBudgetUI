@@ -6,7 +6,7 @@ import MonthlyChart from '../MonthlyChart';
 import MonthlyTable from '../MonthlyTable';
 import { composeMonthly, buildVerdict, assignSimColors } from '../../logic/compose';
 import { simulationName } from '../../logic/labels';
-import { baseline, baselineFull, impacts, ALL_IDS } from '../../logic/__tests__/fixtures';
+import { baseline, schedules, ALL_IDS } from '../../logic/__tests__/fixtures';
 
 afterEach(cleanup);
 
@@ -19,7 +19,12 @@ const infos = () => {
   const colors = assignSimColors(SIMS);
   return SIMS.map((s, i) => ({ sim: s, name: simulationName(s, i), slot: colors[s.id] }));
 };
-const compose = (ids = ALL_IDS, over = {}) => composeMonthly({ baseline: baselineFull, impacts, enabledIds: ids, ...over });
+const compose = (ids = ALL_IDS, over = {}) => composeMonthly({ baseline, schedules, enabledIds: ids, ...over });
+/** Base com meses sem lançamentos: [receita, despesa] ou null. */
+const gappy = (pairs) => pairs.map((p, i) => ({
+  ym: `2026-${String(i + 1).padStart(2, '0')}`, label: `m${i}`, income: p ? p[0] : 0, expense: p ? p[1] : 0,
+  result: p ? p[0] - p[1] : 0, hasData: p !== null, committed: 0, variable: p ? p[1] : 0,
+}));
 
 describe('VerdictBanner', () => {
   it('crítico: ícone, texto do status, frase e linhas de apoio', () => {
@@ -32,12 +37,21 @@ describe('VerdictBanner', () => {
     expect(norm(banner.textContent)).toContain('faltam R$ 5.733,58');
   });
 
-  it('sem histórico: status "Sem dados" e nenhuma cifra', () => {
-    render(<VerdictBanner verdict={buildVerdict({ composed: compose([]), hasHistory: false })} />);
+  it('sem nenhum mês com lançamentos: status "Sem dados" e nenhuma cifra', () => {
+    const composed = composeMonthly({ baseline: gappy([null, null]), schedules: [], enabledIds: [] });
+    render(<VerdictBanner verdict={buildVerdict({ composed })} />);
     const banner = screen.getByRole('region', { name: 'Veredito da simulação' });
     expect(banner.textContent).toContain('Sem dados');
-    expect(banner.textContent).toContain('Ainda não há histórico suficiente');
-    expect(banner.textContent).not.toContain('R$');
+    expect(banner.textContent).toContain('Nenhum mês do período tem lançamentos');
+    expect(norm(banner.textContent)).toContain('2 meses sem lançamentos não entram na conta.');
+    expect(banner.textContent).not.toMatch(/R\$ \d/);
+  });
+
+  it('atenção: um mês negativo com total positivo', () => {
+    render(<VerdictBanner verdict={buildVerdict({ composed: compose([]) })} />);
+    const banner = screen.getByRole('region', { name: 'Veredito da simulação' });
+    expect(banner.getAttribute('data-level')).toBe('warning');
+    expect(norm(banner.textContent)).toContain('Em 6 meses sobram R$ 1.996,75, mas jan/27 fecha negativo.');
   });
 });
 
@@ -87,18 +101,32 @@ describe('MonthlyChart', () => {
     const colors = assignSimColors(many);
     const inf = many.map((s, i) => ({ sim: s, name: s.description, slot: colors[s.id] }));
     const imps = many.map((s) => ({ id: s.id, monthly: [-10, -10, -10, -10, -10, -10] }));
-    const composed = composeMonthly({ baseline: baselineFull, impacts: imps, enabledIds: many.map((s) => s.id) });
+    const composed = composeMonthly({ baseline, schedules: imps, enabledIds: many.map((s) => s.id) });
     const { container } = render(<MonthlyChart composed={composed} infos={inf} />);
     expect(screen.getByText('Outras (2)')).toBeTruthy();
     expect(container.querySelectorAll('.wi-mc-seg.wi-cat-other')).toHaveLength(6);
   });
 
+  it('mês sem lançamentos: sem receita/despesa nem sobra, mas com a simulação', () => {
+    const composed = composeMonthly({
+      baseline: gappy([[4000, 3000], null]), schedules: [{ id: 'car', monthly: [-100, -100] }], enabledIds: ['car'],
+    });
+    const { container } = render(<MonthlyChart composed={composed} infos={infos()} />);
+    const hits = container.querySelectorAll('.wi-hit');
+    const label = norm(hits[1].getAttribute('aria-label'));
+    expect(label).toContain('m1: sem lançamentos');
+    expect(label).toContain('Carro -R$ 100,00');
+    expect(label).not.toContain('receita');
+    expect(label).not.toContain('sobra do mês');
+    expect(container.querySelectorAll('.wi-mc-dot')).toHaveLength(1);    // só o mês com lançamentos
+    expect(container.querySelectorAll('.wi-mc-seg.wi-cat-1')).toHaveLength(2);
+    fireEvent.focus(hits[1]);
+    expect(norm(container.querySelector('.wi-readout').textContent)).toContain('Sem lançamentos neste mês');
+  });
+
   it('24 meses: colunas estreitas com rolagem horizontal', () => {
-    const base24 = Array.from({ length: 24 }, (_, i) => ({
-      year: 2026 + Math.floor((9 + i) / 12), month: ((9 + i) % 12) + 1, label: `m${i}`,
-      fullMonth: { income: 3000, expense: 2900.5 },
-    }));
-    const composed = composeMonthly({ baseline: base24, impacts: [], enabledIds: [] });
+    const base24 = gappy(Array.from({ length: 24 }, () => [3000, 2900.5])).map((b, i) => ({ ...b, ym: `m${i}` }));
+    const composed = composeMonthly({ baseline: base24, schedules: [], enabledIds: [] });
     const { container } = render(<MonthlyChart composed={composed} infos={[]} />);
     expect(container.querySelector('.wi-mc-scroll')).toBeTruthy();
     expect(container.querySelectorAll('.wi-hit')).toHaveLength(24);
@@ -108,7 +136,7 @@ describe('MonthlyChart', () => {
 
 describe('MonthlyTable (gêmea do gráfico)', () => {
   it('colunas: Mês, Receita, Despesa, uma por simulação ligada, Sobra do mês e Situação', () => {
-    render(<MonthlyTable composed={compose(['car', 'trip'])} infos={infos()} lookbackMonths={3} />);
+    render(<MonthlyTable composed={compose(['car', 'trip'])} infos={infos()} />);
     expect(screen.getAllByRole('columnheader').map((c) => c.textContent)).toEqual([
       'Mês', 'Receita', 'Despesa', 'Carro', 'Viagem', 'Sobra do mês', 'Situação',
     ]);
@@ -116,7 +144,7 @@ describe('MonthlyTable (gêmea do gráfico)', () => {
 
   it('mesmos números do gráfico: cada linha e a linha de total', () => {
     const composed = compose();
-    render(<MonthlyTable composed={composed} infos={infos()} lookbackMonths={3} />);
+    render(<MonthlyTable composed={composed} infos={infos()} />);
     const rows = screen.getAllByRole('row');
     expect(rows).toHaveLength(1 + 6 + 1);
     const jan = norm(rows[4].textContent);
@@ -134,36 +162,46 @@ describe('MonthlyTable (gêmea do gráfico)', () => {
   });
 
   it('horizonte de 1 mês não tem linha de total', () => {
-    const composed = composeMonthly({ baseline: baselineFull.slice(0, 1), impacts: [], enabledIds: [] });
-    render(<MonthlyTable composed={composed} infos={[]} lookbackMonths={3} />);
+    const composed = composeMonthly({ baseline: baseline.slice(0, 1), schedules: [], enabledIds: [] });
+    render(<MonthlyTable composed={composed} infos={[]} />);
     expect(screen.queryByText('Total do período')).toBeNull();
   });
 
-  it('detalhe expansível: fixos e parcelas x gasto variável', () => {
-    render(<MonthlyTable composed={compose()} infos={infos()} lookbackMonths={3} />);
+  it('detalhe expansível: fixos e parcelas x demais despesas', () => {
+    render(<MonthlyTable composed={compose()} infos={infos()} />);
     expect(screen.queryByText(/Fixos e parcelas/)).toBeNull();
     const btn = screen.getByRole('button', { name: 'Detalhe de nov/26' });
     expect(btn.getAttribute('aria-expanded')).toBe('false');
     fireEvent.click(btn);
     expect(btn.getAttribute('aria-expanded')).toBe('true');
     expect(norm(screen.getByText(/Fixos e parcelas/).closest('td').textContent))
-      .toBe('Fixos e parcelas: R$ 2.500,50 · Gasto variável estimado: R$ 900,25');
+      .toBe('Fixos e parcelas: R$ 2.500,50 · Demais despesas: R$ 900,25');
     fireEvent.click(btn);
     expect(screen.queryByText(/Fixos e parcelas/)).toBeNull();
   });
 
-  it('o detalhe do mês atual explica que cobre só o restante', () => {
-    render(<MonthlyTable composed={compose()} infos={infos()} lookbackMonths={3} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Detalhe de out/26' }));
-    expect(norm(screen.getByText(/ainda falta acontecer em out\/26/).textContent)).toContain('R$ 1.800,00');
+  it('não fala de média nem de estimativa', () => {
+    const { container } = render(<MonthlyTable composed={compose()} infos={infos()} />);
+    expect(container.textContent).not.toMatch(/média|estimativa|estimado/i);
   });
 
-  it('nota discreta da estimativa e, sem fullMonth, o aviso do primeiro mês', () => {
-    const { unmount } = render(<MonthlyTable composed={compose()} infos={infos()} lookbackMonths={3} />);
-    expect(screen.getByText(/incluem uma estimativa pela média dos 3 meses anteriores/)).toBeTruthy();
-    expect(screen.queryByText(/ainda não envia o mês inteiro/)).toBeNull();
-    unmount();
-    render(<MonthlyTable composed={composeMonthly({ baseline, impacts, enabledIds: [] })} infos={infos()} lookbackMonths={3} />);
-    expect(screen.getByText(/ainda não envia o mês inteiro/)).toBeTruthy();
+  it('mês sem lançamentos: traço na receita, despesa e sobra, situação própria, simulação visível e fora do total', () => {
+    const composed = composeMonthly({
+      baseline: gappy([[4000, 3000], null, [4000, 3500]]), schedules: [{ id: 'car', monthly: [-100, -100, -100] }], enabledIds: ['car'],
+    });
+    render(<MonthlyTable composed={composed} infos={infos()} />);
+    const rows = screen.getAllByRole('row');
+    const gap = norm(rows[2].textContent);
+    expect(gap).toContain('Sem lançamentos');
+    expect(gap).toContain('−R$ 100,00');
+    expect(gap).toContain('—');
+    expect(gap).not.toContain('Negativo');
+    const total = norm(rows[4].textContent);
+    expect(total).toContain('Total do período');
+    expect(total).toContain('R$ 8.000,00');                 // receita só dos 2 meses com lançamentos
+    expect(total).toContain('−R$ 200,00');                  // simulação só dos 2 meses com lançamentos
+    expect(norm(screen.getByText(/1 mês sem lançamentos fica fora/).textContent)).toContain('veredito');
+    fireEvent.click(screen.getByRole('button', { name: 'Detalhe de m1' }));
+    expect(screen.getByText(/Sem lançamentos de receita ou despesa em m1/)).toBeTruthy();
   });
 });

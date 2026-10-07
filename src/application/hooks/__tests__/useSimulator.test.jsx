@@ -1,71 +1,42 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useSimulator, DEBOUNCE_MS } from '../useSimulator';
+import { useSimulator, HORIZONS, DEFAULT_HORIZON } from '../useSimulator';
 import { SIM_STORAGE_KEY, MAX_SIMULATIONS } from '../../../core/utils/simulatorStorage';
-
-const response = (tag = 'a') => ({ tag, baseline: [], impacts: [], scenario: [], warnings: [] });
 
 const form = (over = {}) => ({
   description: 'Carro', type: 'Expense', mode: 'Installment', startMonth: '2026-10',
   amount: 150, amountKind: 'PerInstallment', installments: 12, months: null, ...over,
 });
 
-/** Avança o debounce e deixa a promessa do fetcher resolver. */
-const settle = async (ms = DEBOUNCE_MS + 10) => {
-  await act(async () => { await vi.advanceTimersByTimeAsync(ms); });
-};
+const setup = () => renderHook(() => useSimulator());
 
-let fetcher;
-const setup = () => renderHook(() => useSimulator({ fetcher }));
+beforeEach(() => { localStorage.clear(); });
 
-beforeEach(() => {
-  localStorage.clear();
-  vi.useFakeTimers();
-  fetcher = vi.fn().mockResolvedValue(response());
-});
-afterEach(() => vi.useRealTimers());
-
-describe('useSimulator: resultado derivado', () => {
-  it('busca o baseline ao abrir, com a data local de hoje e o horizonte padrão', async () => {
+describe('useSimulator: estado local, sem rede', () => {
+  it('começa vazio, com o horizonte padrão, sem campos de carregamento ou erro', () => {
     const { result } = setup();
-    expect(result.current.result).toBeNull();
-    await settle();
-    expect(fetcher).toHaveBeenCalledTimes(1);
-    const body = fetcher.mock.calls[0][0];
-    expect(body.months).toBe(6);
-    expect(body.impacts).toEqual([]);
-    expect(body.today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(result.current.result.tag).toBe('a');
-    expect(result.current.loading).toBe(false);
+    expect(result.current.simulations).toEqual([]);
+    expect(result.current.months).toBe(DEFAULT_HORIZON);
+    expect(HORIZONS).toEqual([1, 3, 6, 12, 24]);
+    ['result', 'loading', 'refetching', 'error', 'retry'].forEach((k) => expect(k in result.current).toBe(false));
   });
 
-  it('adicionar refaz a chamada com o impacto, sem o campo enabled', async () => {
+  it('adicionar normaliza os campos e liga a simulação', () => {
     const { result } = setup();
-    await settle();
-    act(() => { result.current.addSimulation(form()); });
-    await settle();
-    expect(fetcher).toHaveBeenCalledTimes(2);
-    const [impact] = fetcher.mock.calls[1][0].impacts;
-    expect(impact).toMatchObject({ description: 'Carro', mode: 'Installment', amountKind: 'PerInstallment', installments: 12, startMonth: '2026-10' });
-    expect('enabled' in impact).toBe(false);
+    act(() => { result.current.addSimulation(form({ description: '  Carro  ', amount: 150.004 })); });
     expect(result.current.simulations).toHaveLength(1);
-    expect(result.current.simulations[0].enabled).toBe(true);
+    expect(result.current.simulations[0]).toMatchObject({
+      description: 'Carro', amount: 150, mode: 'Installment', amountKind: 'PerInstallment', installments: 12, months: null, enabled: true,
+    });
   });
 
-  it('editar e remover também refazem a chamada', async () => {
+  it('só mantém os campos do modo (Mensal guarda a duração e descarta parcelas e tipo de valor)', () => {
     const { result } = setup();
-    act(() => { result.current.addSimulation(form()); });
-    await settle();
-    const id = result.current.simulations[0].id;
-    act(() => { result.current.editSimulation(id, form({ amount: 200 })); });
-    await settle();
-    expect(fetcher.mock.calls.at(-1)[0].impacts[0].amount).toBe(200);
-    act(() => { result.current.removeSimulation(id); });
-    await settle();
-    expect(fetcher.mock.calls.at(-1)[0].impacts).toEqual([]);
+    act(() => { result.current.addSimulation(form({ mode: 'Monthly', months: 6, installments: 3, amountKind: 'Total' })); });
+    expect(result.current.simulations[0]).toMatchObject({ mode: 'Monthly', months: 6, installments: null, amountKind: 'PerInstallment' });
   });
 
-  it('editar preserva o liga/desliga', async () => {
+  it('editar preserva o liga/desliga e remover tira da lista', () => {
     const { result } = setup();
     act(() => { result.current.addSimulation(form()); });
     const id = result.current.simulations[0].id;
@@ -73,106 +44,28 @@ describe('useSimulator: resultado derivado', () => {
     act(() => { result.current.editSimulation(id, form({ amount: 99 })); });
     expect(result.current.simulations[0].enabled).toBe(false);
     expect(result.current.simulations[0].amount).toBe(99);
+    act(() => { result.current.removeSimulation(id); });
+    expect(result.current.simulations).toEqual([]);
   });
 
-  it('várias mudanças rápidas viram uma chamada só (debounce)', async () => {
-    const { result } = setup();
-    await settle();
-    fetcher.mockClear();
-    act(() => { result.current.addSimulation(form({ description: 'A' })); });
-    await settle(100);
-    act(() => { result.current.addSimulation(form({ description: 'B' })); });
-    await settle(100);
-    expect(fetcher).not.toHaveBeenCalled();
-    await settle();
-    expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(fetcher.mock.calls[0][0].impacts).toHaveLength(2);
-  });
-
-  it('mudar o horizonte refaz a chamada e mantém o resultado anterior enquanto carrega', async () => {
-    const { result } = setup();
-    await settle();
-    const first = result.current.result;
-    let release;
-    fetcher.mockImplementationOnce(() => new Promise((res) => { release = res; }));
-    act(() => { result.current.setMonths(12); });
-    expect(result.current.result).toBe(first);
-    expect(result.current.loading).toBe(true);
-    expect(result.current.refetching).toBe(true);
-    await settle();
-    expect(fetcher.mock.calls.at(-1)[0].months).toBe(12);
-    expect(result.current.refetching).toBe(true);
-    await act(async () => { release(response('b')); });
-    expect(result.current.result.tag).toBe('b');
-    expect(result.current.refetching).toBe(false);
-  });
-
-  it('ignora a resposta de um pedido que já foi trocado', async () => {
-    const { result } = setup();
-    await settle();
-    let releaseOld;
-    fetcher.mockImplementationOnce(() => new Promise((res) => { releaseOld = res; }));
-    act(() => { result.current.setMonths(3); });
-    await settle();
-    fetcher.mockResolvedValueOnce(response('novo'));
-    act(() => { result.current.setMonths(12); });
-    await settle();
-    expect(result.current.result.tag).toBe('novo');
-    await act(async () => { releaseOld(response('velho')); });
-    expect(result.current.result.tag).toBe('novo');
-  });
-});
-
-describe('useSimulator: liga/desliga não chama a API', () => {
-  it('alterna enabled sem novo pedido', async () => {
+  it('liga/desliga alterna enabled sem tocar no horizonte', () => {
     const { result } = setup();
     act(() => { result.current.addSimulation(form()); });
-    await settle();
-    const calls = fetcher.mock.calls.length;
     const id = result.current.simulations[0].id;
     act(() => { result.current.toggleSimulation(id); });
-    await settle(2000);
     expect(result.current.simulations[0].enabled).toBe(false);
-    expect(fetcher).toHaveBeenCalledTimes(calls);
-    expect(result.current.loading).toBe(false);
+    expect(result.current.months).toBe(DEFAULT_HORIZON);
     act(() => { result.current.toggleSimulation(id); });
-    await settle(2000);
     expect(result.current.simulations[0].enabled).toBe(true);
-    expect(fetcher).toHaveBeenCalledTimes(calls);
   });
-});
 
-describe('useSimulator: erro', () => {
-  it('expõe a mensagem, mantém o resultado anterior e some ao mudar o pedido', async () => {
+  it('trocar o horizonte não mexe nas simulações', () => {
     const { result } = setup();
-    await settle();
-    fetcher.mockRejectedValueOnce(new Error('Impacto #1: o valor deve ser maior que zero.'));
     act(() => { result.current.addSimulation(form()); });
-    await settle();
-    expect(result.current.error).toBe('Impacto #1: o valor deve ser maior que zero.');
-    expect(result.current.result.tag).toBe('a');
-    expect(result.current.loading).toBe(false);
-    act(() => { result.current.setMonths(3); });
-    expect(result.current.error).toBeNull();
-  });
-
-  it('retry tenta de novo o mesmo pedido', async () => {
-    fetcher.mockRejectedValueOnce(new Error('falhou'));
-    const { result } = setup();
-    await settle();
-    expect(result.current.error).toBe('falhou');
-    act(() => { result.current.retry(); });
-    await settle();
-    expect(result.current.error).toBeNull();
-    expect(result.current.result.tag).toBe('a');
-    expect(fetcher).toHaveBeenCalledTimes(2);
-  });
-
-  it('erro sem mensagem usa o texto padrão', async () => {
-    fetcher.mockRejectedValueOnce({});
-    const { result } = setup();
-    await settle();
-    expect(result.current.error).toMatch(/Não foi possível/);
+    const before = result.current.simulations;
+    act(() => { result.current.setMonths(12); });
+    expect(result.current.months).toBe(12);
+    expect(result.current.simulations).toBe(before);
   });
 });
 

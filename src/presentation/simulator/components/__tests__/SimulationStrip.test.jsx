@@ -4,7 +4,7 @@ import React from 'react';
 import SimulationStrip from '../SimulationStrip';
 import { simulationName } from '../../logic/labels';
 import { assignSimColors } from '../../logic/compose';
-import { impacts } from '../../logic/__tests__/fixtures';
+import { buildSchedules } from '../../logic/schedule';
 
 afterEach(cleanup);
 
@@ -25,7 +25,7 @@ const setup = (props = {}) => {
   const handlers = { onToggle: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onAdd: vi.fn() };
   const utils = render(
     <SimulationStrip
-      infos={toInfos(SIMS)} impactById={new Map(impacts.map((i) => [i.id, i]))} warnings={[]}
+      infos={toInfos(SIMS)} scheduleById={new Map(buildSchedules(SIMS, '2026-03', 12).map((s) => [s.id, s]))} warnings={[]}
       limitReached={false} {...handlers} {...props}
     />,
   );
@@ -58,7 +58,7 @@ describe('SimulationStrip', () => {
     expect(onRemove).toHaveBeenCalledWith('salary');
   });
 
-  it('o aviso do backend aparece só no cartão da simulação', () => {
+  it('o aviso da janela aparece só no cartão da simulação', () => {
     setup({ warnings: [{ impactId: 'car', code: 'AfterWindow', message: 'Continua depois de mar/27.' }] });
     const [car, other] = screen.getAllByRole('listitem');
     expect(car.textContent).toContain('Continua após o período');

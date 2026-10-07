@@ -1,16 +1,19 @@
 import { toCents, fromCents } from '../../../core/utils/simulatorMath';
 import {
-  headlineSingle, headlineMulti, lineSlack, lineGap, lineCommitment, lineTight, LINE_NO_SIMS,
-  HEADLINE_NO_HISTORY, lineNoHistory, HEADLINE_NO_MONTHS, VERDICT_STATUS,
+  headlineSingle, headlineMulti, headlineMixed, lineSlack, lineGap, lineCommitment, lineTight, lineExcluded,
+  LINE_NO_SIMS, HEADLINE_NO_DATA, HEADLINE_NO_MONTHS, VERDICT_STATUS,
 } from './labels';
 
 /**
  * Composição mensal do cenário no cliente, sem saldo acumulado.
  *
- * A API devolve o baseline (com `fullMonth`) e o vetor mensal assinado de CADA
- * impacto (receita positiva, despesa negativa). Ligar ou desligar uma
- * simulação só muda quais vetores entram na soma, então recompomos aqui sem
- * nova chamada. Tudo em centavos inteiros.
+ * A base de cada mês vem de buildMonthlyBaseline (exatamente o Dashboard) e o
+ * vetor mensal assinado de CADA simulação vem de buildSchedule (receita
+ * positiva, despesa negativa). Ligar ou desligar uma simulação só muda quais
+ * vetores entram na soma. Tudo em centavos inteiros.
+ *
+ * Mês sem lançamentos (`hasData === false`) é mostrado como "sem lançamentos",
+ * mas fica fora do veredito e dos totais; as simulações aparecem nele mesmo assim.
  */
 
 /** Um mês é "apertado" quando a sobra é menor que este percentual da receita dele. */
@@ -19,20 +22,7 @@ export const ATTENTION_THRESHOLD_PCT = 10;
 /** Quantas simulações têm cor própria no gráfico; as demais viram "Outras". */
 export const MAX_COLORED_SIMULATIONS = 6;
 
-/**
- * Receita e despesa do MÊS INTEIRO, em centavos. `fullMonth` vem do backend;
- * sem ele (backend antigo) cai para `income` e `committed + variable`, que no
- * mês atual são só o restante do mês.
- */
-export function fullMonthCents(b) {
-  const fm = b.fullMonth;
-  if (fm && fm.income !== undefined && fm.income !== null && fm.expense !== undefined && fm.expense !== null) {
-    return { incomeC: toCents(fm.income), expenseC: toCents(fm.expense), fallback: false };
-  }
-  return { incomeC: toCents(b.income), expenseC: toCents(b.committed) + toCents(b.variable), fallback: true };
-}
-
-/** negative: sobra < 0. tight: sobra menor que o limiar da receita. ok: o resto. */
+/** negative: sobra < 0. tight: sobra menor que o limiar da receita. ok: o resto. (nodata é decidido por quem chama.) */
 export function monthStatus(resultC, incomeC) {
   if (resultC < 0) return 'negative';
   if (resultC * 100 < incomeC * ATTENTION_THRESHOLD_PCT) return 'tight';
@@ -54,55 +44,64 @@ export function assignSimColors(simulations) {
  * simulação ligada. Tudo em centavos inteiros; a sobra é
  *   result = income - expense + simTotal   (baselineResult = income - expense).
  *
+ * Os totais, `tightest`, `negativeCount` e `firstNegative` consideram só os
+ * meses com lançamentos (`counted`); `excludedCount` diz quantos ficaram de fora.
+ * `firstNegative`/`tightest.index` são índices em `months`.
+ *
  * @param {object} p
- * @param {Array}  p.baseline    baseline[] da API (com fullMonth, ou o formato antigo)
- * @param {Array}  p.impacts     impacts[] da API
+ * @param {Array}  p.baseline   saída de buildMonthlyBaseline
+ * @param {Array}  p.schedules  saída de buildSchedules ({ id, monthly[] })
  * @param {Iterable<string>} p.enabledIds  ids ligados, na ordem em que as colunas aparecem
  */
-export function composeMonthly({ baseline, impacts, enabledIds }) {
-  const byId = new Map(impacts.map((i) => [i.id, i]));
+export function composeMonthly({ baseline, schedules, enabledIds }) {
+  const byId = new Map(schedules.map((s) => [s.id, s]));
   const active = [...enabledIds].map((id) => byId.get(id)).filter(Boolean);
-  const simIds = active.map((i) => i.id);
+  const simIds = active.map((s) => s.id);
 
   const totals = { income: 0, expense: 0, simTotal: 0, result: 0, baselineResult: 0 };
   const simTotalsC = active.map(() => 0);
-  let fallback = false;
   let tightest = null;
   let firstNegative = null;
   let negativeCount = 0;
+  let countedMonths = 0;
 
   const months = baseline.map((b, i) => {
-    const full = fullMonthCents(b);
-    fallback = fallback || full.fallback;
-    const baselineC = full.incomeC - full.expenseC;
+    const hasData = b.hasData !== false;
+    const incomeC = hasData ? toCents(b.income) : 0;
+    const expenseC = hasData ? toCents(b.expense) : 0;
+    const baselineC = incomeC - expenseC;
     let simTotalC = 0;
-    const sims = active.map((imp, k) => {
-      const v = toCents(imp.monthly?.[i] ?? 0);
+    const sims = active.map((sch, k) => {
+      const v = toCents(sch.monthly?.[i] ?? 0);
       simTotalC += v;
-      simTotalsC[k] += v;
-      return { id: imp.id, amount: fromCents(v) };
+      if (hasData) simTotalsC[k] += v;
+      return { id: sch.id, amount: fromCents(v) };
     });
     const resultC = baselineC + simTotalC;
-    const status = monthStatus(resultC, full.incomeC);
-    if (status === 'negative') {
-      negativeCount += 1;
-      if (firstNegative === null) firstNegative = i;
+    const status = hasData ? monthStatus(resultC, incomeC) : 'nodata';
+
+    if (hasData) {
+      countedMonths += 1;
+      if (status === 'negative') {
+        negativeCount += 1;
+        if (firstNegative === null) firstNegative = i;
+      }
+      if (tightest === null || resultC < tightest.resultC) {
+        tightest = { index: i, resultC, incomeC, baselineC };
+      }
+      totals.income += incomeC;
+      totals.expense += expenseC;
+      totals.simTotal += simTotalC;
+      totals.result += resultC;
+      totals.baselineResult += baselineC;
     }
-    if (tightest === null || resultC < tightest.resultC) {
-      tightest = { index: i, resultC, incomeC: full.incomeC, baselineC };
-    }
-    totals.income += full.incomeC;
-    totals.expense += full.expenseC;
-    totals.simTotal += simTotalC;
-    totals.result += resultC;
-    totals.baselineResult += baselineC;
 
     return {
-      year: b.year,
-      month: b.month,
+      ym: b.ym,
       label: b.label,
-      income: fromCents(full.incomeC),
-      expense: fromCents(full.expenseC),
+      hasData,
+      income: fromCents(incomeC),
+      expense: fromCents(expenseC),
       sims,
       simTotal: fromCents(simTotalC),
       result: fromCents(resultC),
@@ -110,8 +109,6 @@ export function composeMonthly({ baseline, impacts, enabledIds }) {
       status,
       committed: b.committed ?? 0,
       variable: b.variable ?? 0,
-      /** committed/variable só cobrem o restante do mês (mês atual de um backend sem fullMonth, ou com lançamentos já feitos). */
-      detailIsRemaining: toCents(b.committed) + toCents(b.variable) !== full.expenseC,
     };
   });
 
@@ -124,7 +121,7 @@ export function composeMonthly({ baseline, impacts, enabledIds }) {
       simTotal: fromCents(totals.simTotal),
       result: fromCents(totals.result),
       baselineResult: fromCents(totals.baselineResult),
-      sims: active.map((imp, k) => ({ id: imp.id, amount: fromCents(simTotalsC[k]) })),
+      sims: active.map((sch, k) => ({ id: sch.id, amount: fromCents(simTotalsC[k]) })),
     },
     tightest: tightest && {
       index: tightest.index,
@@ -135,41 +132,62 @@ export function composeMonthly({ baseline, impacts, enabledIds }) {
     },
     negativeCount,
     firstNegative,
-    fullMonthFallback: fallback,
+    countedCount: countedMonths,
+    excludedCount: months.length - countedMonths,
   };
 }
 
 /**
- * Veredito da tela. `level`: critical (algum mês < 0), warning (nenhum negativo,
- * mas a sobra de algum mês < ATTENTION_THRESHOLD_PCT da receita dele), good, ou
- * unknown (sem histórico / sem meses). Só olha o fluxo do período: o saldo de
- * partida das contas não entra.
+ * Veredito da tela, só com os meses que têm lançamentos.
+ *
+ * - 1 mês contado: negativo = critical.
+ * - 2 ou mais: critical se o total do período é negativo OU mais da metade dos
+ *   meses é negativa; se só alguns meses são negativos mas o total é positivo,
+ *   warning ("Atenção"); sem negativos, warning se algum mês fica abaixo de
+ *   ATTENTION_THRESHOLD_PCT da receita dele; good no resto.
+ * - unknown: sem meses, ou nenhum mês com lançamentos.
+ *
+ * Só olha o fluxo do período: o saldo de partida das contas não entra.
  *
  * @returns {{level, statusLabel, headline, lines: {kind, text}[], slack, commitmentPct}}
  */
-export function buildVerdict({ composed, hasHistory = true, lookbackMonths = 3 }) {
+export function buildVerdict({ composed }) {
   const mk = (level, headline, lines = []) => ({
     level, statusLabel: VERDICT_STATUS[level], headline, lines, slack: null, commitmentPct: null,
   });
   if (composed.months.length === 0) return mk('unknown', HEADLINE_NO_MONTHS);
-  if (!hasHistory) {
-    return mk('unknown', HEADLINE_NO_HISTORY, [{ kind: 'history', text: lineNoHistory(lookbackMonths) }]);
-  }
 
-  const { months, totals, tightest, negativeCount, firstNegative, simIds } = composed;
-  const n = months.length;
+  const { months, totals, tightest, negativeCount, firstNegative, simIds, countedCount, excludedCount } = composed;
+  const excludedLine = excludedCount > 0 ? [{ kind: 'excluded', text: lineExcluded(excludedCount) }] : [];
+  if (countedCount === 0) return mk('unknown', HEADLINE_NO_DATA, excludedLine);
+
+  const n = countedCount;
   const withSims = simIds.length > 0;
-  const level = negativeCount > 0 ? 'critical' : months.some((m) => m.status === 'tight') ? 'warning' : 'good';
+  const mostlyNegative = negativeCount * 2 > n;
+  const anyTight = months.some((m) => m.status === 'tight');
 
-  const headline = n === 1
-    ? headlineSingle({
-      label: months[0].label, result: months[0].result, baselineResult: months[0].baselineResult, withSims,
-    })
-    : headlineMulti({
-      n, total: totals.result, baselineTotal: totals.baselineResult, withSims, negativeCount,
-      firstNegativeLabel: firstNegative === null ? '' : months[firstNegative].label,
-      tightestLabel: tightest.label, tightestResult: tightest.result,
+  let level;
+  if (n === 1) level = negativeCount > 0 ? 'critical' : anyTight ? 'warning' : 'good';
+  else if (totals.result < 0 || mostlyNegative) level = 'critical';
+  else if (negativeCount > 0 || anyTight) level = 'warning';
+  else level = 'good';
+
+  const firstNegativeLabel = firstNegative === null ? '' : months[firstNegative].label;
+  let headline;
+  if (n === 1) {
+    headline = headlineSingle({
+      label: tightest.label, result: tightest.result, baselineResult: tightest.baselineResult, withSims,
     });
+  } else if (level !== 'critical' && negativeCount > 0) {
+    headline = headlineMixed({
+      n, total: totals.result, baselineTotal: totals.baselineResult, withSims, negativeCount, firstNegativeLabel,
+    });
+  } else {
+    headline = headlineMulti({
+      n, total: totals.result, baselineTotal: totals.baselineResult, withSims, negativeCount, firstNegativeLabel,
+      tightestLabel: tightest.label, tightestResult: tightest.result, scoped: excludedCount > 0,
+    });
+  }
 
   const lines = [];
   let slack = null;
@@ -187,10 +205,11 @@ export function buildVerdict({ composed, hasHistory = true, lookbackMonths = 3 }
     commitmentPct = Math.round((committedC * 100) / toCents(tightest.income));
     lines.push({ kind: 'commitment', text: lineCommitment(commitmentPct, tightest.label, withSims) });
   }
-  if (level === 'warning') {
-    const tight = months.find((m) => m.status === 'tight');
+  const tight = months.find((m) => m.status === 'tight');
+  if (level === 'warning' && tight) {
     lines.push({ kind: 'tight', text: lineTight(tight.label, ATTENTION_THRESHOLD_PCT) });
   }
+  lines.push(...excludedLine);
   if (!withSims) lines.push({ kind: 'hint', text: LINE_NO_SIMS });
 
   return { level, statusLabel: VERDICT_STATUS[level], headline, lines, slack, commitmentPct };
