@@ -85,7 +85,7 @@ describe('Histórico on the Cofrinho screen', () => {
     expect(screen.queryByText(/Depósito · /)).toBeNull();
   });
 
-  it('keeps deleted-box movements out of the month total', () => {
+  it('counts both legs of a deleted box transfer, so the month total nets to zero', () => {
     const thisMonth = new Date().toISOString().slice(0, 7);
     const { container } = render(<SavingsView {...props}
       movements={[
@@ -93,6 +93,7 @@ describe('Histórico on the Cofrinho screen', () => {
         mv('m2', `${thisMonth}-02`, { accountId: 'b9', savingsDirection: 'out', amount: 350 }),
       ]}
       events={[{ ...deleted, date: `${thisMonth}-02` }]} />);
-    expect(container.textContent).toMatch(/Este mês\s*\+?\s*R\$\s*350,00/);
+    expect(container.textContent).not.toMatch(/Este mês\s*\+?\s*R\$\s*350,00/);
+    expect(container.textContent).toMatch(/Este mês\s*\+?\s*R\$\s*0,00/);
   });
 });

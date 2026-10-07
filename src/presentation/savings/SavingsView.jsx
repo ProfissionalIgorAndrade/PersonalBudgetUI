@@ -38,19 +38,22 @@ export default function SavingsView({ accounts = [], members = [], movements = [
   const goalTotal  = withGoal.reduce((s, b) => s + Number(b.savingsGoal), 0);
   const towardGoal = withGoal.reduce((s, b) => s + Number(b.balance || 0), 0);
 
-  const moves   = useMemo(() => savingsMovements(movements, boxes.map(b => b.id)), [movements, boxes]);
-  const series  = useMemo(() => savingsSeries(movements, boxes, months), [movements, boxes, months]);
-  const growth  = useMemo(() => savingsGrowth(movements, boxes, 3), [movements, boxes]);
+  // Caixinhas excluídas continuam no extrato e nos totais: a exclusão move o
+  // saldo para outra caixinha (resgate lá, depósito aqui), então contar só uma
+  // das pernas inflaria o mês e distorceria a evolução. Elas entram com saldo 0,
+  // que é o saldo delas depois do resgate.
+  const trackedBoxes = useMemo(() => {
+    const active = new Set(boxes.map(b => b.id));
+    const gone = [...new Set(events.map(e => e.accountId))].filter(id => !active.has(id));
+    return [...boxes, ...gone.map(id => ({ id, balance: 0 }))];
+  }, [boxes, events]);
+
+  const moves   = useMemo(() => savingsMovements(movements, trackedBoxes.map(b => b.id)), [movements, trackedBoxes]);
+  const series  = useMemo(() => savingsSeries(movements, trackedBoxes, months), [movements, trackedBoxes, months]);
+  const growth  = useMemo(() => savingsGrowth(movements, trackedBoxes, 3), [movements, trackedBoxes]);
   const thisKey = new Date().toISOString().slice(0, 7);
   const monthNet = netOf(moves.filter(m => String(m.date).slice(0, 7) === thisKey));
 
-  // O histórico inclui os movimentos de caixinhas já excluídas, que ficam de
-  // fora de `moves` de propósito: saldo, evolução e totais valem só para as
-  // caixinhas ativas. O nome delas vem do evento, não das contas.
-  const historyMoves = useMemo(() => {
-    const ids = new Set([...boxes.map(b => b.id), ...events.map(e => e.accountId)]);
-    return savingsMovements(movements, [...ids]);
-  }, [movements, boxes, events]);
   const boxNameOf = useMemo(() => boxNameResolver(boxes, events), [boxes, events]);
   const accountNameOf = (id) => {
     const acc = checking.find(a => a.id === id);
@@ -88,7 +91,7 @@ export default function SavingsView({ accounts = [], members = [], movements = [
         <div className="savings-col">
           <TotalCard total={totalSaved} towardGoal={towardGoal} goalTotal={goalTotal} monthNet={monthNet} />
           <SavingsEvolution series={series} growth={growth} months={months} onChangeMonths={setMonths} theme={theme} />
-          <SavingsMovements movements={historyMoves} events={events} boxNameOf={boxNameOf} />
+          <SavingsMovements movements={moves} events={events} boxNameOf={boxNameOf} />
         </div>
 
         <div className="savings-col">
@@ -160,9 +163,10 @@ export default function SavingsView({ accounts = [], members = [], movements = [
           accountNameOf={accountNameOf}
           onClose={() => setDeleteBox(null)}
           onConfirm={async (payload) => {
-            await onDeleteBox(deleteBox.id, payload);
+            const result = await onDeleteBox(deleteBox.id, payload);
             setDeleteBox(null);
-            notify?.('Caixinha excluída.');
+            if (result?.refreshFailed) notify?.('Caixinha excluída, mas não foi possível atualizar a tela. Recarregue a página.', 'error');
+            else notify?.('Caixinha excluída.');
           }}
         />
       )}

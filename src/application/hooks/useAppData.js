@@ -287,13 +287,20 @@ export function useAppData(notify) {
     /**
      * Exclui a caixinha. Propaga o erro: o modal o mostra e continua aberto.
      * O saldo vira um depósito na caixinha de destino e a exclusão entra no
-     * histórico, então recarrega contas, lançamentos e eventos.
+     * histórico, então recarrega contas, lançamentos e eventos. Se só o
+     * recarregamento falhar, a exclusão já valeu: devolve `refreshFailed` em
+     * vez de lançar, para o modal não sugerir uma nova tentativa.
      */
     onDeleteSavingsBox: async (accountId, { reason, destinationAccountId } = {}) => {
       await accountRepo.deleteSavingsBox(accountId, { reason, destinationAccountId });
-      await loadAcc();
-      await loadTx();
-      await loadSavingsEvents();
+      try {
+        await loadAcc();
+        await loadTx();
+        await loadSavingsEvents();
+      } catch {
+        return { refreshFailed: true };
+      }
+      return { refreshFailed: false };
     },
 
     onAdd: async (acc) => {
