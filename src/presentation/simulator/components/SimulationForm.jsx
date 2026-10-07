@@ -72,10 +72,11 @@ function Field({ id, label, error, hint, children }) {
 }
 
 /** Formulário de simulação (adicionar/editar) em modal. */
-export default function SimulationForm({ initial, defaultMonth, onSave, onClose }) {
+export default function SimulationForm({ initial, defaultMonth, onSave, onClose, error = '' }) {
   const [form, setForm] = useState(() => toFormState(initial, defaultMonth));
   const [errors, setErrors] = useState({});
   const [attempted, setAttempted] = useState(0);
+  const [pending, setPending] = useState(false);
   const formRef = useRef(null);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -87,15 +88,18 @@ export default function SimulationForm({ initial, defaultMonth, onSave, onClose 
     if (bad) bad.focus();
   }, [attempted]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (pending) return;
     const found = validateSimulationForm(form);
     setErrors(found);
     if (Object.keys(found).length > 0) {
       setAttempted((n) => n + 1);
       return;
     }
-    onSave({
+    setPending(true);
+    // onSave pode devolver uma promessa: o modal só fecha quando salvou (false = falhou, fica aberto com o erro).
+    const saved = await onSave({
       description: form.description.trim(),
       type: form.type,
       mode: form.mode,
@@ -105,7 +109,8 @@ export default function SimulationForm({ initial, defaultMonth, onSave, onClose 
       installments: form.mode === 'Installment' ? Number(form.installments) : null,
       months: form.mode === 'Monthly' && form.months !== '' ? Number(form.months) : null,
     });
-    onClose();
+    setPending(false);
+    if (saved !== false) onClose();
   };
 
   const invalid = (k) => (errors[k] ? { 'aria-invalid': 'true', 'aria-describedby': `wi-f-${k}-error` } : {});
@@ -202,9 +207,11 @@ export default function SimulationForm({ initial, defaultMonth, onSave, onClose 
           {preview ? <><span aria-hidden="true">🧮 </span>{preview}</> : ''}
         </p>
 
+        {error && <p className="wi-field-error" role="alert">{error}</p>}
+
         <div className="wi-form-actions">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-          <button type="submit" className="btn btn-primary">Salvar</button>
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={pending}>Cancelar</button>
+          <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? 'Salvando...' : 'Salvar'}</button>
         </div>
       </form>
     </Modal>

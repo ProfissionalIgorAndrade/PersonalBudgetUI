@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import SimulationForm, { validateSimulationForm } from '../SimulationForm';
 
@@ -126,7 +126,37 @@ describe('SimulationForm: prévia ao vivo', () => {
 });
 
 describe('SimulationForm: salvar', () => {
-  it('parcelada por valor total envia amountKind e parcelas', () => {
+  const fill = (container) => {
+    type('Descrição', 'Carro');
+    typeAmount('Valor (R$)', '100,00');
+    type('Mês do impacto', '2026-10');
+    return container;
+  };
+
+  it('quando o salvamento falha (false), o modal continua aberto e mostra o erro', async () => {
+    const onSave = vi.fn().mockResolvedValue(false);
+    const { onClose, container } = setup({ onSave, error: 'Descrição inválida.' });
+    submit(fill(container));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Salvar' }).disabled).toBe(false));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText('Descrição inválida.').getAttribute('role')).toBe('alert');
+  });
+
+  it('enquanto salva, desabilita Salvar e Cancelar e não envia duas vezes', async () => {
+    let finish;
+    const onSave = vi.fn(() => new Promise((r) => { finish = r; }));
+    const { onClose, container } = setup({ onSave });
+    submit(fill(container));
+    expect(screen.getByRole('button', { name: 'Salvando...' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Cancelar' }).disabled).toBe(true);
+    submit(container);
+    expect(onSave).toHaveBeenCalledTimes(1);
+    finish(true);
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it('parcelada por valor total envia amountKind e parcelas', async () => {
     const { onSave, onClose, container } = setup();
     fireEvent.click(screen.getByText('Parcelada'));
     fireEvent.click(screen.getByText('Valor total'));
@@ -139,10 +169,10 @@ describe('SimulationForm: salvar', () => {
       description: 'Celular', type: 'Expense', mode: 'Installment', startMonth: '2026-12',
       amount: 1000, amountKind: 'Total', installments: 12, months: null,
     });
-    expect(onClose).toHaveBeenCalled();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
-  it('mensal com duração vazia envia months null; com valor envia o número', () => {
+  it('mensal com duração vazia envia months null; com valor envia o número', async () => {
     const { onSave, container } = setup();
     fireEvent.click(screen.getByText(/Receita/).closest('button'));
     fireEvent.click(screen.getByText('Mensal'));
@@ -150,6 +180,8 @@ describe('SimulationForm: salvar', () => {
     typeAmount('Valor por mês (R$)', '1200,00');
     submit(container);
     expect(onSave.mock.calls[0][0]).toMatchObject({ type: 'Income', mode: 'Monthly', amount: 1200, months: null, installments: null });
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Salvar' }).disabled).toBe(false));
     type(/Duração em meses/, '6');
     submit(container);
     expect(onSave.mock.calls[1][0].months).toBe(6);

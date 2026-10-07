@@ -1,5 +1,7 @@
 /**
- * Persistência das simulações do "E se...?" no navegador.
+ * Leitura das simulações do "E se...?" que ficavam só no navegador, e os limites
+ * e o saneador compartilhados com o formulário. A lista agora vive no servidor:
+ * nada mais é gravado aqui, a leitura serve só para a importação única.
  *
  * O formato atual é `{ version: 2, simulations: [...] }`. O formato antigo
  * (`{ name, impacts: [{ id, description, amount, type, mode, startDate,
@@ -116,10 +118,4 @@ export function loadSimulations() {
   } catch {
     return [];
   }
-}
-
-export function saveSimulations(simulations) {
-  try {
-    localStorage.setItem(SIM_STORAGE_KEY, JSON.stringify({ version: SIM_STORAGE_VERSION, simulations }));
-  } catch { /* quota ou modo privado: a lista continua em memória */ }
 }

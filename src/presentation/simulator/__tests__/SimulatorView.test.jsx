@@ -3,10 +3,10 @@ import { render, screen, cleanup, fireEvent, within } from '@testing-library/rea
 import React from 'react';
 import { SIMS } from '../logic/__tests__/fixtures';
 
-const h = vi.hoisted(() => ({ state: {} }));
+const h = vi.hoisted(() => ({ state: {}, args: [] }));
 vi.mock('../../../application/hooks/useSimulator', () => ({
   HORIZONS: [1, 3, 6, 12, 24],
-  useSimulator: () => h.state,
+  useSimulator: (...args) => { h.args.push(args); return h.state; },
 }));
 vi.mock('../../../core/utils/simulatorMath', async (orig) => ({
   ...(await orig()),
@@ -34,20 +34,23 @@ const TRANSACTIONS = [
   tx('tr', { type: 'transfer', amount: 5000, date: '2026-11-10' }),
 ];
 
+const OWNED = SIMS.map((s) => ({ ...s, ownerUserId: 'u1', ownerName: 'Igor', isOwner: true }));
 const state = (over = {}) => ({
-  simulations: SIMS, months: 6, setMonths: vi.fn(),
-  addSimulation: vi.fn(), editSimulation: vi.fn(), removeSimulation: vi.fn(),
-  toggleSimulation: vi.fn(), reset: vi.fn(), limitReached: false, ...over,
+  simulations: OWNED, months: 6, setMonths: vi.fn(),
+  loading: false, error: '', retry: vi.fn(), saving: false, actionError: '', dismissActionError: vi.fn(),
+  addSimulation: vi.fn(), editSimulation: vi.fn(), removeSimulation: vi.fn(), removeMine: vi.fn(),
+  toggleSimulation: vi.fn(), limitReached: false, ownedCount: OWNED.length,
+  legacyCount: 0, importing: false, importError: '', importLegacy: vi.fn(), dismissImport: vi.fn(), ...over,
 });
 
-beforeEach(() => { h.state = state(); });
+beforeEach(() => { h.args = []; h.state = state(); });
 
 const norm = (s) => s.replace(/ /g, ' ');
 const verdictText = () => norm(screen.getByRole('region', { name: 'Veredito da simulação' }).textContent);
-const withOff = (...ids) => SIMS.map((s) => (ids.includes(s.id) ? { ...s, enabled: false } : s));
+const withOff = (...ids) => OWNED.map((s) => (ids.includes(s.id) ? { ...s, enabled: false } : s));
 const view = (props = {}) => render(<SimulatorView transactions={TRANSACTIONS} {...props} />);
 
-describe('SimulatorView: uma página, sem rede', () => {
+describe('SimulatorView: uma página', () => {
   it('título, horizontes 1, 3, 6, 12 e 24, e a ordem: veredito, simulações, mês a mês, como calculamos', () => {
     const { container } = view();
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('E se...?');
@@ -71,10 +74,11 @@ describe('SimulatorView: uma página, sem rede', () => {
     }
   });
 
-  it('sem estados de carregamento ou erro: renderiza direto, sem alertas nem "Calculando"', () => {
+  it('carregada e sem erro: renderiza direto, sem alertas nem avisos de carregamento', () => {
     view();
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(screen.queryByText(/Calculando|Atualizando|Tentar de novo/)).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryByText(/Carregando|Tentar de novo/)).toBeNull();
     expect(screen.getByRole('region', { name: 'Veredito da simulação' })).toBeTruthy();
   });
 
@@ -132,7 +136,7 @@ describe('SimulatorView: liga/desliga recompõe no cliente', () => {
   });
 
   it('todas desligadas: sem comparação com a base e com convite para ligar/adicionar', () => {
-    h.state = state({ simulations: SIMS.map((s) => ({ ...s, enabled: false })) });
+    h.state = state({ simulations: OWNED.map((s) => ({ ...s, enabled: false })) });
     view();
     const t = verdictText();
     expect(t).not.toContain('sem simulações');
@@ -236,7 +240,7 @@ describe('SimulatorView: cartões das simulações', () => {
   });
 
   it('descrição vazia vira "Simulação N" e é usada no interruptor', () => {
-    h.state = state({ simulations: SIMS.map((s) => (s.id === 'trip' ? { ...s, description: '' } : s)) });
+    h.state = state({ simulations: OWNED.map((s) => (s.id === 'trip' ? { ...s, description: '' } : s)) });
     view();
     expect(screen.getByRole('switch', { name: 'Desligar Simulação 4' })).toBeTruthy();
   });
@@ -255,32 +259,163 @@ describe('SimulatorView: cartões das simulações', () => {
 });
 
 describe('SimulatorView: estado vazio de simulações', () => {
-  it('sem simulações: veredito só da base, convite para adicionar e Limpar desabilitado', () => {
-    h.state = state({ simulations: [] });
+  it('sem simulações: veredito só da base, convite para adicionar e remover minhas desabilitado', () => {
+    h.state = state({ simulations: [], ownedCount: 0 });
     view();
     expect(screen.getByText(/Nenhuma simulação ainda/)).toBeTruthy();
     expect(verdictText()).not.toContain('sem simulações');
     expect(verdictText()).toContain('Adicione uma compra, renda ou gasto');
-    expect(screen.getByRole('button', { name: 'Limpar' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Remover minhas simulações' }).disabled).toBe(true);
   });
 });
 
-describe('SimulatorView: Limpar pede confirmação', () => {
-  it('cancelar não limpa; confirmar limpa e fecha', () => {
+describe('SimulatorView: Remover minhas simulações pede confirmação', () => {
+  const open = () => fireEvent.click(screen.getByRole('button', { name: 'Remover minhas simulações' }));
+
+  it('cancelar não remove; confirmar chama removeMine e fecha', () => {
     view();
-    fireEvent.click(screen.getByRole('button', { name: 'Limpar' }));
-    expect(screen.getByText('Limpar simulações?')).toBeTruthy();
-    expect(screen.getByText(/Isso apaga as 4 simulações salvas/)).toBeTruthy();
-    expect(h.state.reset).not.toHaveBeenCalled();
+    open();
+    expect(screen.getByText('Remover minhas simulações?')).toBeTruthy();
+    expect(h.state.removeMine).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
-    expect(h.state.reset).not.toHaveBeenCalled();
-    expect(screen.queryByText('Limpar simulações?')).toBeNull();
+    expect(h.state.removeMine).not.toHaveBeenCalled();
+    expect(screen.queryByText('Remover minhas simulações?')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Limpar' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Limpar tudo' }));
-    expect(h.state.reset).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText('Limpar simulações?')).toBeNull();
+    open();
+    const dialog = screen.getByText('Remover minhas simulações?').closest('.modal');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Remover minhas simulações' }));
+    expect(h.state.removeMine).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Remover minhas simulações?')).toBeNull();
+  });
+
+  it('o texto diz que só as suas saem e as da família ficam, sem "neste navegador"', () => {
+    view();
+    open();
+    const text = norm(screen.getByText(/Isso apaga/).textContent);
+    expect(text).toContain('as 4 simulações que você criou');
+    expect(text).toContain('dos outros membros da família continuam como estão');
+    expect(text).not.toContain('navegador');
+  });
+
+  it('conta só as minhas e fica desabilitado quando não tenho nenhuma ou está salvando', () => {
+    h.state = state({ simulations: OWNED.map((s, i) => (i ? { ...s, isOwner: false } : s)), ownedCount: 1 });
+    view();
+    open();
+    expect(screen.getByText(/Isso apaga/).textContent).toContain('a 1 simulação que você criou');
+    cleanup();
+    h.state = state({ ownedCount: 0 });
+    view();
+    expect(screen.getByRole('button', { name: 'Remover minhas simulações' }).disabled).toBe(true);
+    cleanup();
+    h.state = state({ saving: true });
+    view();
+    expect(screen.getByRole('button', { name: 'Remover minhas simulações' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: '+ Nova simulação' }).disabled).toBe(true);
+  });
+});
+
+describe('SimulatorView: compartilhada com a família', () => {
+  const MEMBERS = [{ id: 'p2', name: 'Andreza', emoji: '👩', color: '#aa3366', userId: 'u2' }];
+
+  it('o subtítulo diz que as simulações são compartilhadas', () => {
+    view();
+    expect(screen.getByText(/As simulações são compartilhadas com a família\./)).toBeTruthy();
+  });
+
+  it('passa o usuário da sessão para o hook', () => {
+    view({ authSession: { userId: 'u1', displayName: 'Igor', email: 'i@x' }, members: MEMBERS });
+    expect(h.args[0][0]).toEqual({ userId: 'u1' });
+  });
+
+  it('mostra o dono de cada cartão e esconde editar/remover das de outra pessoa', () => {
+    h.state = state({
+      simulations: OWNED.map((s) => (s.id === 'trip' ? { ...s, ownerUserId: 'u2', ownerName: 'Andreza', isOwner: false } : s)),
+      ownedCount: 3,
+    });
+    view({ members: MEMBERS });
+    expect(norm(screen.getByRole('list', { name: 'Simulações' }).textContent)).toContain('de Andreza');
+    expect(screen.queryByRole('button', { name: 'Editar Viagem' })).toBeNull();
+    expect(screen.getByRole('img', { name: 'Criada por Andreza' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Editar Carro' })).toBeTruthy();
+  });
+});
+
+describe('SimulatorView: carregamento, erro e falha ao salvar', () => {
+  it('carregando: mostra o status e não mostra falso vazio nem veredito', () => {
+    h.state = state({ simulations: [], loading: true, ownedCount: 0 });
+    view();
+    expect(screen.getByRole('status').textContent).toContain('Carregando simulações');
+    expect(screen.queryByText(/Nenhuma simulação ainda/)).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Veredito da simulação' })).toBeNull();
+    expect(screen.getByRole('button', { name: '+ Nova simulação' }).disabled).toBe(true);
+  });
+
+  it('erro de carga: alerta com Tentar de novo chamando retry', () => {
+    h.state = state({ simulations: [], error: 'Falha de rede', ownedCount: 0 });
+    view();
+    expect(screen.getByRole('alert').textContent).toContain('Falha de rede');
+    expect(screen.queryByText(/Nenhuma simulação ainda/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
+    expect(h.state.retry).toHaveBeenCalledTimes(1);
+  });
+
+  it('falha ao salvar fora do formulário aparece como alerta e pode ser fechada', () => {
+    h.state = state({ actionError: 'Só quem criou a simulação pode alterá-la ou removê-la.' });
+    view();
+    expect(screen.getByRole('alert').textContent).toContain('Só quem criou');
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar' }));
+    expect(h.state.dismissActionError).toHaveBeenCalled();
+  });
+
+  it('editar chama editSimulation e o formulário mostra o erro do servidor sem duplicar o alerta', () => {
+    h.state = state({ actionError: 'Simulação 1 (Carro): valor inválido.' });
+    view();
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Carro' }));
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.getByRole('alert').textContent).toContain('valor inválido');
+  });
+});
+
+describe('SimulatorView: importação das simulações do navegador', () => {
+  it('sem simulações guardadas, não há modal', () => {
+    view();
+    expect(screen.queryByText(/Encontramos/)).toBeNull();
+  });
+
+  it('pergunta com a contagem e Enviar chama importLegacy', () => {
+    h.state = state({ legacyCount: 3 });
+    view();
+    expect(screen.getByText(/Encontramos 3 simulações salvas neste navegador\./).textContent).toContain('Enviar para a família?');
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }));
+    expect(h.state.importLegacy).toHaveBeenCalledTimes(1);
+    expect(h.state.dismissImport).not.toHaveBeenCalled();
+  });
+
+  it('singular e Agora não chama dismissImport', () => {
+    h.state = state({ legacyCount: 1 });
+    view();
+    expect(screen.getByText(/Encontramos 1 simulação salva neste navegador/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Agora não' }));
+    expect(h.state.dismissImport).toHaveBeenCalledTimes(1);
+    expect(h.state.importLegacy).not.toHaveBeenCalled();
+  });
+
+  it('falha mostra o erro no modal; enviando, os botões ficam desabilitados', () => {
+    h.state = state({ legacyCount: 2, importError: 'Limite de simulações atingido.' });
+    view();
+    expect(within(screen.getByText(/Encontramos/).closest('.modal')).getByRole('alert').textContent).toContain('Limite');
+    cleanup();
+    h.state = state({ legacyCount: 2, importing: true });
+    view();
+    expect(screen.getByRole('button', { name: 'Enviando...' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Agora não' }).disabled).toBe(true);
+  });
+
+  it('não aparece enquanto carrega', () => {
+    h.state = state({ legacyCount: 2, loading: true, simulations: [] });
+    view();
+    expect(screen.queryByText(/Encontramos/)).toBeNull();
   });
 });
 

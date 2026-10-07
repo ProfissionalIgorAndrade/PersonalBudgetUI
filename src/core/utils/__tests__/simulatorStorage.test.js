@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  migrateStored, sanitizeSimulation, loadSimulations, saveSimulations,
+  migrateStored, sanitizeSimulation, loadSimulations,
   SIM_STORAGE_KEY, SIM_STORAGE_VERSION, MAX_SIMULATIONS,
 } from '../simulatorStorage';
 
@@ -115,12 +115,11 @@ describe('sanitizeSimulation', () => {
   });
 });
 
-describe('loadSimulations / saveSimulations', () => {
-  it('grava versionado e lê de volta', () => {
+describe('loadSimulations', () => {
+  it('lê o formato versionado guardado no navegador', () => {
     localStorage.clear();
     const [s] = migrateStored({ impacts: [legacy()] });
-    saveSimulations([s]);
-    expect(JSON.parse(localStorage.getItem(SIM_STORAGE_KEY)).version).toBe(SIM_STORAGE_VERSION);
+    localStorage.setItem(SIM_STORAGE_KEY, JSON.stringify({ version: SIM_STORAGE_VERSION, simulations: [s] }));
     expect(loadSimulations()).toEqual([s]);
   });
 
