@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  describeSimulation, previewText, addMonths, shortMonth, signedMoney, projectionMonthLabel, MODE_LABEL,
+  describeSimulation, previewText, simulationName, simulationSummary, installmentTotalText, addMonths, shortMonth, signedMoney, MODE_LABEL,
 } from '../labels';
 
 // Intl usa espaço não separável depois de "R$"; normaliza para comparar.
@@ -69,13 +69,33 @@ describe('helpers de rótulo', () => {
     expect(n(signedMoney(5))).toBe('+R$ 5,00');
     expect(n(signedMoney(0))).toBe('R$ 0,00');
   });
-  it('primeiro mês é rotulado como restante', () => {
-    const e = { year: 2026, month: 10, label: 'out/26' };
-    expect(projectionMonthLabel(e, 0, { long: true })).toBe('restante de outubro');
-    expect(projectionMonthLabel(e, 0)).toBe('out/26*');
-    expect(projectionMonthLabel(e, 1)).toBe('out/26');
-  });
   it('um só MODE_LABEL com as três modalidades', () => {
     expect(MODE_LABEL).toEqual({ Single: 'Única', Installment: 'Parcelada', Monthly: 'Mensal' });
+  });
+});
+
+describe('cartão de simulação: nome e parcela legível', () => {
+  it('nome: descrição ou "Simulação N" pela posição', () => {
+    expect(simulationName(sim(), 0)).toBe('Carro');
+    expect(simulationName(sim({ description: '  ' }), 2)).toBe('Simulação 3');
+    expect(simulationName(sim({ description: undefined }), 0)).toBe('Simulação 1');
+  });
+
+  it('parcelada: valor por mês e intervalo', () => {
+    expect(n(simulationSummary(sim()))).toBe('R$ 150,00/mês de mar/26 a fev/27');
+    expect(n(simulationSummary(sim({ installments: 1 })))).toBe('R$ 150,00 em mar/26');
+  });
+
+  it('parcelada pelo total: a parcela é a arredondada', () => {
+    expect(n(simulationSummary(sim({ amount: 1000, amountKind: 'Total' })))).toBe('R$ 83,33/mês de mar/26 a fev/27');
+    expect(n(installmentTotalText(sim({ amount: 1000, amountKind: 'Total' })))).toBe('12× R$ 83,33 (última R$ 83,37) = R$ 1.000,00');
+    expect(n(installmentTotalText(sim()))).toBe('12× R$ 150,00 = R$ 1.800,00');
+  });
+
+  it('mensal com e sem duração, e única', () => {
+    expect(n(simulationSummary(sim({ mode: 'Monthly', amount: 1200, months: 3 })))).toBe('R$ 1.200,00/mês de mar/26 a mai/26');
+    expect(n(simulationSummary(sim({ mode: 'Monthly', amount: 1200 })))).toBe('R$ 1.200,00/mês a partir de mar/26, até o fim do período');
+    expect(n(simulationSummary(sim({ mode: 'Single', amount: 6000 })))).toBe('R$ 6.000,00 em mar/26');
+    expect(installmentTotalText(sim({ mode: 'Single' }))).toBe('');
   });
 });

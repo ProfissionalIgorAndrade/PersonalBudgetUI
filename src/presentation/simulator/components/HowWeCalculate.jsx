@@ -16,6 +16,7 @@ export default function HowWeCalculate({ opening, assumptions }) {
           <li className="wi-how-total"><span>Total (contas correntes{opening.excludesSavings ? ', sem caixinhas' : ''})</span><strong>{R$(opening.amount)}</strong></li>
         </ul>
         <p className="wi-hint">Confira com a tela Contas: o saldo de partida é o saldo de hoje das contas correntes ativas.</p>
+        <p className="wi-hint">O saldo de partida não entra no veredito: ele olha só a receita e a despesa de cada mês. Um mês positivo ainda pode não caber no caixa de hoje se o saldo das contas for baixo.</p>
 
         <h3 className="hl-h3">Médias usadas</h3>
         <ul className="wi-how-list" aria-label="Médias usadas">
