@@ -2424,6 +2424,33 @@ canvas { max-height: 220px; }
 .wi-sc-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .wi-root .wi-sc-actions .btn-icon:focus-visible { outline: 2px solid var(--hl-focus); outline-offset: 2px; }
 
+/* Dono do cartão, simulações compartilhadas (a cor do membro é só acento, como em .mbr-avatar) */
+.wi-sc-owner { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; color: var(--text-2); }
+.wi-sc-avatar {
+  --mbr: var(--muted);
+  width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 12px; line-height: 1;
+  background: color-mix(in srgb, var(--mbr) 16%, transparent);
+  border: 1.5px solid var(--mbr);
+}
+.wi-sc-avatar.is-group { width: auto; min-width: 22px; padding: 0 6px; border-radius: 9999px; font-size: 10px; white-space: nowrap; }
+.wi-sc-owner-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wi-sc-lock { display: inline-flex; align-items: center; padding: 4px 6px; font-size: 12px; color: var(--muted); cursor: help; }
+.wi-sc-actions .btn-icon:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Carregando, erro e aviso de falha ao salvar */
+.wi-state {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  padding: 14px 18px; border-radius: 12px; font-size: 13.5px; color: var(--text);
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.wi-state p { margin: 0; }
+.wi-state-error {
+  background: color-mix(in srgb, var(--red) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--red) 40%, var(--border));
+}
+.wi-root .wi-state .btn:focus-visible { outline: 2px solid var(--hl-focus); outline-offset: 2px; }
+
 /* Gráfico mensal empilhado */
 .wi-mc-scroll { overflow-x: auto; padding-bottom: 4px; }
 .wi-mc-income { fill: var(--wi-income); background: var(--wi-income); }

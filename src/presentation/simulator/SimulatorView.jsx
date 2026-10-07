@@ -16,17 +16,20 @@ import SimulationForm from './components/SimulationForm';
 
 const horizonLabel = (m) => `${m} ${m === 1 ? 'mês' : 'meses'}`;
 const NO_TRANSACTIONS = [];
+const NO_MEMBERS = [];
 
 /**
  * "E se...?": a base de cada mês é a do Dashboard (lançamentos já carregados,
- * calculados no cliente) e as simulações somam por cima. Sem chamada de rede.
+ * calculados no cliente) e as simulações da família, vindas do servidor, somam
+ * por cima. Só as simulações usam a rede; o cálculo é no cliente.
  * O primeiro mês do horizonte é o mês atual (data local).
  */
-export default function SimulatorView({ transactions = NO_TRANSACTIONS }) {
+export default function SimulatorView({ transactions = NO_TRANSACTIONS, members = NO_MEMBERS, authSession = null }) {
   const {
-    simulations, months, setMonths,
-    addSimulation, editSimulation, removeSimulation, toggleSimulation, reset, limitReached,
-  } = useSimulator();
+    simulations, months, setMonths, loading, error, retry, saving, actionError, dismissActionError,
+    addSimulation, editSimulation, removeSimulation, removeMine, toggleSimulation, limitReached, ownedCount,
+    legacyCount, importing, importError, importLegacy, dismissImport,
+  } = useSimulator({ userId: authSession?.userId });
 
   const [mode, setMode] = useState('chart');     // 'chart' | 'table'
   const [form, setForm] = useState(null);           // null | { editing: sim|null }
@@ -61,12 +64,13 @@ export default function SimulatorView({ transactions = NO_TRANSACTIONS }) {
   const verdict = useMemo(() => buildVerdict({ composed }), [composed]);
   const noFlow = composed.countedCount === 0;
 
-  const openAdd = () => setForm({ editing: null });
-  const handleSave = (data) => {
-    if (form?.editing) editSimulation(form.editing.id, data);
-    else addSimulation(data);
-  };
-  const doClear = () => { reset(); setConfirmClear(false); };
+  const openForm = (editing) => { dismissActionError(); setForm({ editing }); };
+  const openAdd = () => openForm(null);
+  // O formulário só fecha quando a gravação deu certo (a promessa resolve com false se falhou).
+  const handleSave = (data) => (form?.editing ? editSimulation(form.editing.id, data) : addSimulation(data));
+  const doRemoveMine = async () => { setConfirmClear(false); await removeMine(); };
+
+  const blocked = loading || Boolean(error);
 
   return (
     <div className="wi-root hl-root">
@@ -75,6 +79,7 @@ export default function SimulatorView({ transactions = NO_TRANSACTIONS }) {
           <h1 className="page-title">E se...?</h1>
           <p className="page-sub">
             Veja, mês a mês, se o caixa fecha no verde ao assumir uma compra, renda ou gasto novo. Nenhum lançamento é alterado.
+            {' '}As simulações são compartilhadas com a família.
           </p>
         </div>
         <div className="wi-header-actions">
@@ -85,20 +90,36 @@ export default function SimulatorView({ transactions = NO_TRANSACTIONS }) {
               </button>
             ))}
           </div>
-          <button type="button" className="btn btn-primary" onClick={openAdd} disabled={limitReached}>+ Nova simulação</button>
-          <button type="button" className="btn btn-secondary" onClick={() => setConfirmClear(true)} disabled={simulations.length === 0}>
-            Limpar
+          <button type="button" className="btn btn-primary" onClick={openAdd} disabled={limitReached || blocked || saving}>+ Nova simulação</button>
+          <button type="button" className="btn btn-secondary" onClick={() => setConfirmClear(true)} disabled={ownedCount === 0 || saving}>
+            Remover minhas simulações
           </button>
         </div>
       </div>
 
+      {loading && <p className="wi-state" role="status">Carregando simulações...</p>}
+      {!loading && error && (
+        <div className="wi-state wi-state-error" role="alert">
+          <p>{error}</p>
+          <button type="button" className="btn btn-secondary" onClick={retry}>Tentar de novo</button>
+        </div>
+      )}
+
+      {!blocked && (
       <div className="wi-body">
+        {actionError && !form && (
+          <div className="wi-state wi-state-error" role="alert">
+            <p>{actionError}</p>
+            <button type="button" className="btn btn-secondary" onClick={dismissActionError}>Fechar</button>
+          </div>
+        )}
         <VerdictBanner verdict={verdict} />
 
         <HlCard id="wi-sims" title="Simulações" subtitle="Ligue e desligue para ver o efeito em cada mês.">
           <SimulationStrip
             infos={infos} scheduleById={scheduleById} warnings={warnings} limitReached={limitReached}
-            onToggle={toggleSimulation} onEdit={(sim) => setForm({ editing: sim })}
+            members={members} saving={saving}
+            onToggle={toggleSimulation} onEdit={openForm}
             onRemove={removeSimulation} onAdd={openAdd}
           />
         </HlCard>
@@ -118,23 +139,40 @@ export default function SimulatorView({ transactions = NO_TRANSACTIONS }) {
 
         <HowWeCalculate />
       </div>
+      )}
 
       {form && (
         <SimulationForm
           initial={form.editing} defaultMonth={firstMonth}
-          onSave={handleSave} onClose={() => setForm(null)}
+          onSave={handleSave} onClose={() => setForm(null)} error={actionError}
         />
       )}
 
       {confirmClear && (
-        <Modal title="Limpar simulações?" onClose={() => setConfirmClear(false)}>
+        <Modal title="Remover minhas simulações?" onClose={() => setConfirmClear(false)}>
           <p className="wi-confirm-text">
-            Isso apaga as {simulations.length} {simulations.length === 1 ? 'simulação salva' : 'simulações salvas'} neste
-            navegador. Os seus lançamentos reais não são afetados.
+            Isso apaga {ownedCount === 1 ? 'a 1 simulação que você criou' : `as ${ownedCount} simulações que você criou`}.
+            As simulações dos outros membros da família continuam como estão. Os seus lançamentos reais não são afetados.
           </p>
           <div className="wi-form-actions">
             <button type="button" className="btn btn-secondary" onClick={() => setConfirmClear(false)}>Cancelar</button>
-            <button type="button" className="btn btn-danger" onClick={doClear}>Limpar tudo</button>
+            <button type="button" className="btn btn-danger" onClick={doRemoveMine}>Remover minhas simulações</button>
+          </div>
+        </Modal>
+      )}
+
+      {legacyCount > 0 && !blocked && (
+        <Modal title="Enviar simulações salvas?" onClose={importing ? () => {} : dismissImport}>
+          <p className="wi-confirm-text">
+            Encontramos {legacyCount} {legacyCount === 1 ? 'simulação salva' : 'simulações salvas'} neste navegador.
+            Enviar para a família?
+          </p>
+          {importError && <p className="wi-field-error" role="alert">{importError}</p>}
+          <div className="wi-form-actions">
+            <button type="button" className="btn btn-secondary" onClick={dismissImport} disabled={importing}>Agora não</button>
+            <button type="button" className="btn btn-primary" onClick={importLegacy} disabled={importing}>
+              {importing ? 'Enviando...' : 'Enviar'}
+            </button>
           </div>
         </Modal>
       )}
