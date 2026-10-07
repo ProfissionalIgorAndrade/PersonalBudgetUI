@@ -44,3 +44,16 @@ export const withdrawFromSavingsBox = (accountId, amount, reason) =>
  */
 export const setSavingsGoal = (accountId, goal) =>
   http.patch(`/api/accounts/savings-boxes/${accountId}/goal`, { goal });
+
+/**
+ * Exclui uma caixinha. O motivo é obrigatório; com saldo, o destino é outra
+ * caixinha ativa do lar. O DELETE genérico /api/accounts/{id} recusa caixinhas.
+ */
+export const deleteSavingsBox = (accountId, { reason, destinationAccountId } = {}) =>
+  http.delete(`/api/accounts/savings-boxes/${encodeURIComponent(accountId)}`, {
+    reason,
+    ...(destinationAccountId ? { destinationAccountId } : {}),
+  });
+
+/** Criações e exclusões de caixinha, mais recentes primeiro. */
+export const listSavingsBoxEvents = () => http.get('/api/accounts/savings-box-events');
