@@ -72,7 +72,7 @@ describe('Cofrinho screen', () => {
   it('plots the evolution and lists the statement', () => {
     render(view());
     expect(screen.getByTestId('evolution')).toBeTruthy();
-    expect(screen.getByText('Últimas movimentações')).toBeTruthy();
+    expect(screen.getByText('Histórico')).toBeTruthy();
   });
 
   it('names the box on each movement', () => {
@@ -110,7 +110,7 @@ describe('SummaryCard', () => {
 describe('SavingsMovements empty state', () => {
   it('explains that the history starts now', () => {
     render(<SavingsMovements movements={[]} boxNameOf={() => 'x'} />);
-    expect(screen.getByText(/O histórico começa no primeiro depósito/)).toBeTruthy();
+    expect(screen.getByText(/O histórico começa na criação de uma caixinha ou no primeiro depósito ou resgate/)).toBeTruthy();
   });
 
   it('survives a movement whose box was removed', () => {

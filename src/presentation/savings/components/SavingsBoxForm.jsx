@@ -4,7 +4,7 @@ import { accountLabel } from '../../../application/mappers/index';
 import CurrencyInput from '../../shared/components/CurrencyInput';
 
 /** Cria ou renomeia uma caixinha. */
-export default function SavingsBoxForm({ f, accounts, members, onChange, onSave, onClose }) {
+export default function SavingsBoxForm({ f, accounts, members, onChange, onSave, onClose, onDelete }) {
   const set = (k, v) => onChange({ ...f, [k]: v });
   const isEdit = Boolean(f.id);
   const canSave = Boolean(String(f.name || '').trim()) && (isEdit || Boolean(f.parentAccountId));
@@ -50,9 +50,16 @@ export default function SavingsBoxForm({ f, accounts, members, onChange, onSave,
           </div>
         )}
 
-        <div className="flex jce gap2" style={{ gap: 8, marginTop: 8 }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-          <button type="submit" className="btn btn-primary" disabled={!canSave}>💾 Salvar</button>
+        <div className="flex aic" style={{ gap: 8, marginTop: 8, justifyContent: 'space-between' }}>
+          <div>
+            {isEdit && onDelete && (
+              <button type="button" className="btn btn-danger" onClick={onDelete}>Excluir caixinha</button>
+            )}
+          </div>
+          <div className="flex gap2" style={{ gap: 8 }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
+            <button type="submit" className="btn btn-primary" disabled={!canSave}>💾 Salvar</button>
+          </div>
         </div>
       </form>
     </Modal>

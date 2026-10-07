@@ -35,7 +35,7 @@ export default function App() {
   const { toast, notify, clearToast } = useNotify();
   const { authSession, login, signup, logout, expired, clearExpired } = useAuth();
   const {
-    loading, transactions, savingsTransactions, accounts, categories, cards, members,
+    loading, transactions, savingsTransactions, savingsEvents, accounts, categories, cards, members,
     transactionsReloadGeneration,
     loadAll, loadTx, clearData,
     txOps, accOps, catOps, cardOps, mbrOps,
@@ -91,9 +91,9 @@ export default function App() {
                                     onToggleReviewed={txOps.onToggleReviewed}
                                     notify={notify} transactionsReloadGeneration={transactionsReloadGeneration}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
-    savings:      <SavingsView      accounts={accounts} members={members} movements={savingsTransactions} theme={theme}
+    savings:      <SavingsView      accounts={accounts} members={members} movements={savingsTransactions} events={savingsEvents} theme={theme}
                                     onCreateBox={accOps.onCreateSavingsBox} onRenameBox={accOps.onRenameSavingsBox}
-                                    onSetGoal={accOps.onSetSavingsGoal}
+                                    onSetGoal={accOps.onSetSavingsGoal} onDeleteBox={accOps.onDeleteSavingsBox}
                                     onMove={accOps.onMoveSavings} notify={notify} />,
     members:      <MembersView      members={members} {...mbrOps} notify={notify} onLogout={handleLogout} />,
     categories:   <CategoriesView   categories={categories} {...catOps} />,
