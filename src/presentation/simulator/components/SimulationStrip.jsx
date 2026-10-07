@@ -52,10 +52,10 @@ function SimulationCard({ info, projection, warnings, onToggle, onEdit, onRemove
 
 /**
  * Cartões compactos das simulações, com liga/desliga, editar, remover e os
- * avisos do backend no cartão certo. `infos`: [{ sim, name, slot }].
+ * avisos da janela no cartão certo. `infos`: [{ sim, name, slot }].
  */
 export default function SimulationStrip({
-  infos, impactById, warnings, limitReached, onToggle, onEdit, onRemove, onAdd,
+  infos, scheduleById, warnings, limitReached, onToggle, onEdit, onRemove, onAdd,
 }) {
   if (infos.length === 0) {
     return (
@@ -70,7 +70,7 @@ export default function SimulationStrip({
       <ul className="wi-sc-list" aria-label="Simulações">
         {infos.map((info) => (
           <SimulationCard
-            key={info.sim.id} info={info} projection={impactById.get(info.sim.id)}
+            key={info.sim.id} info={info} projection={scheduleById.get(info.sim.id)}
             warnings={warnings.filter((w) => w.impactId === info.sim.id)}
             onToggle={onToggle} onEdit={onEdit} onRemove={onRemove}
           />

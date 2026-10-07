@@ -98,7 +98,7 @@ export default function App() {
     members:      <MembersView      members={members} {...mbrOps} notify={notify} onLogout={handleLogout} />,
     categories:   <CategoriesView   categories={categories} {...catOps} />,
     profile:      <ProfileView      authSession={authSession} notify={notify} />,
-    simulator:    <SimulatorView    theme={theme} />,
+    simulator:    <SimulatorView    transactions={data.transactions} theme={theme} />,
   };
 
   return (

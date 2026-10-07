@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { installmentBreakdown, localToday, projectionImpacts, round2 } from '../../../../core/utils/simulatorMath';
+import { installmentBreakdown, localToday, round2 } from '../../../../core/utils/simulatorMath';
 
 describe('installmentBreakdown (igual ao ImpactSchedule do backend)', () => {
   it('valor por parcela', () => {
@@ -39,26 +39,10 @@ describe('installmentBreakdown (igual ao ImpactSchedule do backend)', () => {
   });
 });
 
-describe('helpers do pedido', () => {
+describe('helpers', () => {
   it('localToday usa a data local, não UTC', () => {
     expect(localToday(new Date(2026, 9, 6, 23, 59))).toBe('2026-10-06');
     expect(localToday(new Date(2027, 0, 1, 0, 1))).toBe('2027-01-01');
-  });
-
-  it('projectionImpacts não leva enabled e só envia campos do modo', () => {
-    const sims = [
-      { id: 'a', enabled: false, description: 'A', type: 'Expense', mode: 'Installment', startMonth: '2026-10', amount: 10, amountKind: 'Total', installments: 3, months: null },
-      { id: 'b', enabled: true, description: 'B', type: 'Income', mode: 'Monthly', startMonth: '2026-10', amount: 10, amountKind: 'Total', installments: null, months: null },
-      { id: 'c', enabled: true, description: 'C', type: 'Income', mode: 'Monthly', startMonth: '2026-10', amount: 10, amountKind: 'PerInstallment', installments: null, months: 6 },
-      { id: 'd', enabled: true, description: 'D', type: 'Income', mode: 'Single', startMonth: '2026-10', amount: 10, amountKind: 'Total', installments: null, months: null },
-    ];
-    const [a, b, c, d] = projectionImpacts(sims);
-    expect(a).toEqual({ id: 'a', description: 'A', type: 'Expense', mode: 'Installment', startMonth: '2026-10', amount: 10, amountKind: 'Total', installments: 3 });
-    expect('months' in b).toBe(false);
-    expect(b.amountKind).toBe('PerInstallment');
-    expect(c.months).toBe(6);
-    expect('installments' in d).toBe(false);
-    expect('enabled' in a).toBe(false);
   });
 
   it('round2', () => {

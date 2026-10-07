@@ -2305,17 +2305,8 @@ canvas { max-height: 220px; }
   outline: 2px solid var(--hl-focus); outline-offset: 2px;
 }
 
-/* Corpo e atualização: a projeção anterior fica esmaecida, sem sumir */
+/* Corpo da página */
 .wi-body { display: flex; flex-direction: column; gap: 16px; transition: opacity var(--t); }
-.wi-body.is-refetching { opacity: .55; }
-.wi-updating { font-size: 12px; color: var(--text-2); }
-.wi-error {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-  margin-bottom: 16px; padding: 12px 14px; border-radius: 12px; font-size: 13px; color: var(--text);
-  background: color-mix(in srgb, var(--red) 12%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--red) 45%, var(--border));
-}
-.wi-error > span > span:first-child { color: var(--red); font-weight: 700; }
 .wi-note { margin-top: 12px; font-size: 12.5px; color: var(--text-2); }
 .wi-hint { margin-top: 5px; font-size: 12px; line-height: 1.4; color: var(--text-2); }
 
@@ -2362,12 +2353,7 @@ canvas { max-height: 220px; }
 .wi-how { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 4px 22px; }
 .wi-how summary { cursor: pointer; padding: 14px 0; font-size: 14px; font-weight: 700; color: var(--text); }
 .wi-how-body { padding-bottom: 18px; }
-.wi-how-body .hl-h3 { margin-top: 16px; }
-.wi-how-list { list-style: none; display: flex; flex-direction: column; }
-.wi-how-list li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-.wi-how-list li strong { font-variant-numeric: tabular-nums; }
-.wi-how-list .wi-how-total { border-bottom: 0; font-weight: 700; }
-.wi-notes { display: flex; flex-direction: column; gap: 8px; padding-left: 18px; font-size: 13px; line-height: 1.5; color: var(--text); }
+.wi-how-text { font-size: 13px; line-height: 1.5; color: var(--text); }
 
 /* Formulário e confirmação */
 .wi-field-error { margin-top: 5px; font-size: 12.5px; font-weight: 600; color: var(--text); }
