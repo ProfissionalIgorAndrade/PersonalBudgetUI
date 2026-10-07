@@ -67,6 +67,28 @@ export function normalizeAccount(a) {
 }
 
 /**
+ * Evento de caixinha (criação ou exclusão) como vem de
+ * GET /api/accounts/savings-box-events. `date` é só o dia, no mesmo formato
+ * dos movimentos, para os dois poderem ser ordenados juntos.
+ */
+export function normalizeSavingsBoxEvent(e) {
+  const occurredAt = e.occurredAt ?? e.OccurredAt ?? '';
+  const kind = String(e.kind ?? e.Kind ?? '').toLowerCase() === 'deleted' ? 'deleted' : 'created';
+  return {
+    id:                   e.id ?? e.Id,
+    kind,
+    accountId:            String(e.accountId ?? e.AccountId ?? ''),
+    boxName:              e.boxName ?? e.BoxName ?? '',
+    reason:               e.reason ?? e.Reason ?? null,
+    amount:               parseMoneyAmount(e.amount ?? e.Amount),
+    destinationAccountId: String(e.destinationAccountId ?? e.DestinationAccountId ?? '') || null,
+    destinationName:      e.destinationName ?? e.DestinationName ?? null,
+    occurredAt:           String(occurredAt),
+    date:                 String(occurredAt).slice(0, 10),
+  };
+}
+
+/**
  * Corpo de POST/PUT /api/accounts: banco, titular e apelido opcional. O apelido
  * só vai quando preenchido (aparado); vazio deixa o backend usar o banco.
  */

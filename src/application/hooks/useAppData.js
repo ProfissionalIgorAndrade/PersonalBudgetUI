@@ -7,7 +7,7 @@ import * as cardRepo         from '../../data/repositories/cardRepository';
 import * as txRepo           from '../../data/repositories/transactionRepository';
 import {
   normalizeAccount, buildAccountPayload, normalizeCategory, normalizeCard, buildCardPayload, sortCategories, sortByName,
-  normalizeTransaction, normalizeProfile,
+  normalizeTransaction, normalizeProfile, normalizeSavingsBoxEvent,
   txToApi, CAT_TYPE_TO_API, TYPE_TO_API,
 } from '../mappers';
 import { describeCreateTransactionResponse } from '../createTransactionPayload';
@@ -32,6 +32,7 @@ export function useAppData(notify) {
   const [categories,   setCategories]   = useState([]);
   const [cards,        setCards]        = useState([]);
   const [members,      setMembers]      = useState([]);
+  const [savingsEvents, setSavingsEvents] = useState([]);
 
   /* ── Individual loaders ───────────────────────────────────── */
   const loadTx = useCallback(async () => {
@@ -44,6 +45,24 @@ export function useAppData(notify) {
     const raw = await accountRepo.listAccounts();
     setAccounts(sortByName((raw || []).map(normalizeAccount)));
   }, []);
+
+  // O histórico é complemento da tela do cofrinho: se falhar, avisa e segue
+  // sem derrubar o carregamento do resto. Devolve null na falha para quem
+  // chama decidir se mantém a lista anterior.
+  const fetchSavingsEvents = useCallback(async () => {
+    try {
+      const raw = await accountRepo.listSavingsBoxEvents();
+      return (raw || []).map(normalizeSavingsBoxEvent);
+    } catch (e) {
+      notify('Erro ao carregar o histórico das caixinhas: ' + e.message, 'error');
+      return null;
+    }
+  }, [notify]);
+
+  const loadSavingsEvents = useCallback(async () => {
+    const events = await fetchSavingsEvents();
+    if (events) setSavingsEvents(events);
+  }, [fetchSavingsEvents]);
 
   const loadCats = useCallback(async () => {
     const raw = await categoryRepo.listCategories();
@@ -70,12 +89,13 @@ export function useAppData(notify) {
       const hid = getHouseholdId() || houseList[0].id;
       setHouseholdId(hid);
 
-      const [accs, cats, cds, txs, profs] = await Promise.all([
+      const [accs, cats, cds, txs, profs, events] = await Promise.all([
         accountRepo.listAccounts(),
         categoryRepo.listCategories(),
         cardRepo.listCards(),
         txRepo.listTransactions(),
         householdRepo.listProfiles(hid),
+        fetchSavingsEvents(),
       ]);
 
       setAccounts(sortByName((accs   || []).map(normalizeAccount)));
@@ -84,15 +104,16 @@ export function useAppData(notify) {
       setTransactions((txs || []).map(normalizeTransaction));
       bumpTransactionsReload();
       setMembers(sortByName((profs   || []).map(normalizeProfile).filter(Boolean)));
+      setSavingsEvents(events || []);
     } catch (e) {
       notify('Erro ao carregar dados: ' + e.message, 'error');
     } finally {
       setLoading(false);
     }
-  }, [notify]);
+  }, [notify, fetchSavingsEvents]);
 
   const clearData = useCallback(() => {
-    setTransactions([]); setCategories([]); setMembers([]); setAccounts([]); setCards([]);
+    setTransactions([]); setCategories([]); setMembers([]); setAccounts([]); setCards([]); setSavingsEvents([]);
   }, []);
 
   /* ── Transaction CRUD ─────────────────────────────────────── */
@@ -240,6 +261,7 @@ export function useAppData(notify) {
       // O movimento é um lançamento: sem recarregar, o extrato não mostra o
       // que acabou de acontecer.
       await loadTx();
+      await loadSavingsEvents();
     },
 
     onCreateSavingsBox: async (parentAccountId, name) => {
@@ -247,6 +269,7 @@ export function useAppData(notify) {
       // endpoint de criação não aceita meta, ela tem rota própria.
       const created = await accountRepo.createSavingsBox(parentAccountId, name);
       await loadAcc();
+      await loadSavingsEvents();
       // O client já desembrulha o ApiResponse, então o id vem direto.
       return created?.id ?? null;
     },
@@ -259,6 +282,18 @@ export function useAppData(notify) {
     onRenameSavingsBox: async (accountId, name) => {
       await accountRepo.renameSavingsBox(accountId, name);
       await loadAcc();
+    },
+
+    /**
+     * Exclui a caixinha. Propaga o erro: o modal o mostra e continua aberto.
+     * O saldo vira um depósito na caixinha de destino e a exclusão entra no
+     * histórico, então recarrega contas, lançamentos e eventos.
+     */
+    onDeleteSavingsBox: async (accountId, { reason, destinationAccountId } = {}) => {
+      await accountRepo.deleteSavingsBox(accountId, { reason, destinationAccountId });
+      await loadAcc();
+      await loadTx();
+      await loadSavingsEvents();
     },
 
     onAdd: async (acc) => {
@@ -368,7 +403,7 @@ export function useAppData(notify) {
   };
 
   return {
-    loading, transactions, savingsTransactions, accounts, categories, cards, members,
+    loading, transactions, savingsTransactions, savingsEvents, accounts, categories, cards, members,
     transactionsReloadGeneration,
     loadAll, loadTx, clearData,
     txOps, accOps, catOps, cardOps, mbrOps,
