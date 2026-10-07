@@ -10,6 +10,7 @@ import { boxNameResolver } from './savingsTimeline';
 import { useLocalStorage } from '../../core/hooks/useLocalStorage';
 import SavingsBoxForm from './components/SavingsBoxForm';
 import MoveMoneyForm from './components/MoveMoneyForm';
+import DeleteSavingsBoxForm from './components/DeleteSavingsBoxForm';
 
 /**
  * Dinheiro guardado, no formato das caixinhas do Nubank.
@@ -18,10 +19,11 @@ import MoveMoneyForm from './components/MoveMoneyForm';
  * Guardar e resgatar são transferências entre as duas, então o valor sai do
  * saldo disponível sem virar despesa — guardar não é gastar.
  */
-export default function SavingsView({ accounts = [], members = [], movements = [], events = [], onCreateBox, onRenameBox, onSetGoal, onMove, notify, theme }) {
+export default function SavingsView({ accounts = [], members = [], movements = [], events = [], onCreateBox, onRenameBox, onSetGoal, onMove, onDeleteBox, notify, theme }) {
   const [months, setMonths] = useLocalStorage('pb_savings_months', 12);
   const [boxForm, setBoxForm]   = useState(null);
   const [moveForm, setMoveForm] = useState(null);
+  const [deleteBox, setDeleteBox] = useState(null);
 
   const checking = useMemo(() => accounts.filter(a => a.kind !== 'savings' && a.isActive), [accounts]);
   const boxes    = useMemo(() => accounts.filter(a => a.kind === 'savings' && a.isActive), [accounts]);
@@ -111,6 +113,12 @@ export default function SavingsView({ accounts = [], members = [], movements = [
           members={members}
           onChange={setBoxForm}
           onClose={() => setBoxForm(null)}
+          onDelete={onDeleteBox ? () => {
+            const target = boxes.find(b => b.id === boxForm.id);
+            if (!target) return;
+            setBoxForm(null);
+            setDeleteBox(target);
+          } : undefined}
           onSave={async () => {
             try {
               // A meta tem endpoint próprio: criar e renomear não a carregam.
@@ -141,6 +149,20 @@ export default function SavingsView({ accounts = [], members = [], movements = [
               await onMove(moveForm);
               setMoveForm(null);
             } catch (e) { notify?.(e.message || 'Não foi possível mover o dinheiro.', 'error'); }
+          }}
+        />
+      )}
+
+      {deleteBox && (
+        <DeleteSavingsBoxForm
+          box={deleteBox}
+          others={boxes.filter(b => b.id !== deleteBox.id)}
+          accountNameOf={accountNameOf}
+          onClose={() => setDeleteBox(null)}
+          onConfirm={async (payload) => {
+            await onDeleteBox(deleteBox.id, payload);
+            setDeleteBox(null);
+            notify?.('Caixinha excluída.');
           }}
         />
       )}

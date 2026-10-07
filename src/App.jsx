@@ -93,7 +93,7 @@ export default function App() {
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth} />,
     savings:      <SavingsView      accounts={accounts} members={members} movements={savingsTransactions} events={savingsEvents} theme={theme}
                                     onCreateBox={accOps.onCreateSavingsBox} onRenameBox={accOps.onRenameSavingsBox}
-                                    onSetGoal={accOps.onSetSavingsGoal}
+                                    onSetGoal={accOps.onSetSavingsGoal} onDeleteBox={accOps.onDeleteSavingsBox}
                                     onMove={accOps.onMoveSavings} notify={notify} />,
     members:      <MembersView      members={members} {...mbrOps} notify={notify} onLogout={handleLogout} />,
     categories:   <CategoriesView   categories={categories} {...catOps} />,
