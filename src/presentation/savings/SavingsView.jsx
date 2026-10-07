@@ -6,6 +6,7 @@ import SavingsBoxPanel from './components/SavingsBoxPanel';
 import SavingsEvolution from './components/SavingsEvolution';
 import SavingsMovements from './components/SavingsMovements';
 import { savingsMovements, savingsSeries, savingsGrowth, netOf } from './savingsHistory';
+import { boxNameResolver } from './savingsTimeline';
 import { useLocalStorage } from '../../core/hooks/useLocalStorage';
 import SavingsBoxForm from './components/SavingsBoxForm';
 import MoveMoneyForm from './components/MoveMoneyForm';
@@ -17,7 +18,7 @@ import MoveMoneyForm from './components/MoveMoneyForm';
  * Guardar e resgatar são transferências entre as duas, então o valor sai do
  * saldo disponível sem virar despesa — guardar não é gastar.
  */
-export default function SavingsView({ accounts = [], members = [], movements = [], onCreateBox, onRenameBox, onSetGoal, onMove, notify, theme }) {
+export default function SavingsView({ accounts = [], members = [], movements = [], events = [], onCreateBox, onRenameBox, onSetGoal, onMove, notify, theme }) {
   const [months, setMonths] = useLocalStorage('pb_savings_months', 12);
   const [boxForm, setBoxForm]   = useState(null);
   const [moveForm, setMoveForm] = useState(null);
@@ -41,7 +42,14 @@ export default function SavingsView({ accounts = [], members = [], movements = [
   const thisKey = new Date().toISOString().slice(0, 7);
   const monthNet = netOf(moves.filter(m => String(m.date).slice(0, 7) === thisKey));
 
-  const boxNameOf = (id) => boxes.find(b => b.id === id)?.name || 'caixinha removida';
+  // O histórico inclui os movimentos de caixinhas já excluídas, que ficam de
+  // fora de `moves` de propósito: saldo, evolução e totais valem só para as
+  // caixinhas ativas. O nome delas vem do evento, não das contas.
+  const historyMoves = useMemo(() => {
+    const ids = new Set([...boxes.map(b => b.id), ...events.map(e => e.accountId)]);
+    return savingsMovements(movements, [...ids]);
+  }, [movements, boxes, events]);
+  const boxNameOf = useMemo(() => boxNameResolver(boxes, events), [boxes, events]);
   const accountNameOf = (id) => {
     const acc = checking.find(a => a.id === id);
     return acc ? accountLabel(acc, members) : null;
@@ -78,7 +86,7 @@ export default function SavingsView({ accounts = [], members = [], movements = [
         <div className="savings-col">
           <TotalCard total={totalSaved} towardGoal={towardGoal} goalTotal={goalTotal} monthNet={monthNet} />
           <SavingsEvolution series={series} growth={growth} months={months} onChangeMonths={setMonths} theme={theme} />
-          <SavingsMovements movements={moves} boxNameOf={boxNameOf} />
+          <SavingsMovements movements={historyMoves} events={events} boxNameOf={boxNameOf} />
         </div>
 
         <div className="savings-col">
