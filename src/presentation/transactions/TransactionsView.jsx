@@ -6,7 +6,6 @@ import ImportCsvModal from './components/ImportCsvModal';
 import { txBelongsToMonth } from '../../core/utils/billing';
 import TxForm from './components/TxForm';
 import TxTable from './components/TxTable';
-import { generateTransactionsCsv, downloadCsv } from '../../core/utils/csvExport';
 
 const EMPTY = { type: 'all', memberId: 'all', recurrence: 'all', cardId: 'all', accountId: 'all', categoryId: 'all', search: '' };
 
@@ -14,15 +13,8 @@ const EMPTY = { type: 'all', memberId: 'all', recurrence: 'all', cardId: 'all', 
 export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatchDelete, onToggleReviewed, activeMonth, setActiveMonth, onBulkImport, reloadTransactions }) {
   const { transactions, categories, members, accounts, cards } = data;
   const [newModal, setNewModal] = useState(false);
-  const [importModal, setImportModal] = useState(false);
+  const [csvModal, setCsvModal] = useState(false);
   const [filter, setFilter]     = useState(EMPTY);
-
-  const handleExport = () => {
-    const monthTx = transactions.filter(t => txBelongsToMonth(t, activeMonth));
-    const csv = generateTransactionsCsv(monthTx, categories, members);
-    const [y, m] = (activeMonth || '').split('-');
-    downloadCsv(`lancamentos-${m}-${y}.csv`, csv);
-  };
 
   const set = k => e => setFilter(f => ({ ...f, [k]: e.target.value }));
   const clearFilters = () => setFilter(EMPTY);
@@ -54,17 +46,10 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
           <MonthSelector month={activeMonth} onChange={setActiveMonth} />
           <button
             className="btn btn-secondary"
-            title="Exportar lançamentos do mês como CSV"
-            onClick={handleExport}
+            title="Importar ou exportar lançamentos por CSV"
+            onClick={() => setCsvModal(true)}
           >
-            📤 Exportar CSV
-          </button>
-          <button
-            className="btn btn-secondary"
-            title="Importar lançamentos por CSV"
-            onClick={() => setImportModal(true)}
-          >
-            📥 Importar CSV
+            📋 CSV
           </button>
           <button className="btn btn-primary" onClick={() => setNewModal(true)}>+ Novo Lançamento</button>
         </div>
@@ -140,14 +125,17 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
         />
       </div>
 
-      {importModal && (
+      {csvModal && (
         <ImportCsvModal
+          transactions={transactions}
           accounts={data.accounts || []}
+          cards={data.cards || []}
           categories={data.categories || []}
           members={data.members || []}
+          activeMonth={activeMonth}
           onBulkImport={onBulkImport}
           onDone={reloadTransactions}
-          onClose={() => setImportModal(false)}
+          onClose={() => setCsvModal(false)}
         />
       )}
 
