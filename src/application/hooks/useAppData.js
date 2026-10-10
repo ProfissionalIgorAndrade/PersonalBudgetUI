@@ -5,6 +5,7 @@ import * as accountRepo      from '../../data/repositories/accountRepository';
 import * as categoryRepo     from '../../data/repositories/categoryRepository';
 import * as cardRepo         from '../../data/repositories/cardRepository';
 import * as txRepo           from '../../data/repositories/transactionRepository';
+import * as budgetRepo      from '../../data/repositories/budgetRepository';
 import {
   normalizeAccount, buildAccountPayload, normalizeCategory, normalizeCard, buildCardPayload, sortCategories, sortByName,
   normalizeTransaction, normalizeProfile, normalizeSavingsBoxEvent,
@@ -33,6 +34,7 @@ export function useAppData(notify) {
   const [cards,        setCards]        = useState([]);
   const [members,      setMembers]      = useState([]);
   const [savingsEvents, setSavingsEvents] = useState([]);
+  const [budgets,      setBudgets]      = useState([]);
 
   /* ── Individual loaders ───────────────────────────────────── */
   const loadTx = useCallback(async () => {
@@ -72,6 +74,11 @@ export function useAppData(notify) {
   const loadCards = useCallback(async () => {
     const raw = await cardRepo.listCards();
     setCards(sortByName((raw || []).map(normalizeCard).filter(Boolean)));
+  }, []);
+
+  const loadBudgets = useCallback(async (month, year) => {
+    const raw = await budgetRepo.listBudgets(month, year);
+    setBudgets(raw || []);
   }, []);
 
   const loadMembers = useCallback(async (hid) => {
@@ -409,10 +416,29 @@ export function useAppData(notify) {
     },
   };
 
+  /* ── Budget CRUD ──────────────────────────────────────────── */
+  const budgetOps = {
+    onUpsert: async (b) => {
+      try {
+        await budgetRepo.upsertBudget(b);
+        await loadBudgets(b.month, b.year);
+        notify('Orçamento salvo.');
+      } catch (e) { notify(e.message, 'error'); }
+    },
+    onDelete: async (id, month, year) => {
+      try {
+        await budgetRepo.deleteBudget(id);
+        await loadBudgets(month, year);
+        notify('Orçamento removido.');
+      } catch (e) { notify(e.message, 'error'); }
+    },
+  };
+
   return {
     loading, transactions, savingsTransactions, savingsEvents, accounts, categories, cards, members,
+    budgets,
     transactionsReloadGeneration,
-    loadAll, loadTx, clearData,
-    txOps, accOps, catOps, cardOps, mbrOps,
+    loadAll, loadTx, loadBudgets, clearData,
+    txOps, accOps, catOps, cardOps, mbrOps, budgetOps,
   };
 }
