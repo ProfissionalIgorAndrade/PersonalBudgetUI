@@ -2,32 +2,63 @@ import React, { useMemo, useRef, useState } from 'react';
 import Modal from '../../shared/components/Modal';
 import { R$ } from '../../../core/utils/format';
 import CurrencyInput from '../../shared/components/CurrencyInput';
+import { cardLabel } from '../../../application/mappers/index';
 import {
   buildTemplateCsv, parseImportCsv, validateImportRow, TEMPLATE_COLUMNS,
 } from '../../../core/utils/csvImport';
+import { generateTransactionsCsv, downloadCsv } from '../../../core/utils/csvExport';
+
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 /**
- * Importação de lançamentos por CSV com deduplicação por id_sistema.
+ * Modal unificado de CSV — import e export na mesma interface.
  *
- * Fluxo: upload → revisão → destino → processamento.
- * Linhas com id_sistema já existente no sistema são ignoradas automaticamente
- * pelo backend; apenas linhas novas (sem id_sistema) são criadas.
+ * Fluxo de escolha: choose → export | import
+ * Export: choose → export (seleciona cartão + fatura) → download
+ * Import: choose → upload → review → target → running
  */
 export default function ImportCsvModal({
-  accounts, categories, members, onBulkImport, onClose, onDone,
+  transactions, accounts, cards, categories, members, activeMonth,
+  onBulkImport, onClose, onDone,
 }) {
-  const [step, setStep]     = useState('upload');
-  const [rows, setRows]     = useState([]);
-  const [fatal, setFatal]   = useState('');
+  const now = new Date();
+  const [activeYear, activeMonthNum] = (activeMonth || '').split('-').map(Number);
+
+  // ── Shared state ──────────────────────────────────────────────
+  const [step, setStep] = useState('choose'); // choose | export | upload | review | target | running
+
+  // ── Export state ──────────────────────────────────────────────
+  const [exportCardId,  setExportCardId]  = useState(cards[0]?.id || '');
+  const [exportMonth,   setExportMonth]   = useState(activeMonthNum || now.getMonth() + 1);
+  const [exportYear,    setExportYear]    = useState(activeYear     || now.getFullYear());
+
+  // ── Import state ──────────────────────────────────────────────
+  const [rows,     setRows]     = useState([]);
+  const [fatal,    setFatal]    = useState('');
   const [fileName, setFileName] = useState('');
 
   const nonSavingsAccounts = (accounts || []).filter(a => a.type !== 'savings');
   const [defaultAccountId, setDefaultAccountId] = useState(nonSavingsAccounts[0]?.id || '');
 
-  const [result,   setResult]   = useState(null);   // { created, skipped, errors }
-  const [running,  setRunning]  = useState(false);
+  const [result,  setResult]  = useState(null);
+  const [running, setRunning] = useState(false);
   const fileInput = useRef(null);
 
+  // ── Export helpers ────────────────────────────────────────────
+  const handleExport = () => {
+    const cardTx = (transactions || []).filter(t =>
+      t.cardId === exportCardId &&
+      Number(t.statementMonth) === Number(exportMonth) &&
+      Number(t.statementYear)  === Number(exportYear)
+    );
+    const card = (cards || []).find(c => c.id === exportCardId);
+    const name  = card?.name?.toLowerCase().replace(/\s+/g, '-') || 'cartao';
+    const csv   = generateTransactionsCsv(cardTx, categories, members);
+    downloadCsv(`fatura-${name}-${String(exportMonth).padStart(2,'0')}-${exportYear}.csv`, csv);
+    onClose();
+  };
+
+  // ── Import helpers ────────────────────────────────────────────
   const withErrors = useMemo(
     () => rows.map(r => ({ ...r, errors: validateImportRow(r) })),
     [rows],
@@ -35,11 +66,9 @@ export default function ImportCsvModal({
   const selected      = withErrors.filter(r => r.selected);
   const selectedValid = selected.filter(r => r.errors.length === 0);
   const blocked       = selected.length - selectedValid.length;
-
-  const newRows      = selectedValid.filter(r => !r.externalId);
-  const existingRows = selectedValid.filter(r => r.externalId);
-
-  const total = selectedValid.reduce(
+  const newRows       = selectedValid.filter(r => !r.externalId);
+  const existingRows  = selectedValid.filter(r => r.externalId);
+  const total         = selectedValid.reduce(
     (s, r) => s + (r.type === 'income' ? -Number(r.amount) : Number(r.amount)), 0);
 
   const setRow = (key, patch) =>
@@ -47,8 +76,8 @@ export default function ImportCsvModal({
 
   const downloadTemplate = () => {
     const blob = new Blob([buildTemplateCsv()], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
     a.href = url; a.download = 'modelo-lancamentos.csv'; a.click();
     URL.revokeObjectURL(url);
   };
@@ -74,14 +103,14 @@ export default function ImportCsvModal({
     setStep('running');
     try {
       const payload = selectedValid.map(r => ({
-        externalId:          r.externalId || null,
-        description:         r.description,
-        amount:              Number(r.amount),
-        date:                r.date,
-        type:                r.type === 'income' ? 1 : 2,
-        categoryId:          r.categoryId || null,
-        attributionProfileId: r.memberId  || null,
-        observations:        r.notes || null,
+        externalId:           r.externalId || null,
+        description:          r.description,
+        amount:               Number(r.amount),
+        date:                 r.date,
+        type:                 r.type === 'income' ? 1 : 2,
+        categoryId:           r.categoryId || null,
+        attributionProfileId: r.memberId   || null,
+        observations:         r.notes      || null,
       }));
       const res = await onBulkImport(payload, defaultAccountId);
       setResult(res);
@@ -96,14 +125,108 @@ export default function ImportCsvModal({
   const cellStyle  = { padding: '6px 8px' };
   const fieldStyle = { fontSize: 12.5, padding: '7px 9px', width: '100%' };
 
+  const isImportStep = ['upload','review','target','running'].includes(step);
+
   return (
     <Modal
-      title="Importar Lançamentos"
+      title={step === 'choose' ? 'CSV — Importar ou Exportar' : step === 'export' ? 'Exportar Fatura CSV' : 'Importar Lançamentos'}
       onClose={running ? () => {} : onClose}
       size={step === 'review' ? 'full' : 'wide'}
       confirmOnOverlay={step === 'review' || step === 'target'}
-      confirmMessage="Descartar as linhas conferidas e fechar a importação?"
+      confirmMessage="Descartar as linhas conferidas e fechar?"
     >
+
+      {/* ── STEP: CHOOSE ── */}
+      {step === 'choose' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setStep('export')}
+            style={{ padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, height: 120 }}
+          >
+            <span style={{ fontSize: 28 }}>📤</span>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>Exportar</span>
+            <span style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>Baixar fatura de cartão como CSV</span>
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setStep('upload')}
+            style={{ padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, height: 120 }}
+          >
+            <span style={{ fontSize: 28 }}>📥</span>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>Importar</span>
+            <span style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>Enviar CSV e criar lançamentos novos</span>
+          </button>
+        </div>
+      )}
+
+      {/* ── STEP: EXPORT ── */}
+      {step === 'export' && (
+        <div>
+          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20, lineHeight: 1.5 }}>
+            Selecione o cartão e a fatura. O CSV gerado inclui a coluna <strong>id_sistema</strong> — ao reimportar,
+            lançamentos já existentes serão ignorados automaticamente.
+          </p>
+
+          {cards.length === 0 ? (
+            <div style={{ padding: '14px 16px', borderRadius: 10, fontSize: 13, color: 'var(--muted)',
+              background: 'color-mix(in srgb, var(--surface2) 60%, transparent)',
+              border: '1px solid var(--border)' }}>
+              Nenhum cartão de crédito cadastrado.
+            </div>
+          ) : (
+            <>
+              <div className="form-group">
+                <label className="form-label">Cartão de crédito</label>
+                <select className="form-select" value={exportCardId} onChange={e => setExportCardId(e.target.value)}>
+                  {cards.map(c => (
+                    <option key={c.id} value={c.id}>💳 {cardLabel(c, members)}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Fatura</label>
+                <div className="flex" style={{ gap: 8 }}>
+                  <select className="form-select" value={exportMonth} onChange={e => setExportMonth(Number(e.target.value))}>
+                    {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                  </select>
+                  <select className="form-select" value={exportYear} onChange={e => setExportYear(Number(e.target.value))}>
+                    {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]
+                      .map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {(() => {
+                const count = (transactions || []).filter(t =>
+                  t.cardId === exportCardId &&
+                  Number(t.statementMonth) === Number(exportMonth) &&
+                  Number(t.statementYear)  === Number(exportYear)
+                ).length;
+                return (
+                  <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>
+                    {count > 0
+                      ? `${count} lançamento(s) encontrado(s) nesta fatura`
+                      : 'Nenhum lançamento nesta fatura — o CSV será exportado vazio'}
+                  </p>
+                );
+              })()}
+            </>
+          )}
+
+          <div className="flex jce" style={{ gap: 8, marginTop: 8 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setStep('choose')}>Voltar</button>
+            <button type="button" className="btn btn-primary" disabled={!exportCardId} onClick={handleExport}>
+              📤 Exportar CSV
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP: UPLOAD ── */}
       {step === 'upload' && (
         <div>
           <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16, lineHeight: 1.5 }}>
@@ -141,9 +264,16 @@ export default function ImportCsvModal({
             Data em AAAA-MM-DD ou DD/MM/AAAA · Valor negativo vira estorno ·
             Separador vírgula ou ponto e vírgula
           </div>
+
+          <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-start' }}>
+            <button type="button" className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => setStep('choose')}>
+              ← Voltar
+            </button>
+          </div>
         </div>
       )}
 
+      {/* ── STEP: REVIEW ── */}
       {step === 'review' && (
         <div>
           <div className="flex jcb aic" style={{ marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
@@ -151,7 +281,7 @@ export default function ImportCsvModal({
               {fileName} · {rows.length} linha(s) ·{' '}
               <strong>{selectedValid.length}</strong> prontas
               {existingRows.length > 0 && (
-                <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>
+                <span style={{ fontStyle: 'italic' }}>
                   {' '}· {existingRows.length} já existem (serão ignoradas)
                 </span>
               )}
@@ -186,7 +316,10 @@ export default function ImportCsvModal({
                   const isExisting = Boolean(r.externalId);
                   return (
                     <React.Fragment key={r.key}>
-                      <tr style={{ opacity: r.selected ? 1 : .45, background: isExisting ? 'color-mix(in srgb, var(--surface2) 60%, transparent)' : undefined }}>
+                      <tr style={{
+                        opacity: r.selected ? 1 : .45,
+                        background: isExisting ? 'color-mix(in srgb, var(--surface2) 60%, transparent)' : undefined,
+                      }}>
                         <td style={cellStyle}>
                           <input type="checkbox" checked={r.selected}
                             onChange={e => setRow(r.key, { selected: e.target.checked })} />
@@ -194,83 +327,67 @@ export default function ImportCsvModal({
                         <td style={{ ...cellStyle, color: 'var(--muted)' }}>
                           {r.lineNumber}
                           {isExisting && (
-                            <span title="Já existe no sistema — será ignorado" style={{ marginLeft: 4, fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>
-                              ↩
-                            </span>
+                            <span title="Já existe — será ignorado" style={{ marginLeft: 4, fontSize: 10, color: 'var(--muted)' }}>↩</span>
                           )}
                         </td>
                         <td style={cellStyle}>
-                          {isExisting ? (
-                            <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{r.description}</span>
-                          ) : (
-                            <input className="form-input" style={fieldStyle}
-                              value={r.description} onChange={e => setRow(r.key, { description: e.target.value })} />
-                          )}
+                          {isExisting
+                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{r.description}</span>
+                            : <input className="form-input" style={fieldStyle} value={r.description}
+                                onChange={e => setRow(r.key, { description: e.target.value })} />}
                         </td>
                         <td style={cellStyle}>
-                          {isExisting ? (
-                            <span style={{ fontSize: 12.5, color: 'var(--muted)', display: 'block', textAlign: 'right' }}>{R$(r.amount)}</span>
-                          ) : (
-                            <div className="flex aic" style={{ gap: 5 }}>
-                              <span className="tmuted" style={{ fontSize: 11 }}>R$</span>
-                              <CurrencyInput value={r.amount} onChange={v => setRow(r.key, { amount: v })}
-                                style={{ ...fieldStyle, textAlign: 'right' }} />
-                            </div>
-                          )}
+                          {isExisting
+                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)', display: 'block', textAlign: 'right' }}>{R$(r.amount)}</span>
+                            : <div className="flex aic" style={{ gap: 5 }}>
+                                <span className="tmuted" style={{ fontSize: 11 }}>R$</span>
+                                <CurrencyInput value={r.amount} onChange={v => setRow(r.key, { amount: v })}
+                                  style={{ ...fieldStyle, textAlign: 'right' }} />
+                              </div>}
                         </td>
                         <td style={cellStyle}>
-                          {isExisting ? (
-                            <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{r.type === 'income' ? 'Estorno' : 'Despesa'}</span>
-                          ) : (
-                            <select className="form-select" style={fieldStyle}
-                              value={r.type} onChange={e => setRow(r.key, { type: e.target.value })}>
-                              <option value="expense">Despesa</option>
-                              <option value="income">Estorno</option>
-                            </select>
-                          )}
+                          {isExisting
+                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{r.type === 'income' ? 'Estorno' : 'Despesa'}</span>
+                            : <select className="form-select" style={fieldStyle} value={r.type}
+                                onChange={e => setRow(r.key, { type: e.target.value })}>
+                                <option value="expense">Despesa</option>
+                                <option value="income">Estorno</option>
+                              </select>}
                         </td>
                         <td style={cellStyle}>
-                          {isExisting ? (
-                            <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{r.date}</span>
-                          ) : (
-                            <input className="form-input" type="date" style={fieldStyle}
-                              value={r.date} onChange={e => setRow(r.key, { date: e.target.value })} />
-                          )}
+                          {isExisting
+                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{r.date}</span>
+                            : <input className="form-input" type="date" style={fieldStyle} value={r.date}
+                                onChange={e => setRow(r.key, { date: e.target.value })} />}
                         </td>
                         <td style={cellStyle}>
-                          {isExisting ? (
-                            <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-                              {(categories || []).find(c => c.id === r.categoryId)?.name || '—'}
-                            </span>
-                          ) : (
-                            <select className="form-select" style={fieldStyle}
-                              value={r.categoryId} onChange={e => setRow(r.key, { categoryId: e.target.value })}>
-                              <option value="">— Selecione —</option>
-                              {(categories || []).filter(c => c.type === (r.type === 'income' ? 'income' : 'expense'))
-                                .map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-                            </select>
-                          )}
+                          {isExisting
+                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                                {(categories || []).find(c => c.id === r.categoryId)?.name || '—'}
+                              </span>
+                            : <select className="form-select" style={fieldStyle} value={r.categoryId}
+                                onChange={e => setRow(r.key, { categoryId: e.target.value })}>
+                                <option value="">— Selecione —</option>
+                                {(categories || []).filter(c => c.type === (r.type === 'income' ? 'income' : 'expense'))
+                                  .map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                              </select>}
                         </td>
                         <td style={cellStyle}>
-                          {isExisting ? (
-                            <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-                              {(members || []).find(m => m.id === r.memberId)?.name || '—'}
-                            </span>
-                          ) : (
-                            <select className="form-select" style={fieldStyle}
-                              value={r.memberId} onChange={e => setRow(r.key, { memberId: e.target.value })}>
-                              <option value="">— Selecione —</option>
-                              {(members || []).map(m => <option key={m.id} value={m.id}>{m.emoji} {m.name}</option>)}
-                            </select>
-                          )}
+                          {isExisting
+                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                                {(members || []).find(m => m.id === r.memberId)?.name || '—'}
+                              </span>
+                            : <select className="form-select" style={fieldStyle} value={r.memberId}
+                                onChange={e => setRow(r.key, { memberId: e.target.value })}>
+                                <option value="">— Selecione —</option>
+                                {(members || []).map(m => <option key={m.id} value={m.id}>{m.emoji} {m.name}</option>)}
+                              </select>}
                         </td>
                         <td style={cellStyle}>
-                          {isExisting ? (
-                            <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{r.notes}</span>
-                          ) : (
-                            <input className="form-input" style={fieldStyle}
-                              value={r.notes} onChange={e => setRow(r.key, { notes: e.target.value })} />
-                          )}
+                          {isExisting
+                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{r.notes}</span>
+                            : <input className="form-input" style={fieldStyle} value={r.notes}
+                                onChange={e => setRow(r.key, { notes: e.target.value })} />}
                         </td>
                       </tr>
                       {r.selected && r.errors.length > 0 && (
@@ -287,7 +404,7 @@ export default function ImportCsvModal({
             </table>
           </div>
 
-          <div className="flex jce gap2" style={{ gap: 8, marginTop: 12 }}>
+          <div className="flex jce" style={{ gap: 8, marginTop: 12 }}>
             <button type="button" className="btn btn-secondary" onClick={() => setStep('upload')}>Voltar</button>
             <button type="button" className="btn btn-primary" disabled={selectedValid.length === 0}
               onClick={() => setStep('target')}>
@@ -297,6 +414,7 @@ export default function ImportCsvModal({
         </div>
       )}
 
+      {/* ── STEP: TARGET ── */}
       {step === 'target' && (
         <div>
           <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
@@ -311,20 +429,14 @@ export default function ImportCsvModal({
           {newRows.length > 0 && (
             <div className="form-group">
               <label className="form-label">Conta de destino para lançamentos novos *</label>
-              <select
-                className="form-select"
-                value={defaultAccountId}
-                onChange={e => setDefaultAccountId(e.target.value)}
-              >
-                {nonSavingsAccounts.length === 0 && (
-                  <option value="">Nenhuma conta disponível</option>
-                )}
+              <select className="form-select" value={defaultAccountId}
+                onChange={e => setDefaultAccountId(e.target.value)}>
+                {nonSavingsAccounts.length === 0 && <option value="">Nenhuma conta disponível</option>}
                 {nonSavingsAccounts.map(a => (
                   <option key={a.id} value={a.id}>🏦 {a.name}</option>
                 ))}
               </select>
               <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, lineHeight: 1.5 }}>
-                Todos os lançamentos novos serão associados a esta conta.
                 Lançamentos com id_sistema serão ignorados automaticamente pelo sistema.
               </p>
             </div>
@@ -339,31 +451,25 @@ export default function ImportCsvModal({
             </div>
           )}
 
-          <div className="flex jce gap2" style={{ gap: 8, marginTop: 16 }}>
+          <div className="flex jce" style={{ gap: 8, marginTop: 16 }}>
             <button type="button" className="btn btn-secondary" onClick={() => setStep('review')}>Voltar</button>
-            <button
-              type="button"
-              className="btn btn-primary"
+            <button type="button" className="btn btn-primary"
               disabled={newRows.length > 0 && !defaultAccountId}
-              onClick={run}
-            >
+              onClick={run}>
               💾 Importar {selectedValid.length}
             </button>
           </div>
         </div>
       )}
 
+      {/* ── STEP: RUNNING ── */}
       {step === 'running' && (
         <div>
           {running ? (
-            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>
-              Importando…
-            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>Importando…</div>
           ) : result ? (
             <div>
-              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>
-                Importação concluída
-              </div>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Importação concluída</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
                 <div style={{ padding: '14px 16px', borderRadius: 10, textAlign: 'center',
                   background: 'color-mix(in srgb, #4ade80 15%, transparent)',
@@ -378,7 +484,6 @@ export default function ImportCsvModal({
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>já existentes ignorados</div>
                 </div>
               </div>
-
               {result.errors?.length > 0 && (
                 <div style={{ maxHeight: 160, overflow: 'auto', fontSize: 11, marginBottom: 12 }}>
                   <div style={{ color: 'var(--red)', fontWeight: 700, marginBottom: 6 }}>
