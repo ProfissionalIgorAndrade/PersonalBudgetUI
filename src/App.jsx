@@ -82,7 +82,7 @@ export default function App() {
     health:       <HealthView       data={data} savingsTransactions={savingsTransactions} accounts={accounts}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth} theme={theme} />,
     transactions: <TransactionsView data={data} {...txOps} activeMonth={activeMonth} setActiveMonth={setActiveMonth}
-                                    onImport={txOps.onImportOne} reloadTransactions={loadTx} />,
+                                    onBulkImport={txOps.onBulkImport} reloadTransactions={loadTx} />,
     cards:        <CardsView        cards={cards} members={members} transactions={transactions} categories={categories} accounts={accounts}
                                     {...cardOps} onEditTx={txOps.onEdit} onDeleteTx={txOps.onDelete} onBatchDeleteTx={txOps.onBatchDelete}
                                     onToggleReviewed={txOps.onToggleReviewed} onReviewStatement={cardOps.onReviewStatement}

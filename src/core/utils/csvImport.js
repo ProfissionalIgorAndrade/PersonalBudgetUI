@@ -139,6 +139,7 @@ export function parseImportCsv(text, { categories = [], members = [] } = {}) {
     const f = splitCsvLine(line, sep);
     const get = (name) => { const j = idx(name); return j >= 0 && j < f.length ? f[j] : ''; };
 
+    const externalId = get('id_sistema') || null;
     const description = get('descricao');
     const amount = parseAmount(get('valor'));
     const date = parseDate(get('data'));
@@ -158,6 +159,7 @@ export function parseImportCsv(text, { categories = [], members = [] } = {}) {
       key: `row-${i}`,
       lineNumber: i + 2,
       selected: errors.length === 0,
+      externalId,
       description,
       amount: Number.isFinite(amount) ? Math.abs(amount) : '',
       type: Number.isFinite(amount) && amount < 0 ? 'income' : 'expense',

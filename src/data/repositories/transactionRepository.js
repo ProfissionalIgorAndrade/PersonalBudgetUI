@@ -19,3 +19,5 @@ export async function deleteRecurringTransaction(id, recurrenceDeleteMode) {
 }
 
 export const batchDelete = (ids) => http.delete('/api/transactions/batch', { transactionIds: ids });
+
+export const importTransactions = (body) => http.post('/api/transactions/import', body);

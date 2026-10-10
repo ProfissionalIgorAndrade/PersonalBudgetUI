@@ -249,6 +249,11 @@ export function useAppData(notify) {
         notify(`${ids.length} lançamento(s) removido(s)`);
       } catch (e) { notify(e.message, 'error'); }
     },
+    onBulkImport: async (rows, defaultAccountId) => {
+      const result = await txRepo.importTransactions({ rows, defaultAccountId });
+      await loadTx();
+      return result;
+    },
   };
 
   /* ── Account CRUD ─────────────────────────────────────────── */
