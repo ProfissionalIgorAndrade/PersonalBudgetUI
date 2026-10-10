@@ -6,6 +6,7 @@ export default function BudgetForm({ categories, activeMonth, onSave, onClose, e
   const [categoryId, setCategoryId] = useState(existing?.categoryId || '');
   const [limit, setLimit]           = useState(existing?.limitAmount || 0);
 
+  const [activeYear, activeMonthNum] = (activeMonth || '').split('-').map(Number);
   const expenseCategories = categories.filter(c => c.type === 'expense');
 
   const handleSave = () => {
@@ -13,8 +14,8 @@ export default function BudgetForm({ categories, activeMonth, onSave, onClose, e
     if (limit <= 0) return;
     onSave({
       categoryId,
-      month: activeMonth.month,
-      year:  activeMonth.year,
+      month: activeMonthNum,
+      year:  activeYear,
       limitAmount: limit,
     });
   };

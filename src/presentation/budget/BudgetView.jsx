@@ -21,9 +21,11 @@ export default function BudgetView({
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing]   = useState(null);
 
+  const [activeYear, activeMonthNum] = (activeMonth || '').split('-').map(Number);
+
   useEffect(() => {
-    loadBudgets(activeMonth.month, activeMonth.year);
-  }, [activeMonth.month, activeMonth.year]);
+    if (activeYear && activeMonthNum) loadBudgets(activeMonthNum, activeYear);
+  }, [activeMonth]);
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
 
@@ -40,7 +42,7 @@ export default function BudgetView({
 
   const handleDelete = (b) => {
     if (!confirm(`Remover orçamento de "${getCatName(b.categoryId)}"?`)) return;
-    budgetOps.onDelete(b.id, activeMonth.month, activeMonth.year);
+    budgetOps.onDelete(b.id, activeMonthNum, activeYear);
   };
 
   const getCat = (id) => expenseCategories.find(c => c.id === id);
@@ -54,7 +56,7 @@ export default function BudgetView({
           <p style={{ fontSize: 13, color: 'var(--muted)' }}>Defina limites mensais de gastos por categoria</p>
         </div>
         <div className="flex aic" style={{ gap: 12 }}>
-          <MonthSelector value={activeMonth} onChange={setActiveMonth} />
+          <MonthSelector month={activeMonth} onChange={setActiveMonth} />
           <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>
             + Novo Orçamento
           </button>
