@@ -24,6 +24,7 @@ import MembersView           from './presentation/members/MembersView';
 import CategoriesView        from './presentation/categories/CategoriesView';
 import ProfileView           from './presentation/profile/ProfileView';
 import SimulatorView         from './presentation/simulator/SimulatorView';
+import BudgetView            from './presentation/budget/BudgetView';
 
 const pageVariants = {
   initial: { opacity: 0, y: 14 },
@@ -36,9 +37,10 @@ export default function App() {
   const { authSession, login, signup, logout, expired, clearExpired } = useAuth();
   const {
     loading, transactions, savingsTransactions, savingsEvents, accounts, categories, cards, members,
+    budgets,
     transactionsReloadGeneration,
-    loadAll, loadTx, clearData,
-    txOps, accOps, catOps, cardOps, mbrOps,
+    loadAll, loadTx, loadBudgets, clearData,
+    txOps, accOps, catOps, cardOps, mbrOps, budgetOps,
   } = useAppData(notify);
 
   const [view,        setView]        = useHashView('dashboard');
@@ -73,10 +75,10 @@ export default function App() {
     );
   }
 
-  const data = { transactions, categories, members, accounts, cards };
+  const data = { transactions, categories, members, accounts, cards, budgets };
 
   const views = {
-    dashboard:    <DashboardView    data={data} setView={setView} activeMonth={activeMonth} setActiveMonth={setActiveMonth} theme={theme} />,
+    dashboard:    <DashboardView    data={data} setView={setView} activeMonth={activeMonth} setActiveMonth={setActiveMonth} theme={theme} loadBudgets={loadBudgets} />,
     health:       <HealthView       data={data} savingsTransactions={savingsTransactions} accounts={accounts}
                                     activeMonth={activeMonth} setActiveMonth={setActiveMonth} theme={theme} />,
     transactions: <TransactionsView data={data} {...txOps} activeMonth={activeMonth} setActiveMonth={setActiveMonth}
@@ -99,6 +101,7 @@ export default function App() {
     categories:   <CategoriesView   categories={categories} {...catOps} />,
     profile:      <ProfileView      authSession={authSession} notify={notify} />,
     simulator:    <SimulatorView    transactions={data.transactions} members={members} authSession={authSession} theme={theme} />,
+    budgets:      <BudgetView       budgets={budgets} categories={categories} activeMonth={activeMonth} setActiveMonth={setActiveMonth} loadBudgets={loadBudgets} budgetOps={budgetOps} />,
   };
 
   return (

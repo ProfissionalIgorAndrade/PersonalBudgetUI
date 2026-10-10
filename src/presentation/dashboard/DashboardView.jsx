@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { R$, curMonth, monthLabel } from '../../core/utils/format';
 import { txBelongsToMonth, statementNet } from '../../core/utils/billing';
@@ -18,6 +18,7 @@ import MemberSummaryWidget     from './components/MemberSummaryWidget';
 import CostsPerPersonWidget    from './components/CostsPerPersonWidget';
 import IncomePerPersonWidget   from './components/IncomePerPersonWidget';
 import DashboardCustomizer     from './components/DashboardCustomizer';
+import BudgetWidget            from './components/BudgetWidget';
 
 const widgetVariants = {
   hidden:  { opacity: 0, y: 18 },
@@ -37,10 +38,11 @@ const DEFAULT_LAYOUT = [
   { id: 'by-member',     label: 'Resumo por Membro',      icon: '👥', col: 1, order: 3, visible: true },
   { id: 'costs-person',  label: 'Custos por Pessoa',      icon: '💸', col: 1, order: 4, visible: true },
   { id: 'income-person', label: 'Receitas por Pessoa',    icon: '💵', col: 1, order: 5, visible: true },
+  { id: 'budgets',       label: 'Orçamentos',             icon: '🎯', col: 1, order: 6, visible: true },
 ];
 
-export default function DashboardView({ data, setView, activeMonth, setActiveMonth, theme }) {
-  const { transactions, categories, members, cards } = data;
+export default function DashboardView({ data, setView, activeMonth, setActiveMonth, theme, loadBudgets }) {
+  const { transactions, categories, members, cards, budgets } = data;
   const [storedLayout,  setLayout]        = useLocalStorage('pb_dash_layout', DEFAULT_LAYOUT);
   // Nunca usar o layout salvo direto: ele pode ter id repetido, id de widget
   // que não existe mais, ou não conhecer um widget novo.
@@ -49,6 +51,13 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
   const [draftLayout,   setDraftLayout]   = useState(null);
 
   const month = activeMonth || curMonth();
+
+  useEffect(() => {
+    if (loadBudgets) {
+      const [y, m] = month.split('-').map(Number);
+      loadBudgets(m, y);
+    }
+  }, [month]);
   const now   = new Date();
 
   /* ── Calculations ───────────────────────────────────────────── */
@@ -188,6 +197,7 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
       case 'by-member':    widget = <MemberSummaryWidget memberData={memberData} monthLabel={monthLabel(month)} />; break;
       case 'costs-person': widget = <CostsPerPersonWidget memberData={memberData} totalOut={totalOut} />; break;
       case 'income-person':widget = <IncomePerPersonWidget memberData={memberData} totalIn={totalIn} />; break;
+      case 'budgets':      widget = <BudgetWidget budgets={budgets || []} categories={categories} setView={setView} />; break;
       default: return null;
     }
     return (
