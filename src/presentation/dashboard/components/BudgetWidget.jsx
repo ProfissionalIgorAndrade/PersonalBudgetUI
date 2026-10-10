@@ -13,25 +13,25 @@ function barColor(p) {
 }
 
 export default function BudgetWidget({ budgets, categories, setView }) {
-  if (!budgets || budgets.length === 0) {
+  const withLimits = (budgets || []).filter(b => b.limitAmount > 0).slice(0, 5);
+
+  if (withLimits.length === 0) {
     return (
       <div className="card">
         <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, letterSpacing: '-0.2px' }}>🎯 Orçamentos</h3>
         <p className="tmuted tsm" style={{ textAlign: 'center', padding: '10px 0' }}>
-          Nenhum orçamento definido
+          Nenhum limite definido para este mês
         </p>
         <button
           className="btn btn-secondary"
           style={{ width: '100%', fontSize: 12, marginTop: 8 }}
           onClick={() => setView('budgets')}
         >
-          + Definir Orçamentos
+          Definir limites →
         </button>
       </div>
     );
   }
-
-  const top = budgets.slice(0, 5);
 
   return (
     <div className="card">
@@ -46,8 +46,8 @@ export default function BudgetWidget({ budgets, categories, setView }) {
         </button>
       </div>
 
-      {top.map(b => {
-        const cat = categories.find(c => c.id === b.categoryId);
+      {withLimits.map(b => {
+        const cat = (categories || []).find(c => c.id === b.categoryId);
         const p   = pct(b.spentAmount, b.limitAmount);
         return (
           <div key={b.id} style={{ marginBottom: 12 }}>
