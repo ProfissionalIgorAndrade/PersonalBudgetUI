@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   parseAmount, parseDate, splitCsvLine, detectSeparator,
-  parseImportCsv, validateImportRow, buildTemplateCsv,
+  parseImportCsv, validateImportRow, buildTemplateCsv, parseType,
 } from '../csvImport';
 
 const categories = [{ id: 'c1', name: 'Mercado', type: 'expense' }, { id: 'c2', name: 'Transporte', type: 'expense' }];
@@ -134,10 +134,56 @@ describe('validateImportRow', () => {
 describe('buildTemplateCsv', () => {
   it('round-trips through the parser it is meant to feed', () => {
     const cats = [{ id: 'x', name: 'Mercado' }, { id: 'y', name: 'Transporte' }, { id: 'z', name: 'Assinaturas' }];
+    // Categories without a type match any row, so the estorno example resolves too.
     const mems = [{ id: 'a', name: 'Familia' }, { id: 'b', name: 'Igor Andrade' }];
     const { rows, fatal } = parseImportCsv(buildTemplateCsv(), { categories: cats, members: mems });
     expect(fatal).toBeNull();
     expect(rows).toHaveLength(3);
     expect(rows.every(r => r.errors.length === 0)).toBe(true);
+  });
+});
+
+describe('parseType', () => {
+  it('reads the labels the export writes, ignoring case and accents', () => {
+    expect(parseType('Despesa')).toBe('expense');
+    expect(parseType(' ESTORNO ')).toBe('income');
+    expect(parseType('Crédito')).toBe('income');
+  });
+  it('returns null when the cell says nothing usable', () => {
+    expect(parseType('')).toBeNull();
+    expect(parseType('qualquer')).toBeNull();
+  });
+});
+
+describe('unified format', () => {
+  const header = 'id_sistema;descricao;valor;data;tipo;categoria;membro;observacoes';
+  const cats = [...categories, { id: 'c3', name: 'Reembolso', type: 'income' }];
+
+  it('takes the type from the tipo column when the amount has no sign', () => {
+    const { rows } = parseImportCsv(`${header}\nabc;Reembolso;"29,90";2026-07-15;Estorno;Reembolso;Familia;`,
+      { categories: cats, members });
+    expect(rows[0].type).toBe('income');
+    expect(rows[0].amount).toBe(29.9);
+    expect(rows[0].externalId).toBe('abc');
+    expect(rows[0].categoryId).toBe('c3');
+  });
+
+  it('lets a negative amount win over the tipo column', () => {
+    const { rows } = parseImportCsv(`${header}\n;X;-10;2026-07-15;Despesa;;Familia;`, { categories: cats, members });
+    expect(rows[0].type).toBe('income');
+  });
+
+  it('does not resolve a category of the other type', () => {
+    const { rows } = parseImportCsv(`${header}\n;X;10;2026-07-15;Estorno;Mercado;Familia;`, { categories: cats, members });
+    expect(rows[0].categoryId).toBe('');
+    expect(validateImportRow(rows[0]).join(' ')).toMatch(/Categoria "Mercado" não existe/);
+  });
+
+  it('keeps a line break inside a quoted field in the same row', () => {
+    const { rows } = parseImportCsv(`${header}\n;X;10;2026-07-15;Despesa;Mercado;Familia;"linha 1\nlinha 2"\n;Y;20;2026-07-16;Despesa;Mercado;Familia;`,
+      { categories: cats, members });
+    expect(rows).toHaveLength(2);
+    expect(rows[0].notes).toBe('linha 1\nlinha 2');
+    expect(rows[1].description).toBe('Y');
   });
 });
