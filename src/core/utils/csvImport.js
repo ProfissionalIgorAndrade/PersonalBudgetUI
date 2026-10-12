@@ -5,39 +5,39 @@
  * mostrar as linhas para conferência e edição antes de qualquer gravação.
  * O que sai daqui é rascunho: nada é enviado sem o usuário confirmar.
  */
+import { buildCsv } from './csvFormat';
 
-/** Colunas do modelo, na ordem em que aparecem no arquivo. */
-export const TEMPLATE_COLUMNS = [
-  'descricao',
-  'valor',
-  'data',
-  'categoria',
-  'membro',
-  'observacoes',
-];
-
+// id_sistema vazio: são linhas novas. Quem preenche essa coluna é a exportação.
 const EXAMPLE_ROWS = [
-  ['Supermercado Pão de Açúcar', '250,90', '2026-07-15', 'Mercado', 'Familia', 'Compra do mês'],
-  ['Uber - aeroporto', '68,40', '2026-07-18', 'Transporte', 'Igor Andrade', ''],
-  ['Estorno assinatura', '-29,90', '2026-07-20', 'Assinaturas', 'Igor Andrade', 'Cancelamento'],
+  ['', 'Supermercado Pão de Açúcar', '250,90', '2026-07-15', 'Despesa', 'Mercado', 'Familia', 'Compra do mês'],
+  ['', 'Uber - aeroporto', '68,40', '2026-07-18', 'Despesa', 'Transporte', 'Igor Andrade', ''],
+  ['', 'Estorno assinatura', '29,90', '2026-07-20', 'Estorno', 'Assinaturas', 'Igor Andrade', 'Cancelamento'],
 ];
 
 /**
- * Modelo para download. Vai com BOM para o Excel abrir acentuação
- * corretamente, e com linhas de exemplo — um arquivo só com cabeçalho não
- * comunica o formato esperado de data nem de valor negativo.
+ * Modelo para download, no mesmo formato da exportação. Vai com linhas de
+ * exemplo — um arquivo só com cabeçalho não comunica o formato esperado de
+ * data nem como marcar um estorno.
  */
 export function buildTemplateCsv() {
-  const lines = [TEMPLATE_COLUMNS.join(',')];
-  for (const row of EXAMPLE_ROWS) {
-    lines.push(row.map(escapeField).join(','));
-  }
-  return '\uFEFF' + lines.join('\r\n') + '\r\n';
+  return buildCsv(EXAMPLE_ROWS);
 }
 
-function escapeField(v) {
-  const s = String(v ?? '');
-  return /[",;\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+/**
+ * Separa o arquivo em registros. Uma quebra de linha dentro de aspas faz
+ * parte do campo (observação com mais de uma linha), não encerra o registro.
+ */
+export function splitCsvRecords(text) {
+  const records = [];
+  let cur = '';
+  let inQuotes = false;
+  for (const ch of text) {
+    if (ch === '"') inQuotes = !inQuotes;
+    if (ch === '\n' && !inQuotes) { records.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  records.push(cur);
+  return records.filter(r => r.trim() !== '');
 }
 
 /** Divide uma linha respeitando aspas duplas e aspas escapadas (""). */
@@ -108,6 +108,17 @@ export function parseDate(raw) {
 }
 
 /**
+ * Lê a coluna tipo sem diferenciar maiúsculas nem acentos. Devolve null quando
+ * a célula está vazia ou não é reconhecida, para o sinal do valor decidir.
+ */
+export function parseType(raw) {
+  const s = String(raw ?? '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (['estorno', 'receita', 'credito', 'income'].includes(s)) return 'income';
+  if (['despesa', 'debito', 'expense'].includes(s)) return 'expense';
+  return null;
+}
+
+/**
  * Lê o conteúdo do arquivo e devolve uma linha de rascunho por registro.
  *
  * Nunca lança: uma célula ruim vira um erro naquela linha, com as demais
@@ -116,7 +127,7 @@ export function parseDate(raw) {
  */
 export function parseImportCsv(text, { categories = [], members = [] } = {}) {
   const clean = String(text ?? '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
-  const lines = clean.split('\n').filter(l => l.trim() !== '');
+  const lines = splitCsvRecords(clean);
 
   if (lines.length === 0) return { rows: [], fatal: 'Arquivo vazio.' };
 
@@ -143,9 +154,14 @@ export function parseImportCsv(text, { categories = [], members = [] } = {}) {
     const description = get('descricao');
     const amount = parseAmount(get('valor'));
     const date = parseDate(get('data'));
+    // Valor negativo é sempre estorno; sem sinal, quem decide é a coluna tipo.
+    const type = Number.isFinite(amount) && amount < 0
+      ? 'income'
+      : parseType(get('tipo')) || 'expense';
     const catName = get('categoria');
     const memName = get('membro');
-    const cat = byName(categories, catName);
+    // Só categorias do tipo da linha: é a mesma lista que a tela oferece.
+    const cat = byName(categories.filter(c => !c.type || c.type === type), catName);
     const mem = byName(members, memName);
 
     const errors = [];
@@ -162,11 +178,13 @@ export function parseImportCsv(text, { categories = [], members = [] } = {}) {
       externalId,
       description,
       amount: Number.isFinite(amount) ? Math.abs(amount) : '',
-      type: Number.isFinite(amount) && amount < 0 ? 'income' : 'expense',
+      type,
       date,
       categoryId: cat?.id || '',
       memberId: mem?.id || '',
       notes: get('observacoes'),
+      unknownCategory: cat ? '' : catName,
+      unknownMember: mem ? '' : memName,
       errors,
     };
   });
@@ -184,7 +202,15 @@ export function validateImportRow(row) {
   const a = Number(row.amount);
   if (!Number.isFinite(a) || a <= 0) errors.push('Valor deve ser maior que zero.');
   if (!row.date) errors.push('Data obrigatória.');
-  if (!row.categoryId) errors.push('Selecione uma categoria.');
-  if (!row.memberId) errors.push('Selecione um membro.');
+  if (!row.categoryId) {
+    errors.push(row.unknownCategory
+      ? `Categoria "${row.unknownCategory}" não existe — escolha uma na lista.`
+      : 'Selecione uma categoria.');
+  }
+  if (!row.memberId) {
+    errors.push(row.unknownMember
+      ? `Membro "${row.unknownMember}" não encontrado — escolha um na lista.`
+      : 'Selecione um membro.');
+  }
   return errors;
 }

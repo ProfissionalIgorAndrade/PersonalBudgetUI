@@ -2,158 +2,179 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import ImportCsvModal from '../ImportCsvModal';
-import { parseImportCsv } from '../../../../core/utils/csvImport';
 
 afterEach(cleanup);
 
 const categories = [{ id: 'c1', name: 'Mercado', icon: '🛒', type: 'expense' }];
 const members = [{ id: 'm1', name: 'Familia', emoji: '👨‍👩‍👧' }];
-const cards = [{ id: 'cc1', name: 'Inter Black' }];
+const cards = [{ id: 'cc1', name: 'Inter Black' }, { id: 'cc2', name: 'Nubank' }];
 
 const csv = [
-  'descricao,valor,data,categoria,membro,observacoes',
-  'Compra 1,10,2026-07-01,Mercado,Familia,',
-  'Compra 2,20,2026-07-02,Mercado,Familia,',
-  'Compra 3,30,2026-07-03,Mercado,Familia,',
-].join('\n');
+  'id_sistema;descricao;valor;data;tipo;categoria;membro;observacoes',
+  'tx-1;Compra 1;10,00;2026-07-01;Despesa;Mercado;Familia;',
+  ';Compra 2;20,00;2026-07-02;Despesa;Mercado;Familia;',
+  ';Compra 3;30,00;2026-07-03;Despesa;Mercado;Familia;',
+].join('\r\n');
 
-const seededRows = () => parseImportCsv(csv, { categories, members }).rows;
+// The server decides what already exists; here the first line does.
+const previewWithFirstExisting = (rows) => ({
+  created: 0, skipped: 1, errors: [],
+  rows: rows.map((_, index) => ({ index, status: index === 0 ? 'Existing' : 'New', message: null })),
+});
 
-// The modal reads the file through FileReader; seeding the parsed rows
-// directly keeps these tests on the behaviour that matters — the stepper and
-// the progress reporting — rather than on the browser file API.
-const openAtReview = (props = {}) => {
-  const rows = seededRows();
-  const utils = render(
-    <ImportCsvModal cards={cards} categories={categories} members={members}
-      onCreate={async () => {}} onClose={() => {}} {...props} />);
-  return { ...utils, rows };
+const makeImport = (onCommit = (rows) => ({ created: rows.length, skipped: 0, errors: [], rows: [] })) =>
+  vi.fn(async (cardId, month, year, rows, dryRun) =>
+    (dryRun ? previewWithFirstExisting(rows) : onCommit(rows)));
+
+const renderModal = (props = {}) => render(
+  <ImportCsvModal transactions={[]} cards={cards} categories={categories} members={members}
+    activeMonth="2026-08" onImportStatement={makeImport()} onClose={() => {}} {...props} />);
+
+const uploadCsv = (container, content = csv) => {
+  fireEvent.click(screen.getByText('Importar'));
+  const file = new File([content], 'fatura.csv', { type: 'text/csv' });
+  fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [file] } });
 };
 
-describe('ImportCsvModal first step', () => {
-  it('offers both the template download and the file picker', () => {
-    openAtReview();
-    expect(screen.getByText(/Baixar modelo CSV/)).toBeTruthy();
-    expect(screen.getByText(/Selecionar arquivo preenchido/)).toBeTruthy();
+describe('ImportCsvModal statement selection', () => {
+  it('asks for card and statement before importing, defaulting to the active month', () => {
+    renderModal();
+    fireEvent.click(screen.getByText('Importar'));
+
+    expect(screen.getByLabelText(/Cartão de crédito/).value).toBe('cc1');
+    expect(screen.getByLabelText(/Fatura \(mês\/ano\)/).value).toBe('8');
+    expect(screen.getByLabelText('Ano da fatura').value).toBe('2026');
   });
 
-  it('lists the expected columns so the format is discoverable', () => {
-    openAtReview();
-    expect(screen.getByText(/descricao, valor, data, categoria, membro, observacoes/)).toBeTruthy();
-  });
-});
+  it('asks for the same card and statement before exporting', () => {
+    renderModal();
+    fireEvent.click(screen.getByText('Exportar'));
 
-describe('progress reporting', () => {
-  // The reported requirement: while saving, say how many of the total are done.
-  it('counts each saved row and ends with the full tally', async () => {
-    const calls = [];
-    const onCreate = vi.fn(async (payload) => { calls.push(payload); });
-
-    const { container } = render(
-      <ImportCsvModal cards={cards} categories={categories} members={members}
-        onCreate={onCreate} onClose={() => {}} />);
-
-    // Drive the component through its own file input.
-    const file = new File([csv], 'lancamentos.csv', { type: 'text/csv' });
-    const input = container.querySelector('input[type="file"]');
-    fireEvent.change(input, { target: { files: [file] } });
-
-    await waitFor(() => expect(screen.getByText(/3 linha\(s\)/)).toBeTruthy());
-    fireEvent.click(screen.getByText(/Continuar \(3\)/));
-    fireEvent.click(screen.getByText(/Importar 3/));
-
-    await waitFor(() => expect(screen.getByText(/Concluído — 3 de 3 salvos/)).toBeTruthy());
-    expect(onCreate).toHaveBeenCalledTimes(3);
+    expect(screen.getByLabelText(/Cartão de crédito/)).toBeTruthy();
+    expect(screen.getByLabelText(/Fatura \(mês\/ano\)/)).toBeTruthy();
   });
 
-  it('keeps going after a failure and reports which line broke', async () => {
-    let n = 0;
-    const onCreate = vi.fn(async () => {
-      n += 1;
-      if (n === 2) throw new Error('Valor inválido');
-    });
-
-    const { container } = render(
-      <ImportCsvModal cards={cards} categories={categories} members={members}
-        onCreate={onCreate} onClose={() => {}} />);
-
-    const file = new File([csv], 'x.csv', { type: 'text/csv' });
-    fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [file] } });
-
-    await waitFor(() => expect(screen.getByText(/3 linha\(s\)/)).toBeTruthy());
-    fireEvent.click(screen.getByText(/Continuar \(3\)/));
-    fireEvent.click(screen.getByText(/Importar 3/));
-
-    await waitFor(() => expect(screen.getByText(/Concluído — 2 de 3 salvos/)).toBeTruthy());
-    expect(screen.getByText(/1 não salvo\(s\)/)).toBeTruthy();
-    expect(screen.getByText(/Valor inválido/)).toBeTruthy();
-    expect(onCreate).toHaveBeenCalledTimes(3);
+  it('lists the shared columns so the format is discoverable', () => {
+    renderModal();
+    fireEvent.click(screen.getByText('Importar'));
+    expect(screen.getByText(/id_sistema, descricao, valor, data, tipo, categoria, membro, observacoes/)).toBeTruthy();
   });
 
-  it('sends the chosen card and statement on every row, not the row date', async () => {
-    const seen = [];
-    const onCreate = vi.fn(async (p) => { seen.push(p); });
-
-    const { container } = render(
-      <ImportCsvModal cards={cards} categories={categories} members={members}
-        onCreate={onCreate} onClose={() => {}} />);
-
-    const file = new File([csv], 'x.csv', { type: 'text/csv' });
-    fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [file] } });
-    await waitFor(() => expect(screen.getByText(/3 linha\(s\)/)).toBeTruthy());
-    fireEvent.click(screen.getByText(/Continuar \(3\)/));
-
-    const selects = [...container.querySelectorAll('select')];
-    const monthSel = selects.find(s => [...s.options].some(o => o.textContent === 'Outubro'));
-    fireEvent.change(monthSel, { target: { value: '10' } });
-
-    fireEvent.click(screen.getByText(/Importar 3/));
-    await waitFor(() => expect(screen.getByText(/Concluído/)).toBeTruthy());
-
-    expect(seen).toHaveLength(3);
-    for (const p of seen) {
-      expect(p.cardId).toBe('cc1');
-      expect(p.statementMonth).toBe(10);
-      expect(p.recurrence).toBe('variable');
-    }
-    // Dates stay per-row; only the statement is shared.
-    expect(seen.map(p => p.date)).toEqual(['2026-07-01', '2026-07-02', '2026-07-03']);
+  it('cannot pick a file without a card', () => {
+    renderModal({ cards: [] });
+    fireEvent.click(screen.getByText('Importar'));
+    expect(screen.getByText(/Nenhum cartão de crédito cadastrado/)).toBeTruthy();
+    expect(screen.getByText(/Selecionar arquivo CSV/).closest('button').disabled).toBe(true);
   });
 });
 
-describe('review layout', () => {
-  const openReview = async () => {
-    const utils = render(
-      <ImportCsvModal cards={cards} categories={categories} members={members}
-        onCreate={async () => {}} onClose={() => {}} />);
+describe('ImportCsvModal import flow', () => {
+  it('previews against the chosen statement and shows only new rows for editing', async () => {
+    const onImportStatement = makeImport();
+    const { container } = renderModal({ onImportStatement });
+
+    fireEvent.click(screen.getByText('Importar'));
+    fireEvent.change(screen.getByLabelText(/Cartão de crédito/), { target: { value: 'cc2' } });
+    fireEvent.change(screen.getByLabelText(/Fatura \(mês\/ano\)/), { target: { value: '9' } });
     const file = new File([csv], 'fatura.csv', { type: 'text/csv' });
-    fireEvent.change(utils.container.querySelector('input[type="file"]'), { target: { files: [file] } });
-    await waitFor(() => screen.getByText(/3 linha\(s\)/));
-    return utils;
-  };
+    fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [file] } });
 
-  it('opens the review step at full width, not the 720px modal', async () => {
-    const { container } = await openReview();
-    expect(container.querySelector('.modal').className).toContain('modal-full');
+    await waitFor(() => expect(screen.getByText(/1 linha\(s\) já existem nesta fatura/)).toBeTruthy());
+
+    const [cardId, month, year, rows, dryRun] = onImportStatement.mock.calls[0];
+    expect([cardId, month, year, dryRun]).toEqual(['cc2', 9, 2026, true]);
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toMatchObject({ externalId: 'tx-1', description: 'Compra 1', amount: 10, type: 'Expense' });
+
+    // Existing rows are listed read-only; only the two new ones get inputs.
+    expect(screen.queryByDisplayValue('Compra 1')).toBeNull();
+    expect(screen.getByDisplayValue('Compra 2')).toBeTruthy();
+    expect(screen.getByDisplayValue('Compra 3')).toBeTruthy();
+    expect(screen.getByText(/Importar 2 na fatura 09\/2026/)).toBeTruthy();
   });
 
-  it('keeps the narrower modal on the other steps', () => {
-    const { container } = render(
-      <ImportCsvModal cards={cards} categories={categories} members={members}
-        onCreate={async () => {}} onClose={() => {}} />);
-    expect(container.querySelector('.modal').className).toContain('modal-wide');
+  it('sends only the new rows, with edits, and reports the outcome', async () => {
+    const onImportStatement = makeImport();
+    const { container } = renderModal({ onImportStatement });
+    uploadCsv(container);
+
+    await waitFor(() => expect(screen.getByDisplayValue('Compra 2')).toBeTruthy());
+    fireEvent.change(screen.getByDisplayValue('Compra 2'), { target: { value: 'Compra editada' } });
+    fireEvent.click(screen.getByText(/Importar 2 na fatura/));
+
+    await waitFor(() => expect(screen.getByText('Importação concluída')).toBeTruthy());
+
+    const [cardId, month, year, rows, dryRun] = onImportStatement.mock.calls[1];
+    expect([cardId, month, year, dryRun]).toEqual(['cc1', 8, 2026, false]);
+    expect(rows.map(r => r.description)).toEqual(['Compra editada', 'Compra 3']);
+    expect(rows[0]).toMatchObject({ categoryId: 'c1', attributionProfileId: 'm1', amount: 20 });
+
+    expect(screen.getByText('novos criados').previousSibling.textContent).toBe('2');
+    expect(screen.getByText('já existentes ignorados').previousSibling.textContent).toBe('1');
   });
 
-  it('formats the amount as Brazilian currency', async () => {
-    const { container } = await openReview();
-    const values = [...container.querySelectorAll('input')].map(i => i.value);
-    // 10 / 20 / 30 in the fixture become 10,00 / 20,00 / 30,00
-    expect(values).toContain('10,00');
-    expect(values).toContain('20,00');
+  it('leaves out rows the user unchecked', async () => {
+    const onImportStatement = makeImport();
+    const { container } = renderModal({ onImportStatement });
+    uploadCsv(container);
+
+    await waitFor(() => expect(screen.getByDisplayValue('Compra 2')).toBeTruthy());
+    const rowCheckbox = screen.getByDisplayValue('Compra 2').closest('tr').querySelector('input[type="checkbox"]');
+    fireEvent.click(rowCheckbox);
+    fireEvent.click(screen.getByText(/Importar 1 na fatura/));
+
+    await waitFor(() => expect(screen.getByText('Importação concluída')).toBeTruthy());
+    expect(onImportStatement.mock.calls[1][3].map(r => r.description)).toEqual(['Compra 3']);
   });
 
-  it('shows a R$ marker beside each amount', async () => {
-    const { container } = await openReview();
-    expect(container.textContent.match(/R\$/g).length).toBeGreaterThanOrEqual(3);
+  it('offers nothing to import when every row already exists', async () => {
+    const onImportStatement = vi.fn(async (cardId, month, year, rows) => ({
+      created: 0, skipped: rows.length, errors: [],
+      rows: rows.map((_, index) => ({ index, status: 'Existing', message: null })),
+    }));
+    const { container } = renderModal({ onImportStatement });
+    uploadCsv(container);
+
+    await waitFor(() => expect(screen.getByText(/Todas as linhas do arquivo já existem nesta fatura/)).toBeTruthy());
+    expect(screen.queryByText(/💾 Importar/)).toBeNull();
+    expect(onImportStatement).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks a new row with an unknown category and says which one', async () => {
+    const bad = csv.replace(';Compra 2;20,00;2026-07-02;Despesa;Mercado;', ';Compra 2;20,00;2026-07-02;Despesa;Inexistente;');
+    const { container } = renderModal();
+    uploadCsv(container, bad);
+
+    await waitFor(() => expect(screen.getByDisplayValue('Compra 3')).toBeTruthy());
+    // The row comes unchecked; checking it surfaces why it cannot be sent.
+    const rowCheckbox = screen.getByDisplayValue('Compra 2').closest('tr').querySelector('input[type="checkbox"]');
+    expect(rowCheckbox.checked).toBe(false);
+    fireEvent.click(rowCheckbox);
+
+    expect(screen.getByText(/Categoria "Inexistente" não existe/)).toBeTruthy();
+    expect(screen.getByText(/Importar 1 na fatura/)).toBeTruthy();
+  });
+
+  it('shows server errors per line after importing', async () => {
+    const onImportStatement = makeImport(() => ({
+      created: 1, skipped: 0, errors: ['Linha 2: "Compra 3": Valor inválido'], rows: [],
+    }));
+    const { container } = renderModal({ onImportStatement });
+    uploadCsv(container);
+
+    await waitFor(() => expect(screen.getByText(/Importar 2 na fatura/)).toBeTruthy());
+    fireEvent.click(screen.getByText(/Importar 2 na fatura/));
+
+    await waitFor(() => expect(screen.getByText(/Linha 2: "Compra 3": Valor inválido/)).toBeTruthy());
+    expect(screen.getByText('1 erro(s):')).toBeTruthy();
+  });
+
+  it('stays on the upload step and explains when the preview fails', async () => {
+    const onImportStatement = vi.fn(async () => { throw new Error('Cartão de crédito não encontrado.'); });
+    const { container } = renderModal({ onImportStatement });
+    uploadCsv(container);
+
+    await waitFor(() => expect(screen.getByText('Cartão de crédito não encontrado.')).toBeTruthy());
+    expect(screen.getByText(/Selecionar arquivo CSV/)).toBeTruthy();
   });
 });

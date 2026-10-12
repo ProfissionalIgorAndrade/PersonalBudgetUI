@@ -28,3 +28,10 @@ export const setStatementReviewed = (creditCardId, statementId, reviewed) =>
     `/api/credit-cards/${encodeURIComponent(creditCardId)}/statement/${encodeURIComponent(statementId)}/reviewed`,
     { reviewed },
   );
+
+/**
+ * Importa linhas de CSV para a fatura (mês/ano) do cartão. O servidor ignora
+ * as que já existem; com dryRun, só diz quais são novas, sem gravar.
+ */
+export const importStatement = (creditCardId, body) =>
+  http.post(`/api/credit-cards/${encodeURIComponent(creditCardId)}/statement/import`, body);

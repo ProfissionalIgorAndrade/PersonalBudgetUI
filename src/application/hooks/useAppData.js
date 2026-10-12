@@ -125,18 +125,6 @@ export function useAppData(notify) {
 
   /* ── Transaction CRUD ─────────────────────────────────────── */
   const txOps = {
-    /**
-     * Criação para importação em lote.
-     *
-     * Diferente de onAdd em dois pontos que importam num laço de dezenas de
-     * linhas: propaga o erro em vez de engolir num toast, para quem chama
-     * saber qual linha falhou; e não recarrega a lista a cada item, o que
-     * seriam 50 requisições extras. Quem importa recarrega uma vez no fim.
-     */
-    onImportOne: async (tx) => {
-      await txRepo.createTransaction(txToApi(tx));
-    },
-
     onAdd: async (tx) => {
       try {
         const data = await txRepo.createTransaction(txToApi(tx));
@@ -249,9 +237,16 @@ export function useAppData(notify) {
         notify(`${ids.length} lançamento(s) removido(s)`);
       } catch (e) { notify(e.message, 'error'); }
     },
-    onBulkImport: async (rows, defaultAccountId) => {
-      const result = await txRepo.importTransactions({ rows, defaultAccountId });
-      await loadTx();
+    /**
+     * Importação de CSV para uma fatura. Propaga o erro em vez de engolir num
+     * toast, porque o modal mostra o resultado; e só recarrega a lista quando
+     * algo foi gravado — a prévia (dryRun) não muda nada.
+     */
+    onImportStatement: async (cardId, month, year, rows, dryRun) => {
+      const result = await cardRepo.importStatement(cardId, {
+        statementMonth: month, statementYear: year, dryRun, rows,
+      });
+      if (!dryRun) await loadTx();
       return result;
     },
   };

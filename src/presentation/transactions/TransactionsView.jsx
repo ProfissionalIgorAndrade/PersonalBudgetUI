@@ -10,7 +10,7 @@ import TxTable from './components/TxTable';
 const EMPTY = { type: 'all', memberId: 'all', recurrence: 'all', cardId: 'all', accountId: 'all', categoryId: 'all', search: '' };
 
 
-export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatchDelete, onToggleReviewed, activeMonth, setActiveMonth, onBulkImport, reloadTransactions }) {
+export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatchDelete, onToggleReviewed, activeMonth, setActiveMonth, onImportStatement }) {
   const { transactions, categories, members, accounts, cards } = data;
   const [newModal, setNewModal] = useState(false);
   const [csvModal, setCsvModal] = useState(false);
@@ -128,13 +128,11 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
       {csvModal && (
         <ImportCsvModal
           transactions={transactions}
-          accounts={data.accounts || []}
           cards={data.cards || []}
           categories={data.categories || []}
           members={data.members || []}
           activeMonth={activeMonth}
-          onBulkImport={onBulkImport}
-          onDone={reloadTransactions}
+          onImportStatement={onImportStatement}
           onClose={() => setCsvModal(false)}
         />
       )}

@@ -1,9 +1,4 @@
-const HEADER = ['id_sistema', 'descricao', 'valor', 'data', 'tipo', 'categoria', 'membro', 'observacoes'];
-
-function escapeField(v) {
-  const s = String(v ?? '');
-  return /[";,\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
+import { buildCsv, formatAmount, TYPE_LABEL } from './csvFormat';
 
 export function generateTransactionsCsv(transactions, categories, members) {
   const rows = (transactions || []).map(tx => {
@@ -12,24 +7,14 @@ export function generateTransactionsCsv(transactions, categories, members) {
     return [
       tx.id ?? '',
       tx.description ?? '',
-      tx.amount ?? 0,
+      formatAmount(tx.amount),
       tx.date ?? '',
-      tx.type === 'income' ? 'Receita' : 'Despesa',
+      tx.type === 'income' ? TYPE_LABEL.income : TYPE_LABEL.expense,
       cat?.name ?? '',
       mem?.name ?? mem?.displayName ?? '',
       tx.observations ?? tx.notes ?? '',
-    ].map(escapeField).join(';');
+    ];
   });
 
-  return '﻿' + [HEADER.join(';'), ...rows].join('\r\n') + '\r\n';
-}
-
-export function downloadCsv(filename, csv) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = Object.assign(document.createElement('a'), { href: url, download: filename });
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  return buildCsv(rows);
 }
