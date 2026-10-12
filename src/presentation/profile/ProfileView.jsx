@@ -39,7 +39,7 @@ export default function ProfileView({ authSession = {}, notify }) {
           <p className="page-sub">Gerencie suas informações</p>
         </div>
         {!editing && (
-          <div className="flex" style={{ gap: 8 }}>
+          <div className="flex page-actions" style={{ gap: 8 }}>
             <button className="btn btn-secondary" onClick={() => setChangingPassword(true)}>🔒 Alterar Senha</button>
             <button className="btn btn-primary" onClick={openEdit}>✏️ Editar Perfil</button>
           </div>

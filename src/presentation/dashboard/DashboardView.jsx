@@ -211,7 +211,7 @@ export default function DashboardView({ data, setView, activeMonth, setActiveMon
     <div>
       <div className="page-header">
         <h1 className="page-title">Dashboard</h1>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="page-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <MonthSelector month={month} onChange={setActiveMonth} />
           <button className="btn btn-secondary" onClick={openCustomizer}>⚙️ Personalizar</button>
           <button className="btn btn-primary" onClick={() => setView('transactions')}>+ Lançamento</button>

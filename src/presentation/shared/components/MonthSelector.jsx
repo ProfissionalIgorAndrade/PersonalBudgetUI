@@ -30,7 +30,7 @@ export default function MonthSelector({ month, onChange }) {
   const pick = (m) => { onChange(`${yearView}-${String(m + 1).padStart(2, '0')}`); setOpen(false); };
 
   return (
-    <div ref={ref} style={{ position: 'relative', userSelect: 'none' }}>
+    <div ref={ref} className="ms-root" style={{ position: 'relative', userSelect: 'none' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
         <button className="ms-arrow" onClick={() => onChange(addMonths(month, -1))} aria-label="Mês anterior">‹</button>
         <button className="ms-trigger" onClick={() => setOpen(o => !o)} aria-haspopup="true" aria-expanded={open}>

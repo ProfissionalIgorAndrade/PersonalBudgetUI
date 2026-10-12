@@ -84,7 +84,7 @@ export default function CardsView({
         <div>
           <h1 className="page-title">Cartões de Crédito</h1>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="page-actions" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {activeMonth && setActiveMonth && (
             <MonthSelector month={activeMonth} onChange={setActiveMonth} />
           )}

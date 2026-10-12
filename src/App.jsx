@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import './styles/global.css';
+import './styles/mobile.css';
 
 import { useLocalStorage }   from './core/hooks/useLocalStorage';
 import { useHashView }       from './core/hooks/useHashView';
@@ -11,6 +12,7 @@ import { useAuth }           from './application/hooks/useAuth';
 import { redirectToDashboardAfter } from './application/authRedirect';
 
 import Sidebar               from './presentation/shared/components/Sidebar';
+import MobileTopBar          from './presentation/shared/components/MobileTopBar';
 import Toast                 from './presentation/shared/components/Toast';
 import LoadingOverlay        from './presentation/shared/components/LoadingOverlay';
 import AuthView              from './presentation/auth/AuthView';
@@ -47,6 +49,21 @@ export default function App() {
   const [theme,       setTheme]       = useLocalStorage('pb_theme', 'dark');
   const [activeMonth, setActiveMonth] = useLocalStorage('pb_active_month', curMonth());
   const [profile]                     = useLocalStorage('pb_profile', {});
+  // Gaveta de navegação das telas estreitas; no desktop a sidebar é fixa.
+  const [menuOpen,    setMenuOpen]    = useState(false);
+
+  useEffect(() => { setMenuOpen(false); }, [view]);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('keydown', onKey);
+    document.body.classList.add('menu-open');
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.classList.remove('menu-open');
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -106,13 +123,17 @@ export default function App() {
 
   return (
     <div className="layout">
+      <MobileTopBar view={view} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(o => !o)} />
       <Sidebar
         view={view} setView={setView}
         theme={theme} setTheme={setTheme}
         profile={profile}
         authSession={authSession}
         onLogout={handleLogout}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
       />
+      {menuOpen && <div className="sidebar-backdrop" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
       <main className="main">
         {loading && <LoadingOverlay />}
         <AnimatePresence mode="wait" initial={false}>

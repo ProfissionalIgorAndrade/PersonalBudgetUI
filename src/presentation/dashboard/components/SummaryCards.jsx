@@ -69,7 +69,7 @@ export default function SummaryCards({ totalIn, totalOut, balance, savPct, theme
   if (isLight) {
     const cards = LIGHT_CARDS(balance);
     return (
-      <div className="grid-4" style={{ marginBottom: 20 }}>
+      <div className="grid-4 sum-grid" style={{ marginBottom: 20 }}>
         {cards.map((s, i) => (
           <motion.div
             key={i}
@@ -77,6 +77,7 @@ export default function SummaryCards({ totalIn, totalOut, balance, savPct, theme
             variants={cardVariants}
             initial="hidden"
             animate="visible"
+            className="sum-card"
             style={{
               background: '#F8FAFC',
               border: '1px solid #DCE3EB',
@@ -89,7 +90,7 @@ export default function SummaryCards({ totalIn, totalOut, balance, savPct, theme
             <div style={{ fontSize: 10.5, color: '#8792A1', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.9px', marginBottom: 8 }}>{s.label}</div>
 
             {/* value */}
-            <div style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Inter', 'Outfit', sans-serif", color: s.valColor, letterSpacing: '-0.5px', lineHeight: 1, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' }}>
+            <div className="sum-value" style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Inter', 'Outfit', sans-serif", color: s.valColor, letterSpacing: '-0.5px', lineHeight: 1, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' }}>
               {extra[i] || R$(vals[i])}
             </div>
           </motion.div>
@@ -99,7 +100,7 @@ export default function SummaryCards({ totalIn, totalOut, balance, savPct, theme
   }
 
   return (
-    <div className="grid-4" style={{ marginBottom: 20 }}>
+    <div className="grid-4 sum-grid" style={{ marginBottom: 20 }}>
       {DARK_CARDS(balance).map((s, i) => (
         <motion.div
           key={i}
@@ -107,6 +108,7 @@ export default function SummaryCards({ totalIn, totalOut, balance, savPct, theme
           variants={cardVariants}
           initial="hidden"
           animate="visible"
+          className="sum-card"
           style={{
             position: 'relative', overflow: 'hidden',
             background: s.bg,
@@ -120,13 +122,13 @@ export default function SummaryCards({ totalIn, totalOut, balance, savPct, theme
           <div style={{ position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: '50%', background: `radial-gradient(circle, ${s.glow} 0%, transparent 70%)`, pointerEvents: 'none' }} />
 
           {/* icon */}
-          <div style={{ width: 40, height: 40, borderRadius: 11, background: s.glow, border: `1px solid ${s.iconBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, marginBottom: 16 }}>{s.icon}</div>
+          <div className="sum-icon" style={{ width: 40, height: 40, borderRadius: 11, background: s.glow, border: `1px solid ${s.iconBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, marginBottom: 16 }}>{s.icon}</div>
 
           {/* label */}
           <div style={{ fontSize: 10.5, color: s.labelColor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.9px', marginBottom: 6 }}>{s.label}</div>
 
           {/* value */}
-          <div style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Inter', 'Outfit', sans-serif", color: s.valColor, letterSpacing: '-0.5px', lineHeight: 1, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' }}>
+          <div className="sum-value" style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Inter', 'Outfit', sans-serif", color: s.valColor, letterSpacing: '-0.5px', lineHeight: 1, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' }}>
             {extra[i] || R$(vals[i])}
           </div>
         </motion.div>

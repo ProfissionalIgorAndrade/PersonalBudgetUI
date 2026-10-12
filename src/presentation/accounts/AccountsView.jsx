@@ -89,7 +89,7 @@ export default function AccountsView({
         <div>
           <h1 className="page-title">Contas</h1>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="page-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {activeMonth && setActiveMonth && <MonthSelector month={activeMonth} onChange={setActiveMonth} />}
           <button className="btn btn-primary" onClick={openNew}>+ Nova Conta</button>
         </div>
