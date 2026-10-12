@@ -189,7 +189,7 @@ export default function ImportCsvModal({
 
       {/* ── STEP: CHOOSE ── */}
       {step === 'choose' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <button
             type="button"
             className="btn btn-secondary"
@@ -325,8 +325,8 @@ export default function ImportCsvModal({
               Todas as linhas do arquivo já existem nesta fatura. Nenhum lançamento novo para importar.
             </div>
           ) : (
-            <div style={{ maxHeight: '58vh', overflow: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
-              <table className="csv-table" style={{ width: '100%' }}>
+            <div className="csv-review-wrap" style={{ maxHeight: '58vh', overflow: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
+              <table className="csv-table csv-review-table" style={{ width: '100%' }}>
                 <thead>
                   <tr>
                     <th style={{ width: 38 }}>
@@ -350,35 +350,35 @@ export default function ImportCsvModal({
                 <tbody>
                   {newRows.map(r => (
                     <React.Fragment key={r.key}>
-                      <tr style={{ opacity: r.selected ? 1 : .45 }}>
-                        <td style={cellStyle}>
+                      <tr className="csv-review-row" style={{ opacity: r.selected ? 1 : .45 }}>
+                        <td className="csv-review-check" style={cellStyle}>
                           <input type="checkbox" checked={r.selected}
                             onChange={e => setRow(r.key, { selected: e.target.checked })} />
                         </td>
-                        <td style={{ ...cellStyle, color: 'var(--muted)' }}>{r.lineNumber}</td>
-                        <td style={cellStyle}>
+                        <td className="csv-review-line" style={{ ...cellStyle, color: 'var(--muted)' }}>{r.lineNumber}</td>
+                        <td data-label="Descrição" style={cellStyle}>
                           <input className="form-input" style={fieldStyle} value={r.description}
                             onChange={e => setRow(r.key, { description: e.target.value })} />
                         </td>
-                        <td style={cellStyle}>
+                        <td data-label="Valor" style={cellStyle}>
                           <div className="flex aic" style={{ gap: 5 }}>
                             <span className="tmuted" style={{ fontSize: 11 }}>R$</span>
                             <CurrencyInput value={r.amount} onChange={v => setRow(r.key, { amount: v })}
                               style={{ ...fieldStyle, textAlign: 'right' }} />
                           </div>
                         </td>
-                        <td style={cellStyle}>
+                        <td data-label="Tipo" style={cellStyle}>
                           <select className="form-select" style={fieldStyle} value={r.type}
                             onChange={e => setRow(r.key, { type: e.target.value })}>
                             <option value="expense">{TYPE_LABEL.expense}</option>
                             <option value="income">{TYPE_LABEL.income}</option>
                           </select>
                         </td>
-                        <td style={cellStyle}>
+                        <td data-label="Data" style={cellStyle}>
                           <input className="form-input" type="date" style={fieldStyle} value={r.date}
                             onChange={e => setRow(r.key, { date: e.target.value })} />
                         </td>
-                        <td style={cellStyle}>
+                        <td data-label="Categoria" style={cellStyle}>
                           <select className="form-select" style={fieldStyle} value={r.categoryId}
                             onChange={e => setRow(r.key, { categoryId: e.target.value })}>
                             <option value="">— Selecione —</option>
@@ -386,21 +386,21 @@ export default function ImportCsvModal({
                               .map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
                           </select>
                         </td>
-                        <td style={cellStyle}>
+                        <td data-label="Membro" style={cellStyle}>
                           <select className="form-select" style={fieldStyle} value={r.memberId}
                             onChange={e => setRow(r.key, { memberId: e.target.value })}>
                             <option value="">— Selecione —</option>
                             {(members || []).map(m => <option key={m.id} value={m.id}>{m.emoji} {m.name}</option>)}
                           </select>
                         </td>
-                        <td style={cellStyle}>
+                        <td data-label="Observações" style={cellStyle}>
                           <input className="form-input" style={fieldStyle} value={r.notes}
                             onChange={e => setRow(r.key, { notes: e.target.value })} />
                         </td>
                       </tr>
                       {r.selected && r.errors.length > 0 && (
                         <tr>
-                          <td colSpan={9} style={{ fontSize: 11.5, color: 'var(--red)', padding: '2px 10px 8px 50px' }}>
+                          <td className="csv-review-errors" colSpan={9} style={{ fontSize: 11.5, color: 'var(--red)', padding: '2px 10px 8px 50px' }}>
                             {r.errors.join(' · ')}
                           </td>
                         </tr>

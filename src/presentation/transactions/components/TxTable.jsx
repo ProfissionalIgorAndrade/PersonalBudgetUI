@@ -22,6 +22,15 @@ const REC = {
   none:        <span style={{ color: 'var(--muted)', fontSize: 11 }}>—</span>,
 };
 
+const MOBILE_SORTS = [
+  { value: 'date:desc',   label: 'Mais recentes' },
+  { value: 'date:asc',    label: 'Mais antigos' },
+  { value: 'amount:desc', label: 'Maior valor' },
+  { value: 'amount:asc',  label: 'Menor valor' },
+  { value: 'desc:asc',    label: 'Descrição A–Z' },
+  { value: 'cat:asc',     label: 'Categoria A–Z' },
+];
+
 function indexById(list) {
   const byId = new Map();
   for (const item of list) if (!byId.has(item.id)) byId.set(item.id, item);
@@ -150,8 +159,21 @@ export default function TxTable({
   return (
     <>
       {/* ── Summary bar ──────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 12px', background: 'var(--surface2)', borderRadius: '10px 10px 0 0', border: '1px solid var(--border)', borderBottom: 'none', flexWrap: 'wrap' }}>
-        <span className="txxs tmuted" style={{ marginRight: 'auto' }}>{sorted.length} registro(s)</span>
+      <div className="tx-summary" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 12px', background: 'var(--surface2)', borderRadius: '10px 10px 0 0', border: '1px solid var(--border)', borderBottom: 'none', flexWrap: 'wrap' }}>
+        <span className="txxs tmuted tx-summary-count" style={{ marginRight: 'auto' }}>{sorted.length} registro(s)</span>
+        {/* Em telas estreitas as linhas viram cartões e o cabeçalho clicável
+            some (mobile.css); este seletor ordena no lugar dele. */}
+        <select
+          className="form-select tx-sort-mobile"
+          aria-label="Ordenar por"
+          value={`${sortCol}:${sortDir}`}
+          onChange={e => { const [col, dir] = e.target.value.split(':'); setSortCol(col); setSortDir(dir); }}
+        >
+          {MOBILE_SORTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          {!MOBILE_SORTS.some(o => o.value === `${sortCol}:${sortDir}`) && (
+            <option value={`${sortCol}:${sortDir}`}>Ordem da tabela</option>
+          )}
+        </select>
         {onBatchDelete && selected.size > 0 && (
           <button
             type="button"
@@ -162,23 +184,23 @@ export default function TxTable({
             🗑️ Excluir selecionados ({selected.size})
           </button>
         )}
-        <span style={{ fontSize: 12 }}>
+        <span className="tx-summary-total" style={{ fontSize: 12 }}>
           Receitas: <strong style={{ color: 'var(--green)', ...NUM }}>+{R$(totalIn)}</strong>
         </span>
-        <span style={{ color: 'var(--border)' }}>|</span>
-        <span style={{ fontSize: 12 }}>
+        <span className="tx-summary-sep" style={{ color: 'var(--border)' }}>|</span>
+        <span className="tx-summary-total" style={{ fontSize: 12 }}>
           Despesas: <strong style={{ color: 'var(--red)', ...NUM }}>−{R$(totalOut)}</strong>
         </span>
-        <span style={{ color: 'var(--border)' }}>|</span>
-        <span style={{ fontSize: 12 }}>
+        <span className="tx-summary-sep" style={{ color: 'var(--border)' }}>|</span>
+        <span className="tx-summary-total" style={{ fontSize: 12 }}>
           Saldo: <strong style={{ color: balance >= 0 ? 'var(--green)' : 'var(--red)', ...NUM }}>
             {balance >= 0 ? '+' : '−'}{R$(Math.abs(balance))}
           </strong>
         </span>
       </div>
 
-      <div className="csv-wrap" style={{ borderRadius: '0 0 10px 10px', borderTop: 'none' }}>
-        <table className="csv-table">
+      <div className="csv-wrap tx-wrap" style={{ borderRadius: '0 0 10px 10px', borderTop: 'none' }}>
+        <table className="csv-table tx-table">
           <thead>
             <tr>
               {onBatchDelete && (
@@ -206,7 +228,7 @@ export default function TxTable({
           <tbody>
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={99} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--muted)' }}>
+                <td className="tx-c-empty" colSpan={99} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--muted)' }}>
                   <div style={{ fontSize: 36, marginBottom: 10 }}>💸</div>
                   <div style={{ fontSize: 13 }}>{emptyMsg}</div>
                 </td>
@@ -222,7 +244,7 @@ export default function TxTable({
               return (
                 <tr key={t.id} className={t.reviewed ? 'tx-reviewed' : undefined} style={selected.has(t.id) ? { background: 'color-mix(in srgb, var(--primary) 8%, transparent)' } : {}}>
                   {onBatchDelete && (
-                    <td style={{ textAlign: 'center' }}>
+                    <td className="tx-c-check" style={{ textAlign: 'center' }}>
                       <input
                         type="checkbox"
                         checked={selected.has(t.id)}
@@ -232,7 +254,7 @@ export default function TxTable({
                   )}
                   <td className="csv-col-n">{rowNum}</td>
                   <td className="csv-col-date">{fdate(t.date)}</td>
-                  {show('type') && <td>{TYPE_BADGE[t.type] ?? <span className="tmuted">—</span>}</td>}
+                  {show('type') && <td className="tx-c-type">{TYPE_BADGE[t.type] ?? <span className="tmuted">—</span>}</td>}
                   <td className="csv-col-desc">
                     <div style={{ fontWeight: 600, fontSize: 12 }}>
                       {t.description}
@@ -240,17 +262,17 @@ export default function TxTable({
                     </div>
                     {t.installments && <div className="txxs tmuted">{t.installmentCurrent}/{t.installments}x</div>}
                   </td>
-                  <td style={{ whiteSpace: 'nowrap' }}>
+                  <td className="tx-c-cat" style={{ whiteSpace: 'nowrap' }}>
                     <span style={{ fontSize: 15, marginRight: 5 }}>{cat?.icon}</span>
                     <span style={{ fontSize: 11 }}>{cat?.name || '—'}</span>
                   </td>
                   {show('member') && (
-                    <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>
+                    <td className="tx-c-member" style={{ whiteSpace: 'nowrap', fontSize: 12 }}>
                       {mem ? <>{mem.emoji} {mem.name}</> : <span className="tmuted">—</span>}
                     </td>
                   )}
                   {show('origin') && (
-                    <td style={{ fontSize: 11 }}>
+                    <td className="tx-c-origin" style={{ fontSize: 11 }}>
                       {crd
                         ? <span style={{ color: 'var(--muted)' }}>💳 {crd.name}</span>
                         : acc
@@ -258,7 +280,7 @@ export default function TxTable({
                           : <span className="tmuted">—</span>}
                     </td>
                   )}
-                  {show('recurrence') && <td>{REC[t.recurrence] ?? REC.none}</td>}
+                  {show('recurrence') && <td className="tx-c-rec">{REC[t.recurrence] ?? REC.none}</td>}
                   <td className="csv-col-val" style={{ color: isIncome ? 'var(--green)' : isExpense ? 'var(--red)' : 'var(--text)', ...NUM }}>
                     {isIncome ? '+' : isExpense ? '−' : ''}{R$(t.amount)}
                   </td>
@@ -293,7 +315,7 @@ export default function TxTable({
       </div>
 
       {totalPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
+        <div className="tx-pager" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
           <button className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: 12 }} onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>← Anterior</button>
           <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 100, textAlign: 'center' }}>Página {page} de {totalPages}</span>
           <button className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: 12 }} onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Próxima →</button>

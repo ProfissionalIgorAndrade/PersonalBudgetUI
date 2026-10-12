@@ -1487,15 +1487,8 @@ canvas { max-height: 220px; }
   .auth-card { padding: 28px 20px 24px; border-radius: 20px; }
   .auth-form-title { font-size: 21px; }
 }
+/* Shell e navegação em telas estreitas ficam em mobile.css. */
 @media (max-width: 780px) {
-  .sidebar { width: 56px; padding: 14px 8px; }
-  .sidebar .logo-text,
-  .sidebar .nav-item span,
-  .sidebar .nav-section,
-  .sidebar .sidebar-user-info,
-  .sidebar .sidebar-chevron { display: none; }
-  .sidebar .sidebar-avatar { margin: 0; }
-  .main { margin-left: 56px; padding: 16px; max-width: calc(100vw - 56px); }
   .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
 }
 

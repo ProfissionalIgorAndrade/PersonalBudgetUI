@@ -1,0 +1,313 @@
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE (≤ 780px)
+   Tudo aqui vale só para telas estreitas. Acima de 780px a única regra
+   ativa é a que esconde os elementos que existem apenas no celular; o
+   layout de desktop continua inteiro em global.css.
+
+   Onde o JSX usa style inline, a regra daqui precisa de !important para
+   vencer — o inline continua valendo no desktop.
+═══════════════════════════════════════════════════════════════ */
+.mobile-topbar,
+.sidebar-backdrop,
+.tx-sort-mobile { display: none; }
+
+@media (max-width: 780px) {
+  :root {
+    --m-topbar: 52px;
+    --m-gutter: 14px;
+    --m-safe-top: env(safe-area-inset-top, 0px);
+    --m-safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  body.menu-open { overflow: hidden; }
+
+  /* ─── Shell ─────────────────────────────────────────────────── */
+  .layout { min-height: 100dvh; }
+
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: calc(var(--m-topbar) + var(--m-safe-top));
+    padding: var(--m-safe-top) var(--m-gutter) 0 6px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    z-index: 50;
+  }
+  .mobile-menu-btn {
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; border-radius: 10px;
+    color: var(--text); font-size: 20px; line-height: 1; cursor: pointer;
+  }
+  .mobile-menu-btn:active { background: var(--surface2); }
+  .mobile-topbar-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 800; letter-spacing: -0.2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  /* A sidebar vira gaveta: fica fora da tela até o ☰ abrir. Começa abaixo
+     da barra do topo para o mesmo botão servir de fechar. */
+  .sidebar {
+    top: calc(var(--m-topbar) + var(--m-safe-top));
+    width: min(272px, 84vw);
+    min-height: 0;
+    padding: 12px 10px calc(14px + var(--m-safe-bottom));
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform var(--t-slow), visibility 0s linear 300ms;
+    z-index: 45;
+    box-shadow: none;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform var(--t-slow);
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar .logo { display: none; }
+  .sidebar .nav-item { min-height: 44px; font-size: 14.5px; }
+  .sidebar .theme-toggle-btn,
+  .sidebar .sidebar-profile-btn { min-height: 44px; }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: calc(var(--m-topbar) + var(--m-safe-top)) 0 0 0;
+    background: rgba(0,0,0,.6);
+    z-index: 40;
+    animation: fadeIn .18s ease;
+  }
+
+  .main {
+    margin-left: 0;
+    max-width: 100vw;
+    min-width: 0;
+    min-height: 100dvh;
+    padding: calc(var(--m-topbar) + var(--m-safe-top) + 16px) var(--m-gutter) calc(24px + var(--m-safe-bottom));
+  }
+
+  /* ─── Cabeçalho de página ───────────────────────────────────── */
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .page-title { font-size: 21px; }
+  .page-actions,
+  .hl-header-actions,
+  .wi-header-actions { flex-wrap: wrap; }
+  .page-actions .btn,
+  .page-header > .btn,
+  .hl-header-actions .btn { flex: 1 1 0; justify-content: center; }
+  .page-actions .ms-root,
+  .hl-header-actions .ms-root { flex: 1 1 100%; }
+
+  /* ─── Seletor de mês ────────────────────────────────────────── */
+  .ms-arrow { height: 42px; padding: 0 14px; }
+  .ms-trigger { height: 42px; flex: 1; min-width: 0; font-size: 14px; }
+  .ms-popover { width: min(280px, calc(100vw - 2 * var(--m-gutter))); }
+  .ms-cell { min-height: 40px; }
+
+  /* ─── Controles: alvo de toque e fonte que não dispara o zoom do iOS ── */
+  .btn { min-height: 42px; }
+  .btn-icon { min-width: 36px; min-height: 36px; justify-content: center; }
+  .form-input, .form-select, .form-textarea { font-size: 16px; min-height: 44px; }
+  input[type="checkbox"], input[type="radio"] { width: 18px; height: 18px; }
+
+  /* ─── Cartões e vazios ──────────────────────────────────────── */
+  .card { padding: 16px; border-radius: 14px; }
+  .empty { padding: 40px 16px; }
+  .m-stack { grid-template-columns: minmax(0, 1fr) !important; }
+  .m-stack .btn { white-space: normal; }
+
+  /* ─── Modal vira folha que sobe de baixo ────────────────────── */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal,
+  .modal-wide,
+  .modal-full {
+    max-width: 100%;
+    max-height: 92dvh;
+    border-radius: 18px 18px 0 0;
+    border-bottom: none;
+    padding: 18px 16px calc(18px + var(--m-safe-bottom));
+    animation: sheetIn .24s cubic-bezier(.4,0,.2,1);
+  }
+  .modal-title { font-size: 17px; }
+  .modal .btn { justify-content: center; }
+  .modal .flex.jce { flex-wrap: wrap; }
+  .modal .flex.jce > .btn { flex: 1 1 0; justify-content: center; }
+  /* Salvar e Cancelar ficam à mão mesmo com o formulário rolado. */
+  .modal form > .flex.jce:last-child {
+    position: sticky;
+    bottom: calc(-18px - var(--m-safe-bottom));
+    margin: 8px -16px calc(-18px - var(--m-safe-bottom));
+    padding: 10px 16px calc(10px + var(--m-safe-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 2;
+  }
+  /* Mês e ano da fatura continuam lado a lado dentro do formulário. */
+  .form-group > .grid-2 { grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* ─── Drawer e toast ────────────────────────────────────────── */
+  .drawer { width: 100vw; max-width: 100vw; border-left: none; }
+  .drawer-header { padding: 16px; }
+  .drawer-body { padding: 16px 16px calc(16px + var(--m-safe-bottom)); }
+  .toast {
+    left: var(--m-gutter); right: var(--m-gutter);
+    bottom: calc(16px + var(--m-safe-bottom));
+    text-align: center;
+  }
+
+  /* ─── Dashboard ─────────────────────────────────────────────── */
+  .sum-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sum-card { padding: 14px !important; min-width: 0; }
+  .sum-icon {
+    width: 30px !important; height: 30px !important;
+    font-size: 15px !important; margin-bottom: 10px !important;
+    border-radius: 9px !important;
+  }
+  .sum-value { font-size: 17px !important; letter-spacing: -0.3px !important; }
+
+  .grid-dash { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .grid-dash > *, .grid-dash > * > * { min-width: 0; }
+
+  /* ─── Orçamentos ────────────────────────────────────────────── */
+  .bud-root { padding: 0 !important; }
+  .bud-root .page-actions { flex: 1 1 100%; }
+
+  /* ─── Lançamentos: filtros ──────────────────────────────────── */
+  .tx-filters {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .tx-filters .form-select { width: 100% !important; }
+  .tx-filters .btn { grid-column: 1 / -1; justify-content: center; }
+
+  /* ─── Lançamentos: barra de totais ──────────────────────────── */
+  .tx-summary {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px !important;
+    align-items: center;
+  }
+  .tx-summary-sep { display: none; }
+  .tx-summary-count { margin-right: 0 !important; }
+  .tx-sort-mobile { display: block; grid-column: span 2; font-size: 14px; min-height: 40px; padding: 6px 10px; }
+  .tx-summary > .btn { grid-column: 1 / -1; justify-content: center; }
+  .tx-summary-total { font-size: 11px !important; color: var(--muted); min-width: 0; }
+  .tx-summary-total strong { display: block; font-size: 12.5px; white-space: nowrap; }
+
+  /* ─── Lançamentos: cada linha da tabela vira um cartão ──────────
+     A tabela continua sendo a mesma do desktop; só o display muda. A ordem
+     visual vem de `order`, e os pseudo-elementos da linha servem de quebra:
+       descrição ................. valor
+       data · categoria · membro · origem · tipo · recorrência
+       [✓]                 revisar editar excluir detalhes            */
+  .tx-wrap { overflow: visible; }
+  .tx-table,
+  .tx-table tbody { display: block; width: 100%; }
+  .tx-table thead {
+    position: absolute; width: 1px; height: 1px; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0);
+  }
+  .tx-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tx-table tbody tr:last-child { border-bottom: none; }
+  .tx-table tbody tr::before,
+  .tx-table tbody tr::after { content: ''; flex: 0 0 100%; height: 0; }
+  .tx-table tbody tr::before { order: 3; }
+  .tx-table tbody tr::after  { order: 10; }
+  .csv-table.tx-table tbody tr td,
+  .csv-table.tx-table tbody tr:hover td {
+    display: block;
+    border: none;
+    padding: 0 !important;
+    background: none !important;
+    width: auto; min-width: 0; max-width: none;
+  }
+  .tx-table .csv-col-n { display: none !important; }
+  .tx-table .csv-col-desc { order: 1; flex: 1 1 50%; }
+  .tx-table .csv-col-desc > div:first-child { font-size: 14px !important; overflow-wrap: anywhere; }
+  .tx-table .csv-col-val  { order: 2; flex: 0 0 auto; margin-left: auto; font-size: 14px; }
+  .tx-table .csv-col-date { order: 4; color: var(--text-2); }
+  .tx-table .tx-c-cat     { order: 5; white-space: normal !important; }
+  .tx-table .tx-c-member  { order: 6; white-space: normal !important; }
+  .tx-table .tx-c-origin  { order: 7; }
+  .tx-table .tx-c-type    { order: 8; }
+  .tx-table .tx-c-rec     { order: 9; }
+  .tx-table .tx-c-check   { order: 11; padding: 0 4px !important; }
+  .tx-table .csv-col-act  { order: 12; margin-left: auto; padding-top: 4px !important; }
+  .tx-table .tx-c-empty   { flex: 1 1 100%; padding: 36px 12px !important; }
+  .tx-table .tx-act-grid { grid-template-columns: repeat(4, 42px); gap: 6px; width: auto; }
+  .tx-table .tx-act-grid .tx-act-btn,
+  .tx-table .tx-act-grid .tx-act-spacer { width: 42px; height: 36px; font-size: 14px; }
+
+  .tx-pager .btn { min-height: 40px; padding: 4px 14px !important; }
+
+  /* ─── Importação de CSV: revisão em cartões ─────────────────── */
+  .csv-review-wrap { max-height: 52dvh !important; }
+  .csv-review-table,
+  .csv-review-table tbody { display: block; width: 100%; }
+  .csv-review-table thead {
+    position: absolute; width: 1px; height: 1px; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0);
+  }
+  .csv-review-table tbody tr { display: block; }
+  .csv-review-table tbody tr.csv-review-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .csv-review-table tbody tr:first-child { border-top: none; }
+  .csv-table.csv-review-table tbody td,
+  .csv-table.csv-review-table tbody tr:hover td {
+    display: block; border: none; padding: 0 !important; background: none !important;
+  }
+  .csv-review-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 4px;
+  }
+  .csv-review-table td[data-label="Descrição"],
+  .csv-review-table td[data-label="Membro"],
+  .csv-review-table td[data-label="Observações"] { grid-column: 1 / -1; }
+  .csv-review-table .csv-review-line { text-align: right; font-size: 11px; }
+  .csv-review-table .csv-review-line::before { content: 'Linha '; }
+  .csv-review-table .form-input,
+  .csv-review-table .form-select { font-size: 16px !important; padding: 9px 10px !important; }
+  .csv-table.csv-review-table tbody td.csv-review-errors { padding: 0 12px 12px !important; }
+
+  /* ─── Tabelas de widgets rolam dentro do próprio cartão ─────── */
+  .csv-wrap, .table-wrap { -webkit-overflow-scrolling: touch; }
+}
+
+@keyframes sheetIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Sem hover não há como revelar ações escondidas: ficam sempre visíveis. */
+@media (hover: none) {
+  .tx-actions { opacity: 1; }
+}
+
+@media (max-width: 780px) and (prefers-reduced-motion: reduce) {
+  .sidebar, .sidebar.open { transition: none; }
+  .modal, .sidebar-backdrop { animation: none; }
+}

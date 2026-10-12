@@ -81,7 +81,7 @@ export default function BudgetView({
   };
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1100 }}>
+    <div className="bud-root" style={{ padding: '24px 28px', maxWidth: 1100 }}>
 
       {/* Header */}
       <div className="flex jcb aic" style={{ marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -91,7 +91,7 @@ export default function BudgetView({
             Limites mensais por categoria · clique em ✏️ para editar
           </p>
         </div>
-        <div className="flex aic" style={{ gap: 8 }}>
+        <div className="flex aic page-actions" style={{ gap: 8 }}>
           {!hasAnyLimit && (
             <button
               className="btn btn-secondary"

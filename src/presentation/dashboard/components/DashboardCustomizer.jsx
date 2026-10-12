@@ -25,7 +25,7 @@ export default function DashboardCustomizer({ draftLayout, onMove, onToggle, onR
         Ajuste a ordem e visibilidade dos blocos. Veja o resultado no preview antes de aplicar.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         {[
           { title: '◧ Coluna Esquerda', items: draftCol0 },
           { title: '◨ Coluna Direita',  items: draftCol1 },

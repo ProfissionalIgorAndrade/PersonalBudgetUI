@@ -42,7 +42,7 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
           <h1 className="page-title">Lançamentos</h1>
           <p className="page-sub">{filtered.length} de {transactions.length} lançamentos</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="page-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <MonthSelector month={activeMonth} onChange={setActiveMonth} />
           <button
             className="btn btn-secondary"
@@ -68,7 +68,7 @@ export default function TransactionsView({ data, onAdd, onEdit, onDelete, onBatc
         </div>
 
         {/* Row 2: all dropdown filters + clear */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="tx-filters" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <select className="form-select" style={sel()} value={filter.type} onChange={set('type')}>
             <option value="all">Todos os tipos</option>
             <option value="income">💰 Receitas</option>

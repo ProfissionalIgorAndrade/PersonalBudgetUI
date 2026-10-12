@@ -1,13 +1,19 @@
 import React from 'react';
 import { NAV } from '../../../core/constants';
 
-export default function Sidebar({ view, setView, theme, setTheme, profile = {}, authSession = {}, onLogout }) {
+/**
+ * `open` e `onClose` só importam em telas estreitas, onde a sidebar vira uma
+ * gaveta (mobile.css): escolher um destino fecha a gaveta.
+ */
+export default function Sidebar({ view, setView, theme, setTheme, profile = {}, authSession = {}, onLogout, open = false, onClose }) {
   const displayName = profile.nickname || profile.firstName || authSession.displayName || authSession.firstName || 'Usuário';
   const initials    = displayName.slice(0, 2).toUpperCase();
   const email       = profile.email || authSession.email || '';
 
+  const go = (id) => { setView(id); onClose?.(); };
+
   return (
-    <aside className="sidebar">
+    <aside id="app-sidebar" className={`sidebar${open ? ' open' : ''}`}>
       <div className="logo">
         <div className="logo-mark">💰</div>
         <div className="logo-text">
@@ -17,14 +23,14 @@ export default function Sidebar({ view, setView, theme, setTheme, profile = {}, 
       </div>
 
       {NAV.map(n => (
-        <div key={n.id} className={`nav-item${view === n.id ? ' active' : ''}`} onClick={() => setView(n.id)}>
+        <div key={n.id} className={`nav-item${view === n.id ? ' active' : ''}`} onClick={() => go(n.id)}>
           <span className="ni">{n.icon}</span>
           <span>{n.label}</span>
         </div>
       ))}
 
       <div style={{ marginTop: 'auto', paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 5 }}>
-        <button onClick={() => setView('profile')} className={`sidebar-profile-btn${view === 'profile' ? ' active' : ''}`}>
+        <button onClick={() => go('profile')} className={`sidebar-profile-btn${view === 'profile' ? ' active' : ''}`}>
           {view === 'profile' && <div className="sidebar-active-bar" />}
           <div className="sidebar-avatar">{initials}</div>
           <div className="sidebar-user-info">
@@ -40,7 +46,7 @@ export default function Sidebar({ view, setView, theme, setTheme, profile = {}, 
         </button>
 
         {onLogout && (
-          <button className="theme-toggle-btn" onClick={onLogout} style={{ color: 'var(--red)', borderColor: 'rgba(248,113,113,0.2)' }}>
+          <button className="theme-toggle-btn" onClick={() => { onClose?.(); onLogout(); }} style={{ color: 'var(--red)', borderColor: 'rgba(248,113,113,0.2)' }}>
             <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>🚪</span>
             <span>Sair da conta</span>
           </button>
