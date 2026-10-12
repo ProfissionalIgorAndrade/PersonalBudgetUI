@@ -3,58 +3,70 @@ import Modal from '../../shared/components/Modal';
 import { R$ } from '../../../core/utils/format';
 import CurrencyInput from '../../shared/components/CurrencyInput';
 import { cardLabel } from '../../../application/mappers/index';
-import {
-  buildTemplateCsv, parseImportCsv, validateImportRow, TEMPLATE_COLUMNS,
-} from '../../../core/utils/csvImport';
-import { generateTransactionsCsv, downloadCsv } from '../../../core/utils/csvExport';
+import { buildTemplateCsv, parseImportCsv, validateImportRow } from '../../../core/utils/csvImport';
+import { generateTransactionsCsv } from '../../../core/utils/csvExport';
+import { CSV_COLUMNS, TYPE_LABEL, downloadCsv } from '../../../core/utils/csvFormat';
 
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
+const toApiRow = (r) => ({
+  externalId:           r.externalId || null,
+  description:          r.description,
+  amount:               Number(r.amount) || 0,
+  date:                 r.date,
+  type:                 r.type === 'income' ? 'Income' : 'Expense',
+  categoryId:           r.categoryId || null,
+  attributionProfileId: r.memberId   || null,
+  observations:         r.notes      || null,
+});
+
 /**
- * Modal unificado de CSV — import e export na mesma interface.
+ * Modal unificado de CSV — import e export na mesma interface, sempre de uma
+ * fatura (cartão + mês/ano). O arquivo exportado é o mesmo que a importação lê.
  *
- * Fluxo de escolha: choose → export | import
- * Export: choose → export (seleciona cartão + fatura) → download
- * Import: choose → upload → review → target → running
+ * Export: choose → export → download
+ * Import: choose → upload (fatura + arquivo) → review (só as novas) → running
  */
 export default function ImportCsvModal({
-  transactions, accounts, cards, categories, members, activeMonth,
-  onBulkImport, onClose, onDone,
+  transactions, cards, categories, members, activeMonth,
+  onImportStatement, onClose,
 }) {
   const now = new Date();
   const [activeYear, activeMonthNum] = (activeMonth || '').split('-').map(Number);
 
-  // ── Shared state ──────────────────────────────────────────────
-  const [step, setStep] = useState('choose'); // choose | export | upload | review | target | running
+  const [step, setStep] = useState('choose'); // choose | export | upload | review | running
 
-  // ── Export state ──────────────────────────────────────────────
-  const [exportCardId,  setExportCardId]  = useState(cards[0]?.id || '');
-  const [exportMonth,   setExportMonth]   = useState(activeMonthNum || now.getMonth() + 1);
-  const [exportYear,    setExportYear]    = useState(activeYear     || now.getFullYear());
+  // ── Fatura (vale para export e import) ────────────────────────
+  const [cardId, setCardId] = useState(cards[0]?.id || '');
+  const [month,  setMonth]  = useState(activeMonthNum || now.getMonth() + 1);
+  const [year,   setYear]   = useState(activeYear     || now.getFullYear());
 
   // ── Import state ──────────────────────────────────────────────
   const [rows,     setRows]     = useState([]);
   const [fatal,    setFatal]    = useState('');
   const [fileName, setFileName] = useState('');
-
-  const nonSavingsAccounts = (accounts || []).filter(a => a.type !== 'savings');
-  const [defaultAccountId, setDefaultAccountId] = useState(nonSavingsAccounts[0]?.id || '');
+  const [checking, setChecking] = useState(false);
 
   const [result,  setResult]  = useState(null);
   const [running, setRunning] = useState(false);
   const fileInput = useRef(null);
 
+  const card = (cards || []).find(c => c.id === cardId);
+  const statementLabel = `${String(month).padStart(2, '0')}/${year}`;
+  const years = [...new Set([now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1, year])]
+    .sort((a, b) => a - b);
+
+  const statementTx = (transactions || []).filter(t =>
+    t.cardId === cardId &&
+    Number(t.statementMonth) === Number(month) &&
+    Number(t.statementYear)  === Number(year)
+  );
+
   // ── Export helpers ────────────────────────────────────────────
   const handleExport = () => {
-    const cardTx = (transactions || []).filter(t =>
-      t.cardId === exportCardId &&
-      Number(t.statementMonth) === Number(exportMonth) &&
-      Number(t.statementYear)  === Number(exportYear)
-    );
-    const card = (cards || []).find(c => c.id === exportCardId);
-    const name  = card?.name?.toLowerCase().replace(/\s+/g, '-') || 'cartao';
-    const csv   = generateTransactionsCsv(cardTx, categories, members);
-    downloadCsv(`fatura-${name}-${String(exportMonth).padStart(2,'0')}-${exportYear}.csv`, csv);
+    const name = card?.name?.toLowerCase().replace(/\s+/g, '-') || 'cartao';
+    const csv  = generateTransactionsCsv(statementTx, categories, members);
+    downloadCsv(`fatura-${name}-${String(month).padStart(2,'0')}-${year}.csv`, csv);
     onClose();
   };
 
@@ -63,23 +75,36 @@ export default function ImportCsvModal({
     () => rows.map(r => ({ ...r, errors: validateImportRow(r) })),
     [rows],
   );
-  const selected      = withErrors.filter(r => r.selected);
+  const existingRows  = withErrors.filter(r => r.existing);
+  const newRows       = withErrors.filter(r => !r.existing);
+  const selected      = newRows.filter(r => r.selected);
   const selectedValid = selected.filter(r => r.errors.length === 0);
   const blocked       = selected.length - selectedValid.length;
-  const newRows       = selectedValid.filter(r => !r.externalId);
-  const existingRows  = selectedValid.filter(r => r.externalId);
   const total         = selectedValid.reduce(
     (s, r) => s + (r.type === 'income' ? -Number(r.amount) : Number(r.amount)), 0);
 
   const setRow = (key, patch) =>
     setRows(prev => prev.map(r => (r.key === key ? { ...r, ...patch } : r)));
 
-  const downloadTemplate = () => {
-    const blob = new Blob([buildTemplateCsv()], { type: 'text/csv;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = 'modelo-lancamentos.csv'; a.click();
-    URL.revokeObjectURL(url);
+  const downloadTemplate = () => downloadCsv('modelo-fatura.csv', buildTemplateCsv());
+
+  // Quem diz o que já existe é o servidor: a prévia compara cada linha com os
+  // lançamentos da fatura escolhida, por id_sistema e, na falta dele, por conteúdo.
+  const checkExisting = async (parsed) => {
+    setChecking(true);
+    try {
+      const preview = await onImportStatement(cardId, month, year, parsed.map(toApiRow), true);
+      const existing = new Set(
+        (preview?.rows || []).filter(r => r.status === 'Existing').map(r => r.index));
+      setRows(parsed.map((r, i) => ({ ...r, existing: existing.has(i) })));
+      setFatal('');
+      setStep('review');
+    } catch (e) {
+      setRows([]);
+      setFatal(e.message || 'Não foi possível verificar a fatura.');
+    } finally {
+      setChecking(false);
+    }
   };
 
   const readFile = (file) => {
@@ -90,9 +115,7 @@ export default function ImportCsvModal({
       const { rows: parsed, fatal: err } = parseImportCsv(String(reader.result), { categories, members });
       if (err) { setFatal(err); setRows([]); return; }
       if (!parsed.length) { setFatal('Nenhuma linha encontrada além do cabeçalho.'); setRows([]); return; }
-      setFatal('');
-      setRows(parsed);
-      setStep('review');
+      checkExisting(parsed);
     };
     reader.onerror = () => setFatal('Não foi possível ler o arquivo.');
     reader.readAsText(file, 'utf-8');
@@ -102,21 +125,15 @@ export default function ImportCsvModal({
     setRunning(true);
     setStep('running');
     try {
-      const payload = selectedValid.map(r => ({
-        externalId:           r.externalId || null,
-        description:          r.description,
-        amount:               Number(r.amount),
-        date:                 r.date,
-        type:                 r.type === 'income' ? 1 : 2,
-        categoryId:           r.categoryId || null,
-        attributionProfileId: r.memberId   || null,
-        observations:         r.notes      || null,
-      }));
-      const res = await onBulkImport(payload, defaultAccountId);
-      setResult(res);
-      onDone?.();
+      const res = await onImportStatement(cardId, month, year, selectedValid.map(toApiRow), false);
+      setResult({
+        created: res?.created ?? 0,
+        // O servidor confere de novo: uma linha editada pode ter virado igual a uma existente.
+        skipped: existingRows.length + (res?.skipped ?? 0),
+        errors:  res?.errors || [],
+      });
     } catch (e) {
-      setResult({ created: 0, skipped: 0, errors: [e.message || 'Erro ao importar'] });
+      setResult({ created: 0, skipped: existingRows.length, errors: [e.message || 'Erro ao importar'] });
     } finally {
       setRunning(false);
     }
@@ -124,15 +141,49 @@ export default function ImportCsvModal({
 
   const cellStyle  = { padding: '6px 8px' };
   const fieldStyle = { fontSize: 12.5, padding: '7px 9px', width: '100%' };
+  const noticeStyle = {
+    padding: '12px 16px', borderRadius: 10, fontSize: 13,
+    background: 'color-mix(in srgb, var(--primary) 10%, transparent)',
+    border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)',
+  };
 
-  const isImportStep = ['upload','review','target','running'].includes(step);
+  const statementFields = cards.length === 0 ? (
+    <div style={{ padding: '14px 16px', borderRadius: 10, fontSize: 13, color: 'var(--muted)',
+      background: 'color-mix(in srgb, var(--surface2) 60%, transparent)',
+      border: '1px solid var(--border)' }}>
+      Nenhum cartão de crédito cadastrado.
+    </div>
+  ) : (
+    <>
+      <div className="form-group">
+        <label className="form-label" htmlFor="csv-card">Cartão de crédito *</label>
+        <select id="csv-card" className="form-select" value={cardId} onChange={e => setCardId(e.target.value)}>
+          {cards.map(c => (
+            <option key={c.id} value={c.id}>💳 {cardLabel(c, members)}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label className="form-label" htmlFor="csv-month">Fatura (mês/ano) *</label>
+        <div className="flex" style={{ gap: 8 }}>
+          <select id="csv-month" className="form-select" value={month} onChange={e => setMonth(Number(e.target.value))}>
+            {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+          </select>
+          <select className="form-select" aria-label="Ano da fatura" value={year} onChange={e => setYear(Number(e.target.value))}>
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <Modal
-      title={step === 'choose' ? 'CSV — Importar ou Exportar' : step === 'export' ? 'Exportar Fatura CSV' : 'Importar Lançamentos'}
+      title={step === 'choose' ? 'CSV — Importar ou Exportar' : step === 'export' ? 'Exportar Fatura CSV' : 'Importar Fatura CSV'}
       onClose={running ? () => {} : onClose}
       size={step === 'review' ? 'full' : 'wide'}
-      confirmOnOverlay={step === 'review' || step === 'target'}
+      confirmOnOverlay={step === 'review'}
       confirmMessage="Descartar as linhas conferidas e fechar?"
     >
 
@@ -157,7 +208,7 @@ export default function ImportCsvModal({
           >
             <span style={{ fontSize: 28 }}>📥</span>
             <span style={{ fontSize: 14, fontWeight: 700 }}>Importar</span>
-            <span style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>Enviar CSV e criar lançamentos novos</span>
+            <span style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>Enviar CSV e criar só o que falta na fatura</span>
           </button>
         </div>
       )}
@@ -166,60 +217,23 @@ export default function ImportCsvModal({
       {step === 'export' && (
         <div>
           <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20, lineHeight: 1.5 }}>
-            Selecione o cartão e a fatura. O CSV gerado inclui a coluna <strong>id_sistema</strong> — ao reimportar,
-            lançamentos já existentes serão ignorados automaticamente.
+            Selecione o cartão e a fatura. O arquivo gerado pode ser editado e importado de volta:
+            lançamentos que já existem são reconhecidos e não são duplicados.
           </p>
 
-          {cards.length === 0 ? (
-            <div style={{ padding: '14px 16px', borderRadius: 10, fontSize: 13, color: 'var(--muted)',
-              background: 'color-mix(in srgb, var(--surface2) 60%, transparent)',
-              border: '1px solid var(--border)' }}>
-              Nenhum cartão de crédito cadastrado.
-            </div>
-          ) : (
-            <>
-              <div className="form-group">
-                <label className="form-label">Cartão de crédito</label>
-                <select className="form-select" value={exportCardId} onChange={e => setExportCardId(e.target.value)}>
-                  {cards.map(c => (
-                    <option key={c.id} value={c.id}>💳 {cardLabel(c, members)}</option>
-                  ))}
-                </select>
-              </div>
+          {statementFields}
 
-              <div className="form-group">
-                <label className="form-label">Fatura</label>
-                <div className="flex" style={{ gap: 8 }}>
-                  <select className="form-select" value={exportMonth} onChange={e => setExportMonth(Number(e.target.value))}>
-                    {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-                  </select>
-                  <select className="form-select" value={exportYear} onChange={e => setExportYear(Number(e.target.value))}>
-                    {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]
-                      .map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {(() => {
-                const count = (transactions || []).filter(t =>
-                  t.cardId === exportCardId &&
-                  Number(t.statementMonth) === Number(exportMonth) &&
-                  Number(t.statementYear)  === Number(exportYear)
-                ).length;
-                return (
-                  <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>
-                    {count > 0
-                      ? `${count} lançamento(s) encontrado(s) nesta fatura`
-                      : 'Nenhum lançamento nesta fatura — o CSV será exportado vazio'}
-                  </p>
-                );
-              })()}
-            </>
+          {cards.length > 0 && (
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>
+              {statementTx.length > 0
+                ? `${statementTx.length} lançamento(s) encontrado(s) nesta fatura`
+                : 'Nenhum lançamento nesta fatura — o CSV será exportado vazio'}
+            </p>
           )}
 
           <div className="flex jce" style={{ gap: 8, marginTop: 8 }}>
             <button type="button" className="btn btn-secondary" onClick={() => setStep('choose')}>Voltar</button>
-            <button type="button" className="btn btn-primary" disabled={!exportCardId} onClick={handleExport}>
+            <button type="button" className="btn btn-primary" disabled={!cardId} onClick={handleExport}>
               📤 Exportar CSV
             </button>
           </div>
@@ -230,17 +244,20 @@ export default function ImportCsvModal({
       {step === 'upload' && (
         <div>
           <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16, lineHeight: 1.5 }}>
-            Baixe o modelo, preencha e envie de volta. CSV exportado do sistema já vem com
-            <strong> id_sistema</strong> — linhas com esse campo são ignoradas na reimportação,
-            apenas as novas (sem id) são criadas.
+            Informe a fatura de destino e envie o arquivo. As linhas são comparadas com os
+            lançamentos dessa fatura: as que já existem são ignoradas e só as novas ficam
+            disponíveis para conferência.
           </p>
+
+          {statementFields}
 
           <div style={{ display: 'grid', gap: 10 }}>
             <button type="button" className="btn btn-secondary" onClick={downloadTemplate} style={{ padding: '14px' }}>
               ⬇️ Baixar modelo CSV
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => fileInput.current?.click()} style={{ padding: '14px' }}>
-              ⬆️ Selecionar arquivo preenchido
+            <button type="button" className="btn btn-primary" disabled={!cardId || checking}
+              onClick={() => fileInput.current?.click()} style={{ padding: '14px' }}>
+              {checking ? 'Verificando fatura…' : '⬆️ Selecionar arquivo CSV'}
             </button>
             <input
               ref={fileInput}
@@ -260,9 +277,10 @@ export default function ImportCsvModal({
           )}
 
           <div style={{ marginTop: 16, fontSize: 11, color: 'var(--muted)', lineHeight: 1.6 }}>
-            <strong>Colunas:</strong> {TEMPLATE_COLUMNS.join(', ')} · (id_sistema opcional)<br />
-            Data em AAAA-MM-DD ou DD/MM/AAAA · Valor negativo vira estorno ·
-            Separador vírgula ou ponto e vírgula
+            <strong>Colunas:</strong> {CSV_COLUMNS.join(', ')}<br />
+            Obrigatórias: descricao, valor, data · id_sistema vem preenchido na exportação; deixe vazio em linhas novas<br />
+            Data em AAAA-MM-DD ou DD/MM/AAAA · Tipo Despesa ou Estorno (valor negativo também vira estorno) ·
+            Separador ponto e vírgula ou vírgula
           </div>
 
           <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-start' }}>
@@ -278,116 +296,106 @@ export default function ImportCsvModal({
         <div>
           <div className="flex jcb aic" style={{ marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
             <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+              💳 <strong>{card ? cardLabel(card, members) : '—'}</strong> · fatura <strong>{statementLabel}</strong> ·{' '}
               {fileName} · {rows.length} linha(s) ·{' '}
-              <strong>{selectedValid.length}</strong> prontas
-              {existingRows.length > 0 && (
-                <span style={{ fontStyle: 'italic' }}>
-                  {' '}· {existingRows.length} já existem (serão ignoradas)
-                </span>
-              )}
+              <strong>{newRows.length}</strong> nova(s)
               {blocked > 0 && <span style={{ color: 'var(--red)' }}> · {blocked} com pendência</span>}
             </span>
             <span style={{ fontSize: 13, fontWeight: 800 }}>{R$(total)}</span>
           </div>
 
-          <div style={{ maxHeight: '58vh', overflow: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
-            <table className="csv-table" style={{ width: '100%' }}>
-              <thead>
-                <tr>
-                  <th style={{ width: 38 }}>
-                    <input
-                      type="checkbox"
-                      checked={rows.length > 0 && rows.every(r => r.selected)}
-                      onChange={e => setRows(prev => prev.map(r => ({ ...r, selected: e.target.checked })))}
-                    />
-                  </th>
-                  <th style={{ width: 44 }}>#</th>
-                  <th style={{ minWidth: 240 }}>Descrição</th>
-                  <th style={{ width: 130 }}>Valor</th>
-                  <th style={{ width: 118 }}>Tipo</th>
-                  <th style={{ width: 150 }}>Data</th>
-                  <th style={{ width: 190 }}>Categoria</th>
-                  <th style={{ width: 170 }}>Membro</th>
-                  <th style={{ minWidth: 200 }}>Observações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {withErrors.map(r => {
-                  const isExisting = Boolean(r.externalId);
-                  return (
+          {existingRows.length > 0 && (
+            <details style={{ ...noticeStyle, marginBottom: 10 }}>
+              <summary style={{ cursor: 'pointer' }}>
+                {existingRows.length} linha(s) já existem nesta fatura e serão ignoradas
+              </summary>
+              <div style={{ maxHeight: 160, overflow: 'auto', marginTop: 8, fontSize: 12, color: 'var(--muted)' }}>
+                {existingRows.map(r => (
+                  <div key={r.key} style={{ marginBottom: 3 }}>
+                    #{r.lineNumber} · {r.date} · {r.description} · {R$(r.amount)}
+                    {r.type === 'income' ? ` (${TYPE_LABEL.income})` : ''}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+
+          {newRows.length === 0 ? (
+            <div style={noticeStyle}>
+              Todas as linhas do arquivo já existem nesta fatura. Nenhum lançamento novo para importar.
+            </div>
+          ) : (
+            <div style={{ maxHeight: '58vh', overflow: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
+              <table className="csv-table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: 38 }}>
+                      <input
+                        type="checkbox"
+                        aria-label="Selecionar todas"
+                        checked={newRows.every(r => r.selected)}
+                        onChange={e => setRows(prev => prev.map(r => (r.existing ? r : { ...r, selected: e.target.checked })))}
+                      />
+                    </th>
+                    <th style={{ width: 44 }}>#</th>
+                    <th style={{ minWidth: 240 }}>Descrição</th>
+                    <th style={{ width: 130 }}>Valor</th>
+                    <th style={{ width: 118 }}>Tipo</th>
+                    <th style={{ width: 150 }}>Data</th>
+                    <th style={{ width: 190 }}>Categoria</th>
+                    <th style={{ width: 170 }}>Membro</th>
+                    <th style={{ minWidth: 200 }}>Observações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {newRows.map(r => (
                     <React.Fragment key={r.key}>
-                      <tr style={{
-                        opacity: r.selected ? 1 : .45,
-                        background: isExisting ? 'color-mix(in srgb, var(--surface2) 60%, transparent)' : undefined,
-                      }}>
+                      <tr style={{ opacity: r.selected ? 1 : .45 }}>
                         <td style={cellStyle}>
                           <input type="checkbox" checked={r.selected}
                             onChange={e => setRow(r.key, { selected: e.target.checked })} />
                         </td>
-                        <td style={{ ...cellStyle, color: 'var(--muted)' }}>
-                          {r.lineNumber}
-                          {isExisting && (
-                            <span title="Já existe — será ignorado" style={{ marginLeft: 4, fontSize: 10, color: 'var(--muted)' }}>↩</span>
-                          )}
+                        <td style={{ ...cellStyle, color: 'var(--muted)' }}>{r.lineNumber}</td>
+                        <td style={cellStyle}>
+                          <input className="form-input" style={fieldStyle} value={r.description}
+                            onChange={e => setRow(r.key, { description: e.target.value })} />
                         </td>
                         <td style={cellStyle}>
-                          {isExisting
-                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{r.description}</span>
-                            : <input className="form-input" style={fieldStyle} value={r.description}
-                                onChange={e => setRow(r.key, { description: e.target.value })} />}
+                          <div className="flex aic" style={{ gap: 5 }}>
+                            <span className="tmuted" style={{ fontSize: 11 }}>R$</span>
+                            <CurrencyInput value={r.amount} onChange={v => setRow(r.key, { amount: v })}
+                              style={{ ...fieldStyle, textAlign: 'right' }} />
+                          </div>
                         </td>
                         <td style={cellStyle}>
-                          {isExisting
-                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)', display: 'block', textAlign: 'right' }}>{R$(r.amount)}</span>
-                            : <div className="flex aic" style={{ gap: 5 }}>
-                                <span className="tmuted" style={{ fontSize: 11 }}>R$</span>
-                                <CurrencyInput value={r.amount} onChange={v => setRow(r.key, { amount: v })}
-                                  style={{ ...fieldStyle, textAlign: 'right' }} />
-                              </div>}
+                          <select className="form-select" style={fieldStyle} value={r.type}
+                            onChange={e => setRow(r.key, { type: e.target.value })}>
+                            <option value="expense">{TYPE_LABEL.expense}</option>
+                            <option value="income">{TYPE_LABEL.income}</option>
+                          </select>
                         </td>
                         <td style={cellStyle}>
-                          {isExisting
-                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{r.type === 'income' ? 'Estorno' : 'Despesa'}</span>
-                            : <select className="form-select" style={fieldStyle} value={r.type}
-                                onChange={e => setRow(r.key, { type: e.target.value })}>
-                                <option value="expense">Despesa</option>
-                                <option value="income">Estorno</option>
-                              </select>}
+                          <input className="form-input" type="date" style={fieldStyle} value={r.date}
+                            onChange={e => setRow(r.key, { date: e.target.value })} />
                         </td>
                         <td style={cellStyle}>
-                          {isExisting
-                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{r.date}</span>
-                            : <input className="form-input" type="date" style={fieldStyle} value={r.date}
-                                onChange={e => setRow(r.key, { date: e.target.value })} />}
+                          <select className="form-select" style={fieldStyle} value={r.categoryId}
+                            onChange={e => setRow(r.key, { categoryId: e.target.value })}>
+                            <option value="">— Selecione —</option>
+                            {(categories || []).filter(c => c.type === (r.type === 'income' ? 'income' : 'expense'))
+                              .map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                          </select>
                         </td>
                         <td style={cellStyle}>
-                          {isExisting
-                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-                                {(categories || []).find(c => c.id === r.categoryId)?.name || '—'}
-                              </span>
-                            : <select className="form-select" style={fieldStyle} value={r.categoryId}
-                                onChange={e => setRow(r.key, { categoryId: e.target.value })}>
-                                <option value="">— Selecione —</option>
-                                {(categories || []).filter(c => c.type === (r.type === 'income' ? 'income' : 'expense'))
-                                  .map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-                              </select>}
+                          <select className="form-select" style={fieldStyle} value={r.memberId}
+                            onChange={e => setRow(r.key, { memberId: e.target.value })}>
+                            <option value="">— Selecione —</option>
+                            {(members || []).map(m => <option key={m.id} value={m.id}>{m.emoji} {m.name}</option>)}
+                          </select>
                         </td>
                         <td style={cellStyle}>
-                          {isExisting
-                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-                                {(members || []).find(m => m.id === r.memberId)?.name || '—'}
-                              </span>
-                            : <select className="form-select" style={fieldStyle} value={r.memberId}
-                                onChange={e => setRow(r.key, { memberId: e.target.value })}>
-                                <option value="">— Selecione —</option>
-                                {(members || []).map(m => <option key={m.id} value={m.id}>{m.emoji} {m.name}</option>)}
-                              </select>}
-                        </td>
-                        <td style={cellStyle}>
-                          {isExisting
-                            ? <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{r.notes}</span>
-                            : <input className="form-input" style={fieldStyle} value={r.notes}
-                                onChange={e => setRow(r.key, { notes: e.target.value })} />}
+                          <input className="form-input" style={fieldStyle} value={r.notes}
+                            onChange={e => setRow(r.key, { notes: e.target.value })} />
                         </td>
                       </tr>
                       {r.selected && r.errors.length > 0 && (
@@ -398,66 +406,21 @@ export default function ImportCsvModal({
                         </tr>
                       )}
                     </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="flex jce" style={{ gap: 8, marginTop: 12 }}>
             <button type="button" className="btn btn-secondary" onClick={() => setStep('upload')}>Voltar</button>
-            <button type="button" className="btn btn-primary" disabled={selectedValid.length === 0}
-              onClick={() => setStep('target')}>
-              Continuar ({selectedValid.length})
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── STEP: TARGET ── */}
-      {step === 'target' && (
-        <div>
-          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
-            {selectedValid.length} lançamento(s) · {R$(total)}
-            {existingRows.length > 0 && (
-              <span style={{ marginLeft: 8, fontStyle: 'italic' }}>
-                ({existingRows.length} já existem e serão ignorados · {newRows.length} novos)
-              </span>
+            {newRows.length === 0 ? (
+              <button type="button" className="btn btn-primary" onClick={onClose}>Fechar</button>
+            ) : (
+              <button type="button" className="btn btn-primary" disabled={selectedValid.length === 0} onClick={run}>
+                💾 Importar {selectedValid.length} na fatura {statementLabel}
+              </button>
             )}
-          </p>
-
-          {newRows.length > 0 && (
-            <div className="form-group">
-              <label className="form-label">Conta de destino para lançamentos novos *</label>
-              <select className="form-select" value={defaultAccountId}
-                onChange={e => setDefaultAccountId(e.target.value)}>
-                {nonSavingsAccounts.length === 0 && <option value="">Nenhuma conta disponível</option>}
-                {nonSavingsAccounts.map(a => (
-                  <option key={a.id} value={a.id}>🏦 {a.name}</option>
-                ))}
-              </select>
-              <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, lineHeight: 1.5 }}>
-                Lançamentos com id_sistema serão ignorados automaticamente pelo sistema.
-              </p>
-            </div>
-          )}
-
-          {newRows.length === 0 && existingRows.length > 0 && (
-            <div style={{ padding: '12px 16px', borderRadius: 10, fontSize: 13,
-              background: 'color-mix(in srgb, var(--primary) 10%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)' }}>
-              Todos os {existingRows.length} lançamentos selecionados já existem no sistema
-              e serão ignorados. Nenhum novo lançamento será criado.
-            </div>
-          )}
-
-          <div className="flex jce" style={{ gap: 8, marginTop: 16 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setStep('review')}>Voltar</button>
-            <button type="button" className="btn btn-primary"
-              disabled={newRows.length > 0 && !defaultAccountId}
-              onClick={run}>
-              💾 Importar {selectedValid.length}
-            </button>
           </div>
         </div>
       )}
