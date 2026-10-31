@@ -2,14 +2,17 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSimulator, HORIZONS } from '../../application/hooks/useSimulator';
 import { localToday } from '../../core/utils/simulatorMath';
 import Modal from '../shared/components/Modal';
-import { composeMonthly, buildVerdict } from '../simulator/logic/compose';
+import { composeMonthly, buildVerdict, assignSimColors } from '../simulator/logic/compose';
 import { buildMonthlyBaseline } from '../simulator/logic/baseline';
 import { buildSchedules } from '../simulator/logic/schedule';
 import { simulationName, ownerInfo } from '../simulator/logic/labels';
 import Outlook from './components/Outlook';
-import MonthBoard from './components/MonthBoard';
-import MonthLedger from './components/MonthLedger';
-import Composer, { draftToSim, IntentList } from './components/Composer';
+import SimList, { PlusIcon } from './components/SimList';
+import ScenarioTable from './components/ScenarioTable';
+import BridgeChart from './components/BridgeChart';
+import GapChart from './components/GapChart';
+import CascadeChart from './components/CascadeChart';
+import Composer, { draftToSim } from './components/Composer';
 import './whatif.css';
 
 const NO_TRANSACTIONS = [];
@@ -18,13 +21,31 @@ const DRAFT_ID = '__draft';
 
 const horizonLabel = (m) => (m === 1 ? '1 mês' : `${m} meses`);
 
+/** Jeitos de ver o período. Fica guardado por navegador, só como conveniência. */
+const LAYOUTS = [
+  { id: 'bridge', label: 'Ponte', hint: 'A coluna cinza é a sobra de hoje; os blocos coloridos são as simulações. O traço é onde o mês fecha.' },
+  { id: 'gap', label: 'Linha', hint: 'A sobra de hoje e a com simulações; a faixa entre as duas é o efeito delas. Embaixo, quando cada uma pesa.' },
+  { id: 'cascade', label: 'Cascata', hint: 'Escolha um mês ou o período todo para ver, degrau por degrau, quanto cada simulação tira ou põe.' },
+];
+const LAYOUT_KEY = 'pb_whatif_viz';
+function readLayout() {
+  try {
+    const v = localStorage.getItem(LAYOUT_KEY);
+    return LAYOUTS.some((l) => l.id === v) ? v : 'bridge';
+  } catch { return 'bridge'; }
+}
+
+/** Soma de um vetor mensal só nos meses com lançamentos, como os totais do período. */
+const periodTotal = (monthly = [], months) => months.reduce((acc, m, i) => (m.hasData ? acc + (monthly[i] ?? 0) : acc), 0);
+
 /**
  * "E se...?" (tela nova). Mesmos dados e mesma conta da tela antiga
  * (SimulatorView): a base de cada mês é a do Dashboard e as simulações da
- * família somam por cima. O que muda é a leitura: um resumo do período, um
- * quadro em que o gráfico e as simulações dividem as mesmas colunas de mês, o
- * extrato do mês escolhido e um painel para simular por intenção, que mostra o
- * efeito no quadro antes de salvar.
+ * família somam por cima. O que muda é a leitura: um resumo do período, as
+ * simulações em cartões (rostinho de quem criou e switch para ligar/desligar) e
+ * o período em um de três gráficos (ponte, linha ou cascata), com a tabela dos
+ * números a um clique.
+ * O painel lateral simula por intenção e mostra o efeito antes de salvar.
  */
 export default function WhatIfView({ transactions = NO_TRANSACTIONS, members = NO_MEMBERS, authSession = null }) {
   const {
@@ -71,17 +92,30 @@ export default function WhatIfView({ transactions = NO_TRANSACTIONS, members = N
   }, [draftSim, composed, simulations, baseline, firstMonth, months]);
 
   const scheduleById = useMemo(() => new Map(schedules.map((s) => [s.id, s])), [schedules]);
+  // Cor de cada simulação pela posição na lista completa: ligar ou desligar não repinta as outras.
+  const slots = useMemo(() => assignSimColors(effective), [effective]);
   const rows = useMemo(() => effective.map((sim, i) => ({
     id: sim.id,
     sim,
+    slot: slots[sim.id],
     name: sim.id === DRAFT_ID ? (sim.description?.trim() || 'Nova simulação') : simulationName(sim, i),
     owner: ownerInfo(sim, members),
     schedule: scheduleById.get(sim.id),
+    total: periodTotal(scheduleById.get(sim.id)?.monthly, composed.months),
     isDraft: sim.id === DRAFT_ID || sim.id === editingId,
-  })), [effective, members, scheduleById, editingId]);
+  })), [effective, members, scheduleById, editingId, composed, slots]);
+
+  const [layout, setLayoutState] = useState(readLayout);
+  const setLayout = (id) => {
+    setLayoutState(id);
+    try { localStorage.setItem(LAYOUT_KEY, id); } catch { /* sem armazenamento: vale só nesta visita */ }
+  };
+  const [hoverId, setHoverId] = useState(null);
+  const [showNumbers, setShowNumbers] = useState(false);
 
   const worstIndex = composed.firstNegative ?? composed.tightest?.index ?? 0;
   const selected = picked !== null && picked < composed.months.length ? picked : worstIndex;
+  const offCount = simulations.filter((s) => !s.enabled && s.id !== editingId).length;
 
   // Trocar o horizonte volta para o pior mês do novo período.
   useEffect(() => { setPicked(null); }, [months]);
@@ -140,10 +174,11 @@ export default function WhatIfView({ transactions = NO_TRANSACTIONS, members = N
             ))}
           </div>
           <button
-            ref={triggerRef} type="button" className="wf-btn wf-btn-primary"
-            onClick={() => openSheet()} disabled={blocked || saving} aria-expanded={Boolean(sheet)}
+            ref={triggerRef} type="button" className="wf-btn wf-btn-primary wf-btn-create"
+            onClick={() => openSheet()} disabled={blocked || saving || limitReached} aria-expanded={Boolean(sheet)}
           >
-            Simular algo
+            <PlusIcon />
+            Nova simulação
           </button>
         </div>
       </header>
@@ -170,25 +205,50 @@ export default function WhatIfView({ transactions = NO_TRANSACTIONS, members = N
             onPickMonth={setPicked}
           />
 
-          <MonthBoard
-            composed={composed} rows={rows} selected={selected} onSelect={setPicked}
-            onToggle={toggleSimulation} onEdit={openComposer} onSetAll={setAll}
-            saving={saving} noFlow={noFlow}
-            ownedCount={ownedCount} onClearMine={() => setConfirmClear(true)}
+          <SimList
+            rows={rows} onToggle={toggleSimulation} onEdit={openComposer} onSetAll={setAll}
+            onCreate={() => openSheet()} saving={saving} limitReached={limitReached}
+            ownedCount={ownedCount} onClearMine={() => setConfirmClear(true)} onHover={setHoverId}
           />
 
-          <div className="wf-lower">
-            <MonthLedger
-              composed={composed} rows={rows} index={selected}
-              onPrev={() => setPicked(Math.max(0, selected - 1))}
-              onNext={() => setPicked(Math.min(composed.months.length - 1, selected + 1))}
-            />
-            <section className="wf-panel wf-start" aria-labelledby="wf-start-title">
-              <h2 className="wf-h2" id="wf-start-title">Simular algo</h2>
-              <p className="wf-sub wf-start-sub">O que você quer testar? Nenhum lançamento real é alterado.</p>
-              <IntentList onPick={(intent) => openSheet({ intent })} limitReached={limitReached} />
-            </section>
-          </div>
+          <section className="wf-panel wf-viz-panel" aria-labelledby="wf-viz-title">
+            <header className="wf-viz-head">
+              <div>
+                <h2 className="wf-h2" id="wf-viz-title">Mês a mês</h2>
+                <p className="wf-sub">{LAYOUTS.find((l) => l.id === layout).hint}</p>
+              </div>
+              <div className="wf-viz-tools">
+                <div className="wf-seg" role="group" aria-label="Forma do gráfico">
+                  {LAYOUTS.map((l) => (
+                    <button key={l.id} type="button" aria-pressed={layout === l.id} onClick={() => setLayout(l.id)}>
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+                <button type="button" className="wf-link" aria-expanded={showNumbers} onClick={() => setShowNumbers((v) => !v)}>
+                  {showNumbers ? 'Esconder os números' : 'Ver os números'}
+                </button>
+              </div>
+            </header>
+            {offCount > 0 && (
+              <p className="wf-viz-off">
+                {offCount === 1 ? '1 simulação desligada fica' : `${offCount} simulações desligadas ficam`} fora do gráfico.
+              </p>
+            )}
+            {noFlow ? (
+              <p className="wf-viz-empty">Nenhum mês do período tem lançamentos ainda, então não há sobra para desenhar.</p>
+            ) : (
+              <>
+                {layout === 'bridge' && <BridgeChart composed={composed} rows={rows} hoverId={hoverId} selected={selected} onSelect={setPicked} />}
+                {layout === 'gap' && <GapChart composed={composed} rows={rows} hoverId={hoverId} selected={selected} onSelect={setPicked} />}
+                {layout === 'cascade' && <CascadeChart composed={composed} rows={rows} hoverId={hoverId} selected={selected} onSelect={setPicked} />}
+              </>
+            )}
+          </section>
+
+          {(showNumbers || noFlow) && (
+            <ScenarioTable composed={composed} rows={rows} selected={selected} onSelect={setPicked} offCount={offCount} />
+          )}
 
           {sheet && (
             <Composer
