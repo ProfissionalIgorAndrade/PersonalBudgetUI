@@ -1,3 +1,4 @@
+/* global Response, global */
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, within, waitFor } from '@testing-library/react';
 import React from 'react';
@@ -69,17 +70,49 @@ describe('WhatIfView: dados do back-end', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('mostra quantas estão ligadas e o estado escrito em cada uma; desligar não vai ao servidor', async () => {
+  it('mostra quantas estão ligadas e um switch em cada cartão; desligar não vai ao servidor', async () => {
     view();
     await loaded();
     expect(screen.getByText(/de 2 ligadas/).textContent).toMatch(/2\s*de 2 ligadas/);
     const toggle = screen.getByRole('switch', { name: /Intercâmbio - Passagem: ligada/ });
-    expect(toggle.textContent).toBe('Ligada');
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
     const before = calls.length;
     fireEvent.click(toggle);
-    expect(screen.getByRole('switch', { name: /Intercâmbio - Passagem: desligada/ }).textContent).toBe('Desligada');
+    expect(screen.getByRole('switch', { name: /Intercâmbio - Passagem: desligada/ }).getAttribute('aria-checked')).toBe('false');
     expect(screen.getByText(/de 2 ligadas/).textContent).toMatch(/1\s*de 2 ligadas/);
+    expect(screen.getByText(/1 simulação desligada fica/)).toBeTruthy();
     expect(calls.length).toBe(before);
+  });
+
+  it('mostra o rostinho de quem criou, sem o nome escrito', async () => {
+    view();
+    await loaded();
+    expect(screen.getAllByRole('img', { name: 'Criada por Andreza' }).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/de Andreza/)).toBeNull();
+  });
+
+  it('troca entre ponte, linha e cascata; a cascata mostra a sobra de hoje e onde o mês fecha', async () => {
+    view();
+    await loaded();
+    const forms = screen.getByRole('group', { name: 'Forma do gráfico' });
+    expect(within(forms).getByRole('button', { name: 'Ponte' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(forms).getByRole('button', { name: 'Linha' }));
+    expect(screen.getByText('Quando cada simulação pesa')).toBeTruthy();
+    fireEvent.click(within(forms).getByRole('button', { name: 'Cascata' }));
+    expect(screen.getByText('Sobra sem simulações')).toBeTruthy();
+    expect(screen.getByText('Sobra com simulações')).toBeTruthy();
+  });
+
+  it('"Ver os números" abre a tabela com o cenário atual, cada simulação ligada, o impacto e a sobra final', async () => {
+    view();
+    await loaded();
+    expect(screen.queryByRole('table')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Ver os números' }));
+    const table = screen.getByRole('table');
+    for (const name of ['Receitas lançadas', 'Despesas lançadas', 'Sobra sem simulações', 'Impacto das simulações', 'Sobra com simulações']) {
+      expect(within(table).getByRole('rowheader', { name })).toBeTruthy();
+    }
+    expect(within(table).getByText('Intercâmbio - Passagem')).toBeTruthy();
   });
 
   it('a simulação de outra pessoa não abre edição', async () => {
@@ -89,10 +122,10 @@ describe('WhatIfView: dados do back-end', () => {
     expect(screen.getByRole('button', { name: 'Intercâmbio - Passagem' })).toBeTruthy();
   });
 
-  it('"Simular algo" abre o painel e salvar faz POST /api/simulations com o corpo da API', async () => {
+  it('"Nova simulação" abre o painel e salvar faz POST /api/simulations com o corpo da API', async () => {
     view();
     await loaded();
-    fireEvent.click(screen.getByRole('button', { name: 'Simular algo', expanded: false }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nova simulação', expanded: false }));
     const sheet = screen.getByRole('dialog', { name: 'Simular algo' });
     fireEvent.click(within(sheet).getByText('Comprar parcelado'));
 
