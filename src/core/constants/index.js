@@ -60,4 +60,5 @@ export const NAV = [
   { id: 'budgets',      icon: '🎯', label: 'Orçamentos' },
   { id: 'members',      icon: '👫', label: 'Família' },
   { id: 'simulator',    icon: '🔮', label: 'E se...?' },
+  { id: 'whatif',       icon: '🧭', label: 'E se...? (novo)' },
 ];

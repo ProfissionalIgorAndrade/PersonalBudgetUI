@@ -26,6 +26,7 @@ import MembersView           from './presentation/members/MembersView';
 import CategoriesView        from './presentation/categories/CategoriesView';
 import ProfileView           from './presentation/profile/ProfileView';
 import SimulatorView         from './presentation/simulator/SimulatorView';
+import WhatIfView            from './presentation/whatif/WhatIfView';
 import BudgetView            from './presentation/budget/BudgetView';
 
 const pageVariants = {
@@ -118,6 +119,7 @@ export default function App() {
     categories:   <CategoriesView   categories={categories} {...catOps} />,
     profile:      <ProfileView      authSession={authSession} notify={notify} />,
     simulator:    <SimulatorView    transactions={data.transactions} members={members} authSession={authSession} theme={theme} />,
+    whatif:       <WhatIfView       transactions={data.transactions} members={members} authSession={authSession} />,
     budgets:      <BudgetView       budgets={budgets} categories={categories} activeMonth={activeMonth} setActiveMonth={setActiveMonth} loadBudgets={loadBudgets} budgetOps={budgetOps} />,
   };
 
