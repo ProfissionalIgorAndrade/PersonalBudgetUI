@@ -311,3 +311,23 @@
   .sidebar, .sidebar.open { transition: none; }
   .modal, .sidebar-backdrop { animation: none; }
 }
+
+/* ─── Meu Lar no celular: abas presas abaixo da barra do topo ─── */
+@media (max-width: 780px) {
+  .hh-nav { top: calc(var(--m-topbar) + var(--m-safe-top)); gap: 4px; padding: 8px 0 10px; }
+  .hh-nav-item {
+    grid-template-columns: minmax(0, 1fr); padding: 8px 10px; min-height: 52px;
+    text-align: center; border-radius: 12px;
+  }
+  .hh-nav-item .hh-media,
+  .hh-nav-item .hh-stack { display: none; }
+  .hh-nav-label { font-size: 13px; }
+  .hh-nav-meta { font-size: 11px; }
+  .hh-nav-meta-long { display: none; }
+  .hh-nav-meta-short { display: block; }
+  .hh-header { margin-bottom: 14px; }
+  .hh-panel-head { flex-direction: column; align-items: stretch; gap: 12px; }
+  .hh-panel-actions { justify-content: stretch; }
+  .hh-panel-actions .btn { flex: 1 1 0; justify-content: center; }
+  .hh-search { width: 100%; }
+}

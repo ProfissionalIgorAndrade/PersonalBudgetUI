@@ -1,9 +1,9 @@
 import React from 'react';
 import CategoryTile from './CategoryTile';
 
-export default function CategoryGroup({ title, cats, type, onEdit, onDelete, onAddForType }) {
+export default function CategoryGroup({ title, cats, type, emptyText, onEdit, onDelete, onAddForType }) {
   return (
-    <section className="card cat-section">
+    <section className="card cat-section" aria-label={title}>
       <div className="cat-section-head">
         <h3 className="cat-section-title">
           {title}
@@ -14,7 +14,7 @@ export default function CategoryGroup({ title, cats, type, onEdit, onDelete, onA
       </div>
       <div className="cat-grid">
         {cats.length === 0 && (
-          <div className="cat-empty">Nenhuma categoria de {title.toLowerCase()} ainda.</div>
+          <div className="cat-empty">{emptyText || `Nenhuma categoria de ${title.toLowerCase()} ainda.`}</div>
         )}
         {cats.map(c => (
           <CategoryTile key={c.id} cat={c} onEdit={onEdit} onDelete={onDelete} />
