@@ -83,7 +83,7 @@ describe('MembersView', () => {
 
   it('adds a new member with the neutral default avatar', () => {
     const { onAdd } = setup();
-    fireEvent.click(screen.getByText('+ Adicionar Membro'));
+    fireEvent.click(screen.getByText('+ Adicionar membro'));
     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Ana' } });
     fireEvent.click(screen.getByText('💾 Salvar'));
     expect(onAdd).toHaveBeenCalledTimes(1);
