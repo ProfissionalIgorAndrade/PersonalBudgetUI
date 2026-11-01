@@ -56,6 +56,16 @@ describe('Sidebar as a mobile drawer', () => {
     expect(screen.queryByText('Família')).toBeNull();
   });
 
+  it('lists Planejamento instead of Saúde Financeira, Orçamentos and E se...?', () => {
+    const setView = vi.fn();
+    renderSidebar({ setView });
+    fireEvent.click(screen.getByText('Planejamento'));
+    expect(setView).toHaveBeenCalledWith('planning');
+    expect(screen.queryByText('Saúde Financeira')).toBeNull();
+    expect(screen.queryByText('Orçamentos')).toBeNull();
+    expect(screen.queryByText('E se...?')).toBeNull();
+  });
+
   it('still navigates without an onClose handler', () => {
     const setView = vi.fn();
     renderSidebar({ setView });

@@ -33,6 +33,7 @@ const setup = (over = {}) => {
 };
 
 const nav = () => screen.getByRole('navigation', { name: 'Seções de Meu Lar' });
+const link = (name) => within(nav()).getByRole('link', { name: new RegExp(`^${name}`) });
 const panelOf = (name) => screen.getByRole('heading', { name, hidden: true }).closest('section');
 
 describe('HouseholdView', () => {
@@ -48,14 +49,14 @@ describe('HouseholdView', () => {
     setup({ section: 'family' });
     expect(panelOf('Família').hidden).toBe(false);
     expect(panelOf('Meu perfil').hidden).toBe(true);
-    expect(within(nav()).getByText('Família').closest('a').getAttribute('aria-current')).toBe('page');
+    expect(link('Família').getAttribute('aria-current')).toBe('page');
   });
 
   it('switches section through its own address and moves focus to its title', () => {
     const { props, rerender } = setup();
-    const link = within(nav()).getByText('Categorias').closest('a');
-    expect(link.getAttribute('href')).toBe('#household/categories');
-    fireEvent.click(link);
+    const target = link('Categorias');
+    expect(target.getAttribute('href')).toBe('#household/categories');
+    fireEvent.click(target);
     expect(props.onSection).toHaveBeenCalledWith('categories');
     rerender(<HouseholdView {...props} section="categories" />);
     expect(document.activeElement.id).toBe('hh-categories-title');
@@ -63,7 +64,7 @@ describe('HouseholdView', () => {
 
   it('lets ctrl/cmd-click open the section in a new tab', () => {
     const { props } = setup();
-    fireEvent.click(within(nav()).getByText('Família').closest('a'), { ctrlKey: true });
+    fireEvent.click(link('Família'), { ctrlKey: true });
     expect(props.onSection).not.toHaveBeenCalled();
   });
 

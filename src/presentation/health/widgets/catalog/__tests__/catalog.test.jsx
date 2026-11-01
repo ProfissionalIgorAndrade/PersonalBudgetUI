@@ -165,7 +165,8 @@ describe('HealthView extras', () => {
 
   it('shows no extras by default, only a hint to customize', () => {
     view();
-    expect(screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent)).toHaveLength(7);
+    // o título da seção e os sete obrigatórios
+    expect(screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent)).toHaveLength(8);
     expect(screen.getByText(/Use "Personalizar"/)).toBeTruthy();
   });
 
@@ -173,7 +174,7 @@ describe('HealthView extras', () => {
     localStorage.setItem(LAYOUT_KEY, JSON.stringify([{ id: 'weekday', on: true }, { id: 'rule', on: true }]));
     view();
     const titles = screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent);
-    expect(titles.slice(7)).toEqual(['Extras', 'Padrão por dia da semana', 'Regra 50/30/20']);
+    expect(titles.slice(8)).toEqual(['Extras', 'Padrão por dia da semana', 'Regra 50/30/20']);
     expect(MANDATORY_IDS).toHaveLength(7);
   });
 

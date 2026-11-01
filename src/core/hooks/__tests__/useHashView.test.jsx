@@ -21,6 +21,14 @@ describe('parseHash', () => {
     expect(parseHash('#categories')).toEqual({ view: 'household', section: 'categories' });
   });
 
+  it('sends Saúde, Orçamentos and E se...? to their Planejamento section', () => {
+    expect(parseHash('#health')).toEqual({ view: 'planning', section: 'health' });
+    expect(parseHash('#budgets')).toEqual({ view: 'planning', section: 'budgets' });
+    expect(parseHash('#simulator')).toEqual({ view: 'planning', section: 'simulator' });
+    expect(parseHash('#planning')).toEqual({ view: 'planning', section: 'health' });
+    expect(parseHash('#planning/budgets')).toEqual({ view: 'planning', section: 'budgets' });
+  });
+
   it('keeps other screens without a section and falls back on unknown ones', () => {
     expect(parseHash('#cards')).toEqual({ view: 'cards', section: null });
     expect(parseHash('#qualquer')).toEqual({ view: 'dashboard', section: null });

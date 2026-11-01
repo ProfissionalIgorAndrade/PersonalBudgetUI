@@ -41,10 +41,11 @@ const accounts = [box({ id: 'b1', name: 'Viagem', balance: 2500, savingsGoal: 10
 const data = { transactions: rows, accounts, categories, cards: [], members: [] };
 
 describe('HealthView', () => {
-  it('renders the seven mandatory widgets in the fixed order', () => {
+  it('renders the section title, then the seven mandatory widgets in the fixed order', () => {
     render(<HealthView data={data} activeMonth={MONTH} setActiveMonth={() => {}} />);
     const titles = screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent);
     expect(titles).toEqual([
+      'Saúde financeira',
       'Veredito', 'Resultado do mês', 'Pilares da saúde', 'Onde economizar',
       'Para onde vai o dinheiro', 'Evolução (6 meses)', 'Plano de futuro',
     ]);
