@@ -17,14 +17,12 @@ import Toast                 from './presentation/shared/components/Toast';
 import LoadingOverlay        from './presentation/shared/components/LoadingOverlay';
 import AuthView              from './presentation/auth/AuthView';
 import DashboardView         from './presentation/dashboard/DashboardView';
-import HealthView            from './presentation/health/HealthView';
 import TransactionsView      from './presentation/transactions/TransactionsView';
 import CardsView             from './presentation/cards/CardsView';
 import AccountsView          from './presentation/accounts/AccountsView';
 import SavingsView           from './presentation/savings/SavingsView';
 import HouseholdView         from './presentation/household/HouseholdView';
-import SimulatorView         from './presentation/simulator/SimulatorView';
-import BudgetView            from './presentation/budget/BudgetView';
+import PlanningView          from './presentation/planning/PlanningView';
 
 const pageVariants = {
   initial: { opacity: 0, y: 14 },
@@ -94,8 +92,11 @@ export default function App() {
 
   const views = {
     dashboard:    <DashboardView    data={data} setView={setView} activeMonth={activeMonth} setActiveMonth={setActiveMonth} theme={theme} loadBudgets={loadBudgets} />,
-    health:       <HealthView       data={data} savingsTransactions={savingsTransactions} accounts={accounts}
-                                    activeMonth={activeMonth} setActiveMonth={setActiveMonth} theme={theme} />,
+    planning:     <PlanningView     section={section} onSection={(s) => setView('planning', s)}
+                                    data={data} savingsTransactions={savingsTransactions} theme={theme}
+                                    activeMonth={activeMonth} setActiveMonth={setActiveMonth}
+                                    budgets={budgets} loadBudgets={loadBudgets} budgetOps={budgetOps}
+                                    authSession={authSession} notify={notify} />,
     transactions: <TransactionsView data={data} {...txOps} activeMonth={activeMonth} setActiveMonth={setActiveMonth}
                                     onImportStatement={txOps.onImportStatement} />,
     cards:        <CardsView        cards={cards} members={members} transactions={transactions} categories={categories} accounts={accounts}
@@ -116,8 +117,6 @@ export default function App() {
                                     profile={profile} onProfileChange={setProfile} authSession={authSession}
                                     members={members} mbrOps={mbrOps} categories={categories} catOps={catOps}
                                     notify={notify} onLogout={handleLogout} />,
-    simulator:    <SimulatorView    transactions={data.transactions} members={members} authSession={authSession} theme={theme} />,
-    budgets:      <BudgetView       budgets={budgets} categories={categories} activeMonth={activeMonth} setActiveMonth={setActiveMonth} loadBudgets={loadBudgets} budgetOps={budgetOps} />,
   };
 
   return (

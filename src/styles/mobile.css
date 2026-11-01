@@ -327,6 +327,9 @@
   .hh-nav-meta-short { display: block; }
   .hh-header { margin-bottom: 14px; }
   .hh-panel-head { flex-direction: column; align-items: stretch; gap: 12px; }
+  .hh-panel-heading { flex: none; }
+  .hh-nav-label-long { display: none; }
+  .hh-nav-label-short { display: inline; }
   .hh-panel-actions { justify-content: stretch; }
   .hh-panel-actions .btn { flex: 1 1 0; justify-content: center; }
   .hh-search { width: 100%; }

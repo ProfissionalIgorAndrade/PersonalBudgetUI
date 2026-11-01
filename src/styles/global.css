@@ -2555,6 +2555,7 @@ canvas { max-height: 220px; }
 }
 .hh-stack-chip + .hh-stack-chip { margin-left: -14px; }
 .hh-nav-meta-short { display: none; }
+.hh-nav-label-short { display: none; }
 .hh-stack-person { box-shadow: 0 0 0 2px var(--bg), inset 0 0 0 1.5px var(--c); }
 .hh-nav-item:hover .hh-stack-chip { box-shadow: 0 0 0 2px var(--surface2); }
 .hh-nav-item.active .hh-stack-chip { box-shadow: 0 0 0 2px var(--surface); }
@@ -2565,10 +2566,11 @@ canvas { max-height: 220px; }
 .hh-panels { min-width: 0; container-type: inline-size; container-name: hh; }
 .hh-panel[hidden] { display: none; }
 .hh-panel-head {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 16px; margin-bottom: 20px; min-height: 40px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: 12px 16px; margin-bottom: 20px; min-height: 40px;
 }
-.hh-panel-heading { min-width: 0; }
+.hh-panel-heading { min-width: 0; flex: 1 1 280px; }
+.hh-panel-sub { max-width: 72ch; }
 .hh-panel-title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; }
 .hh-panel-title:focus { outline: none; }
 .hh-panel-title:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 4px; }
@@ -2606,3 +2608,164 @@ canvas { max-height: 220px; }
 @media (prefers-reduced-motion: reduce) {
   .hh-nav-item { transition: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PLANEJAMENTO (.pl-*): o número de cada seção no sub-menu, numa
+   ficha tingida pelo estado (verde, atenção, crítico) ou neutra.
+═══════════════════════════════════════════════════════════════ */
+.pl-figure {
+  --pl-c: var(--text-2);
+  font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.2px;
+  color: var(--pl-c);
+  background: color-mix(in srgb, var(--pl-c) 16%, var(--surface2));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--pl-c) 45%, transparent);
+}
+.pl-figure-sm { font-size: 11px; letter-spacing: -0.4px; }
+.pl-good     { --pl-c: var(--green); }
+.pl-warning  { --pl-c: var(--yellow); }
+.pl-critical { --pl-c: var(--red); }
+.pl-accent   { --pl-c: var(--primary); }
+.pl-neutral  { --pl-c: var(--text-2); }
+
+/* ═══════════════════════════════════════════════════════════════
+   ORÇAMENTOS (.bud-*)
+   Resumo do mês num cartão só (usado do total + três números), depois
+   as categorias em linhas: nome, trilho do limite, valor, percentual.
+   A cor diz o estado: acento dentro do limite, amarelo perto, vermelho
+   acima. Abaixo de 640px de largura útil a linha quebra em duas.
+═══════════════════════════════════════════════════════════════ */
+.bud-root { display: flex; flex-direction: column; gap: 16px; }
+.bud-root > .hh-panel-head { margin-bottom: 4px; }
+.bud-k { font-size: 12px; color: var(--text-2); }
+.bud-of { font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+.bud-bar {
+  --bud-c: var(--primary);
+  position: relative; height: 8px; border-radius: 999px; overflow: hidden;
+  background: var(--surface3);
+}
+.bud-bar-fill { display: block; height: 100%; border-radius: inherit; background: var(--bud-c); transition: width var(--t-slow); }
+.bud-ok   { --bud-c: var(--primary); }
+.bud-near { --bud-c: var(--yellow); }
+.bud-over { --bud-c: var(--red); }
+[data-theme="light"] .bud-bar { background: var(--border); }
+
+/* Resumo */
+.bud-summary { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr); gap: 0; padding: 0; overflow: hidden; }
+.bud-total { display: flex; flex-direction: column; gap: 8px; padding: 22px; }
+.bud-total-v { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.bud-total-spent { font-size: 28px; font-weight: 700; letter-spacing: -0.6px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.bud-total .bud-bar { margin-top: 6px; height: 10px; }
+.bud-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; border-left: 1px solid var(--border); }
+.bud-stat { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 22px; min-width: 0; }
+.bud-stat + .bud-stat { border-left: 1px solid var(--border); }
+.bud-stat dd { margin: 0; }
+.bud-v { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
+.bud-over-text { color: var(--red); }
+.bud-summary-empty { grid-column: 1 / -1; padding: 22px; }
+.bud-summary-empty-title { font-size: 15px; font-weight: 600; }
+.bud-summary-empty-sub { font-size: 13px; color: var(--text-2); margin-top: 4px; }
+
+/* Listas */
+.bud-list { padding: 18px 22px 8px; }
+.bud-list-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.bud-list-title { font-size: 13px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-2); }
+.bud-list-count { font-size: 12px; color: var(--text-2); }
+.bud-rows { list-style: none; margin: 0; padding: 0; }
+.bud-rows-free { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); column-gap: 28px; }
+
+.bud-row {
+  --cat: var(--primary);
+  display: grid; align-items: center; gap: 4px 16px; min-height: 60px; padding: 10px 0;
+  grid-template-columns: 34px minmax(140px, 1.1fr) minmax(120px, 2fr) minmax(150px, auto) 48px 34px;
+  grid-template-areas: "chip name bar amount pct edit";
+  border-top: 1px solid var(--border);
+}
+.bud-rows > .bud-row:first-child { border-top: 0; }
+.bud-rows-free > .bud-row { grid-template-columns: 34px minmax(0, 1fr) auto; grid-template-areas: "chip name edit"; }
+.bud-rows-free > .bud-row:nth-child(-n+2) { border-top: 0; }
+.bud-row.is-editing { grid-template-columns: 34px minmax(140px, 1fr) auto; grid-template-areas: "chip name editor"; }
+
+.bud-chip {
+  grid-area: chip; width: 34px; height: 34px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 17px;
+  background: color-mix(in srgb, var(--cat) 18%, var(--surface2));
+}
+.bud-name { grid-area: name; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.bud-name-text { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bud-status { font-size: 12px; color: var(--text-2); }
+.bud-status.bud-near { color: var(--yellow); }
+.bud-status.bud-over { color: var(--red); }
+.bud-row > .bud-bar { grid-area: bar; }
+.bud-amount { grid-area: amount; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; white-space: nowrap; }
+.bud-spent { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bud-pct { grid-area: pct; text-align: right; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-2); }
+.bud-pct.bud-near { color: var(--yellow); }
+.bud-pct.bud-over { color: var(--red); }
+.bud-edit { grid-area: edit; padding: 4px 7px; font-size: 12px; opacity: .55; transition: opacity var(--t-fast); }
+.bud-row:hover .bud-edit, .bud-edit:focus-visible { opacity: 1; }
+@media (hover: none) { .bud-edit { opacity: 1; } }
+.bud-row-free > .bud-link { grid-area: edit; }
+
+.bud-link {
+  background: none; border: 0; padding: 6px 2px; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--primary); text-decoration: none; white-space: nowrap;
+}
+.bud-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.bud-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+.bud-link-danger { color: var(--red); }
+
+.bud-editor { grid-area: editor; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.bud-editor-input { width: 150px; text-align: right; font-variant-numeric: tabular-nums; }
+.bud-editor-btn { padding: 8px 14px; }
+
+.bud-empty { text-align: center; padding: 36px 20px; color: var(--text-2); display: flex; flex-direction: column; gap: 8px; align-items: center; }
+
+@container hh (max-width: 760px) {
+  .bud-summary { grid-template-columns: minmax(0, 1fr); }
+  .bud-stats { border-left: 0; border-top: 1px solid var(--border); }
+}
+@container hh (max-width: 640px) {
+  .bud-row {
+    grid-template-columns: 34px minmax(0, 1fr) auto 34px;
+    grid-template-areas: "chip name amount edit" ". bar bar pct";
+    padding: 12px 0;
+  }
+  .bud-row.is-editing { grid-template-columns: 34px minmax(0, 1fr); grid-template-areas: "chip name" ". editor"; }
+  .bud-editor { justify-content: flex-start; }
+  .bud-editor-input { flex: 1 1 140px; }
+  .bud-rows-free > .bud-row:nth-child(2) { border-top: 1px solid var(--border); }
+  .bud-list { padding: 16px 16px 6px; }
+}
+@container hh (max-width: 440px) {
+  .bud-stats { grid-template-columns: minmax(0, 1fr); }
+  .bud-stat { flex-direction: row; justify-content: space-between; align-items: baseline; padding: 14px 16px; }
+  .bud-stat + .bud-stat { border-left: 0; border-top: 1px solid var(--border); }
+  .bud-total { padding: 16px; }
+  .bud-total-spent { font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bud-bar-fill { transition: none; }
+}
+
+/* Confirmação de "Copiar mês anterior" */
+.bud-copy { display: flex; flex-direction: column; gap: 14px; }
+.bud-copy-text { font-size: 14px; line-height: 1.5; color: var(--text-2); }
+.bud-copy-text strong { color: var(--text); }
+.bud-copy-list {
+  list-style: none; margin: 0; padding: 4px 14px; max-height: 300px; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: 12px; background: var(--surface2);
+}
+.bud-copy-item {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px;
+  padding: 10px 0; border-top: 1px solid var(--border); font-size: 13.5px;
+}
+.bud-copy-item:first-child { border-top: 0; }
+.bud-copy-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.bud-copy-tag { font-size: 12px; color: var(--primary); white-space: nowrap; }
+.bud-copy-tag-change { color: var(--text-2); }
+.bud-copy-value { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.bud-copy-note { font-size: 12.5px; line-height: 1.5; color: var(--text-2); }
+.bud-copy-error { font-size: 13px; color: var(--red); }
+.bud-copy-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+[data-theme="light"] .bud-copy-list { background: var(--surface); }

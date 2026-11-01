@@ -51,12 +51,10 @@ export const CARD_GRADIENTS = {
 
 export const NAV = [
   { id: 'dashboard',    icon: '📊', label: 'Dashboard' },
-  { id: 'health',       icon: '🩺', label: 'Saúde Financeira' },
+  { id: 'planning',     icon: '🧭', label: 'Planejamento' },
   { id: 'transactions', icon: '💸', label: 'Lançamentos' },
   { id: 'savings',      icon: '🐷', label: 'Cofrinho' },
   { id: 'accounts',     icon: '🏦', label: 'Contas' },
   { id: 'cards',        icon: '💳', label: 'Cartões' },
-  { id: 'budgets',      icon: '🎯', label: 'Orçamentos' },
   { id: 'household',    icon: '🏡', label: 'Meu Lar' },
-  { id: 'simulator',    icon: '🔮', label: 'E se...?' },
 ];
