@@ -1,22 +1,35 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const VALID = ['dashboard', 'health', 'transactions', 'accounts', 'cards', 'savings', 'household', 'simulator', 'budgets'];
+/**
+ * Telas com sub-menu e as suas seções, na ordem do sub-menu. A primeira é a
+ * que abre quando o endereço não diz qual.
+ */
+export const SECTIONS = {
+  household: ['profile', 'family', 'categories'],
+  planning:  ['health', 'budgets', 'simulator'],
+};
+export const HOUSEHOLD_SECTIONS = SECTIONS.household;
+export const PLANNING_SECTIONS  = SECTIONS.planning;
 
-/** Seções da tela "Meu Lar", na ordem do sub-menu. */
-export const HOUSEHOLD_SECTIONS = ['profile', 'family', 'categories'];
+const VALID = ['dashboard', 'transactions', 'accounts', 'cards', 'savings', ...Object.keys(SECTIONS)];
 
 /**
- * Perfil, Família e Categorias viraram seções de "Meu Lar". Os ids antigos
- * continuam valendo como destino (links salvos, `setView('profile')`) e caem
- * na seção equivalente.
+ * Telas que viraram seções. Os ids antigos continuam valendo como destino
+ * (links salvos, `setView('budgets')`) e caem na seção equivalente.
  */
-const ALIASES = { profile: 'profile', members: 'family', categories: 'categories' };
+const ALIASES = {
+  profile:    ['household', 'profile'],
+  members:    ['household', 'family'],
+  categories: ['household', 'categories'],
+  health:     ['planning', 'health'],
+  budgets:    ['planning', 'budgets'],
+  simulator:  ['planning', 'simulator'],
+};
 
 export function resolveView(view, section) {
-  if (ALIASES[view]) return { view: 'household', section: ALIASES[view] };
-  if (view === 'household') {
-    return { view, section: HOUSEHOLD_SECTIONS.includes(section) ? section : HOUSEHOLD_SECTIONS[0] };
-  }
+  if (ALIASES[view]) return { view: ALIASES[view][0], section: ALIASES[view][1] };
+  const list = SECTIONS[view];
+  if (list) return { view, section: list.includes(section) ? section : list[0] };
   return { view, section: null };
 }
 
@@ -30,17 +43,17 @@ export const hashFor = (view, section) => (section ? `${view}/${section}` : view
 
 /**
  * Tela atual a partir do hash da URL: `[view, setView, section]`.
- * `section` só existe em "Meu Lar" (`#household/family`).
+ * `section` só existe nas telas com sub-menu (`#household/family`).
  */
 export function useHashView(defaultView = 'dashboard') {
   const [state, setState] = useState(() => parseHash(window.location.hash, defaultView));
 
-  // Link antigo (#profile, #members, #categories): troca pelo endereço novo
-  // sem criar uma entrada a mais no histórico.
+  // Endereço antigo ou incompleto (#members, #household): troca pelo endereço
+  // completo sem criar uma entrada a mais no histórico.
   useEffect(() => {
     const current = window.location.hash.replace(/^#/, '');
     const { view, section } = parseHash(current, defaultView);
-    if (current && current !== hashFor(view, section) && (ALIASES[current] || view === 'household')) {
+    if (current && section && current !== hashFor(view, section)) {
       window.history.replaceState(null, '', `#${hashFor(view, section)}`);
     }
   }, []);
