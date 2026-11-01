@@ -30,7 +30,10 @@
   display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap;
 }
 .wf-head-text { min-width: 0; max-width: 72ch; }
-.wf-title { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+/* O título é o h2 da seção E se...? do Planejamento: mesmo tamanho dos outros títulos de seção. */
+.wf-title { font-size: 20px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.2; }
+.wf-title:focus { outline: none; }
+.wf-title:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 4px; }
 .wf-finding { margin-top: 6px; font-size: 15px; line-height: 1.45; color: var(--text); }
 .wf-head-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .wf-status {
@@ -449,7 +452,7 @@
   .wf-kpi:nth-child(3) { border-left: 1px solid var(--border); }
   .wf-kpi:nth-child(n + 2) { border-top: 1px solid var(--border); }
   .wf-kpi:last-child { border-left: 0; }
-  .wf-title { font-size: 22px; }
+  .wf-title { font-size: 20px; }
   .wf-finding { font-size: 14px; }
   .wf-head-actions { width: 100%; justify-content: space-between; }
   .wf-head-actions > .wf-range { overflow-x: auto; max-width: 100%; }

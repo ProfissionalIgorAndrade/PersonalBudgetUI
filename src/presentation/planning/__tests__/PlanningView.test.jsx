@@ -11,8 +11,8 @@ vi.mock('../../../application/hooks/useSimulator', () => ({
 vi.mock('../../health/HealthView', () => ({
   default: ({ activeMonth }) => <h2 id="hh-health-title" tabIndex={-1}>Saúde financeira {activeMonth}</h2>,
 }));
-vi.mock('../../simulator/SimulatorView', () => ({
-  SimulatorScreen: ({ sim }) => <h2 id="hh-simulator-title" tabIndex={-1}>E se...? {sim.simulations.length}</h2>,
+vi.mock('../../whatif/WhatIfView', () => ({
+  WhatIfScreen: ({ sim }) => <h2 id="hh-simulator-title" tabIndex={-1}>E se...? {sim.simulations.length}</h2>,
 }));
 
 afterEach(() => { cleanup(); h.calls = 0; });

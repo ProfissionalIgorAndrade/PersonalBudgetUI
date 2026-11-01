@@ -3,7 +3,7 @@ import { curMonth, monthLabel } from '../../core/utils/format';
 import SectionScreen from '../shared/components/SectionScreen';
 import HealthView from '../health/HealthView';
 import BudgetView from '../budget/BudgetView';
-import { SimulatorScreen } from '../simulator/SimulatorView';
+import { WhatIfScreen } from '../whatif/WhatIfView';
 import { useSimulator } from '../../application/hooks/useSimulator';
 import { evaluateHealth } from '../health/logic/score';
 import { budgetRows, budgetSummary, pctLabel, NEAR_RATIO } from '../budget/budgetSummary';
@@ -77,7 +77,7 @@ export default function PlanningView({
         : `${plural(total, 'simulação', 'simulações')} · ${plural(enabled, 'ligada', 'ligadas')}`,
       short: total === 0 ? 'Simular' : plural(enabled, 'ligada', 'ligadas'),
       media: <Figure value={sim.loading ? '…' : enabled} tone={enabled > 0 ? 'accent' : 'neutral'} />,
-      render: () => <SimulatorScreen sim={sim} transactions={transactions} members={members} />,
+      render: () => <WhatIfScreen sim={sim} transactions={transactions} members={members} />,
     },
   ];
 

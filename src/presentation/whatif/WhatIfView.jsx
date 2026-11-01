@@ -47,12 +47,22 @@ const periodTotal = (monthly = [], months) => months.reduce((acc, m, i) => (m.ha
  * números a um clique.
  * O painel lateral simula por intenção e mostra o efeito antes de salvar.
  */
-export default function WhatIfView({ transactions = NO_TRANSACTIONS, members = NO_MEMBERS, authSession = null }) {
+export default function WhatIfView({ transactions = NO_TRANSACTIONS, members = NO_MEMBERS, authSession = null, titleId }) {
+  const sim = useSimulator({ userId: authSession?.userId });
+  return <WhatIfScreen sim={sim} transactions={transactions} members={members} titleId={titleId} />;
+}
+
+/**
+ * A tela em si, recebendo o resultado de `useSimulator`: o Planejamento chama
+ * o hook uma vez e usa as mesmas simulações no resumo do sub-menu. O título é
+ * o h2 da seção (`hh-simulator-title`), que recebe o foco ao abrir pelo sub-menu.
+ */
+export function WhatIfScreen({ sim, transactions = NO_TRANSACTIONS, members = NO_MEMBERS, titleId = 'hh-simulator-title' }) {
   const {
     simulations, months, setMonths, loading, error, retry, saving, actionError, dismissActionError,
     addSimulation, editSimulation, removeSimulation, removeMine, toggleSimulation, limitReached, ownedCount,
     legacyCount, importing, importError, importLegacy, dismissImport,
-  } = useSimulator({ userId: authSession?.userId });
+  } = sim;
 
   const firstMonth = useMemo(() => localToday().slice(0, 7), []);
 
@@ -157,7 +167,7 @@ export default function WhatIfView({ transactions = NO_TRANSACTIONS, members = N
     <div className={`wf-root${sheet ? ' has-sheet' : ''}`}>
       <header className="wf-head">
         <div className="wf-head-text">
-          <h1 className="wf-title">E se...?</h1>
+          <h2 className="wf-title" id={titleId} tabIndex={-1}>E se...?</h2>
           <p className="wf-finding">
             {!blocked && verdict.level !== 'unknown' && (
               <span className={`wf-status is-${verdict.level}`}>{verdict.statusLabel}</span>
