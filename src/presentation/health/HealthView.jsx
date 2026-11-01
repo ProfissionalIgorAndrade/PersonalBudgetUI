@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { curMonth } from '../../core/utils/format';
 import MonthSelector from '../shared/components/MonthSelector';
+import PanelHeader from '../shared/components/PanelHeader';
 import { evaluateHealth } from './logic/score';
 import {
   monthSeries, monthTotals, savingOpportunities, topCategories, topExpenses, futurePlan, savingsGoals,
@@ -28,7 +29,7 @@ const NO_SAVINGS = [];
  * agregados do backend incluem esses movimentos e distorceriam a poupança.
  * Ordem dos widgets fixa; esta tela é independente da Dashboard.
  */
-export default function HealthView({ data, savingsTransactions = NO_SAVINGS, activeMonth, setActiveMonth }) {
+export default function HealthView({ data, savingsTransactions = NO_SAVINGS, activeMonth, setActiveMonth, titleId = 'hh-health-title' }) {
   const { transactions = [], accounts = [], categories = [], cards = [], members = [] } = data || {};
   const { layout, toggle, move, reset } = useHealthLayout();
   const [customizing, setCustomizing] = useState(false);
@@ -48,16 +49,10 @@ export default function HealthView({ data, savingsTransactions = NO_SAVINGS, act
 
   return (
     <div className="hl-root">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">🩺 Saúde Financeira</h1>
-          <p className="page-sub">O mês em um veredito, com o porquê e o que fazer a respeito.</p>
-        </div>
-        <div className="hl-header-actions">
-          <button type="button" className="btn btn-secondary" onClick={() => setCustomizing(true)}>Personalizar</button>
-          <MonthSelector month={month} onChange={setActiveMonth} />
-        </div>
-      </div>
+      <PanelHeader id={titleId} title="Saúde financeira" sub="O mês em um veredito, com o porquê e o que fazer a respeito.">
+        <button type="button" className="btn btn-secondary" onClick={() => setCustomizing(true)}>Personalizar</button>
+        <MonthSelector month={month} onChange={setActiveMonth} />
+      </PanelHeader>
 
       <div className="hl-stack-col">
         <HlVerdict health={health} />

@@ -40,3 +40,35 @@ describe('CategoriesView delete confirmation', () => {
     expect(screen.queryByText('Excluir categoria?')).toBeNull();
   });
 });
+
+describe('CategoriesView search', () => {
+  const many = [
+    ...categories,
+    { id: 'c3', name: 'Saúde', type: 'expense', icon: '💊', color: '#f87171' },
+  ];
+
+  it('filters both groups ignoring case and accents, and counts what it found', () => {
+    setup({ categories: many });
+    fireEvent.change(screen.getByLabelText('Buscar categoria'), { target: { value: 'SAUDE' } });
+    expect(screen.getByText('Saúde')).toBeTruthy();
+    expect(screen.queryByText('Mercado')).toBeNull();
+    expect(screen.getByText('1 categoria encontrada')).toBeTruthy();
+    expect(screen.getByText('Nenhuma categoria de receita com “SAUDE”.')).toBeTruthy();
+  });
+
+  it('clears the search with Escape', () => {
+    setup({ categories: many });
+    const input = screen.getByLabelText('Buscar categoria');
+    fireEvent.change(input, { target: { value: 'merc' } });
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.getByText('Saúde')).toBeTruthy();
+    expect(screen.getByText('Mercado')).toBeTruthy();
+  });
+
+  it('starts a new category with the searched name when nothing was found', () => {
+    setup({ categories: many });
+    fireEvent.change(screen.getByLabelText('Buscar categoria'), { target: { value: 'Pets' } });
+    fireEvent.click(screen.getAllByText('＋ Adicionar')[1]);
+    expect(screen.getAllByDisplayValue('Pets')).toHaveLength(2); // a busca e o nome no formulário
+  });
+});

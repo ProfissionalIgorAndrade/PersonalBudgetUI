@@ -1,14 +1,12 @@
 import React from 'react';
 import { NAV } from '../../../core/constants';
 
-const EXTRA_TITLES = { profile: 'Meu Perfil' };
-
 /**
  * Barra do topo que só aparece em telas estreitas (mobile.css). No desktop a
  * sidebar fica sempre visível e esta barra é escondida por CSS.
  */
 export default function MobileTopBar({ view, menuOpen, onToggleMenu }) {
-  const title = NAV.find(n => n.id === view)?.label || EXTRA_TITLES[view] || 'Personal Budget';
+  const title = NAV.find(n => n.id === view)?.label || 'Personal Budget';
 
   return (
     <header className="mobile-topbar">
