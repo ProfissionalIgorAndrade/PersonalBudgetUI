@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLocalStorage } from '../../core/hooks/useLocalStorage';
+import PanelHeader from '../shared/components/PanelHeader';
 import ProfileHero from './components/ProfileHero';
 import ProfileForm from './components/ProfileForm';
 import ChangePasswordModal from './components/ChangePasswordModal';
@@ -13,19 +14,39 @@ const EMPTY_PROFILE = {
   notifications: true,
 };
 
-export default function ProfileView({ authSession = {}, notify }) {
-  const defaultProfile = {
+/** Perfil salvo por cima do vazio e do que a sessão já sabe (nome, e-mail). */
+export function withDefaults(stored = {}, authSession = {}) {
+  return {
     ...EMPTY_PROFILE,
     firstName: authSession.displayName || authSession.firstName || '',
     email:     authSession.email || '',
+    ...stored,
+    address: { ...EMPTY_PROFILE.address, ...(stored.address || {}) },
   };
-  const [profile, setProfile] = useLocalStorage('pb_profile', defaultProfile);
+}
+
+/**
+ * Seção "Meu perfil" de Meu Lar. Quem guarda o perfil é o App (a sidebar
+ * mostra o mesmo nome); sem `profile`/`onProfileChange` a seção usa o
+ * localStorage por conta própria.
+ */
+export default function ProfileView({ authSession = {}, notify, profile: storedProp, onProfileChange, titleId = 'hh-profile-title' }) {
+  const [storedLocal, setStoredLocal] = useLocalStorage('pb_profile', {});
+  const stored     = storedProp ?? storedLocal;
+  const setStored  = onProfileChange ?? setStoredLocal;
+  const profile    = withDefaults(stored, authSession);
+
   const [editing, setEditing] = useState(false);
   const [draft, setDraft]     = useState(null);
   const [changingPassword, setChangingPassword] = useState(false);
 
-  const openEdit  = () => { setDraft({ ...profile, address: { ...(profile.address || {}) } }); setEditing(true); };
-  const save      = () => { setProfile(draft); setEditing(false); setDraft(null); };
+  const openEdit  = () => { setDraft({ ...profile, address: { ...profile.address } }); setEditing(true); };
+  const save      = () => {
+    setStored(draft);
+    setEditing(false);
+    setDraft(null);
+    notify?.('Perfil salvo.', 'success');
+  };
   const cancel    = () => { setEditing(false); setDraft(null); };
 
   const handleAddressChange = (k, v) =>
@@ -33,32 +54,26 @@ export default function ProfileView({ authSession = {}, notify }) {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Meu Perfil</h1>
-          <p className="page-sub">Gerencie suas informações</p>
-        </div>
+      <PanelHeader id={titleId} title="Meu perfil" sub="Seus dados pessoais ficam salvos só neste navegador.">
         {!editing && (
-          <div className="flex page-actions" style={{ gap: 8 }}>
-            <button className="btn btn-secondary" onClick={() => setChangingPassword(true)}>🔒 Alterar Senha</button>
-            <button className="btn btn-primary" onClick={openEdit}>✏️ Editar Perfil</button>
-          </div>
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setChangingPassword(true)}>🔒 Alterar senha</button>
+            <button type="button" className="btn btn-primary" onClick={openEdit}>✏️ Editar perfil</button>
+          </>
         )}
-      </div>
+      </PanelHeader>
 
-      <div>
-        <ProfileHero profile={profile} />
-        <ProfileForm
-          profile={profile}
-          editing={editing}
-          draft={draft}
-          onChange={setDraft}
-          onAddressChange={handleAddressChange}
-          onSave={save}
-          onCancel={cancel}
-          onEdit={openEdit}
-        />
-      </div>
+      <ProfileHero profile={editing ? draft : profile} />
+      <ProfileForm
+        profile={profile}
+        editing={editing}
+        draft={draft}
+        onChange={setDraft}
+        onAddressChange={handleAddressChange}
+        onSave={save}
+        onCancel={cancel}
+        onEdit={openEdit}
+      />
 
       {changingPassword && (
         <ChangePasswordModal

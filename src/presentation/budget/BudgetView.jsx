@@ -1,244 +1,264 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { R$ } from '../../core/utils/format';
 import MonthSelector from '../shared/components/MonthSelector';
 import CurrencyInput from '../shared/components/CurrencyInput';
+import PanelHeader from '../shared/components/PanelHeader';
 import * as budgetRepo from '../../data/repositories/budgetRepository';
+import { budgetRows, budgetSummary, monthName, pctLabel, statusOf, previousMonth, copyPlan } from './budgetSummary';
+import CopyPreviousModal from './components/CopyPreviousModal';
 
-function pct(spent, limit) {
-  if (!limit) return 0;
-  return Math.min((spent / limit) * 100, 999);
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+const STATUS_TEXT = { over: 'Acima do limite', near: 'Perto do limite', ok: 'Dentro do limite' };
+
+/** Trilho do tamanho do limite com o gasto preenchido; estouro cheio, na cor de alerta. */
+function PlanBar({ ratio, status, label }) {
+  const fill = Math.min(Math.max(ratio || 0, 0), 1) * 100;
+  return (
+    <div className={`bud-bar bud-${status}`} role="img" aria-label={label}>
+      <span className="bud-bar-fill" style={{ width: `${fill}%` }} />
+    </div>
+  );
 }
 
-function barColor(p) {
-  if (p >= 100) return 'var(--red)';
-  if (p >= 70)  return '#fbbf24';
-  return '#4ade80';
+function LimitEditor({ initial, hasLimit, onSave, onRemove, onCancel, name }) {
+  const [value, setValue] = useState(initial || 0);
+  const keys = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); onSave(value); }
+    if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+  };
+  return (
+    <div className="bud-editor">
+      <CurrencyInput
+        value={value}
+        onChange={setValue}
+        className="form-input bud-editor-input"
+        aria-label={`Limite de ${name}`}
+        onKeyDown={keys}
+        autoFocus
+      />
+      <button type="button" className="btn btn-primary bud-editor-btn" onClick={() => onSave(value)}>Salvar</button>
+      <button type="button" className="btn btn-secondary bud-editor-btn" onClick={onCancel}>Cancelar</button>
+      {hasLimit && (
+        <button type="button" className="bud-link bud-link-danger" onClick={onRemove}>Remover limite</button>
+      )}
+    </div>
+  );
 }
 
+function BudgetRow({ row, editing, onEdit, onSave, onRemove, onCancel }) {
+  const { cat, limit, spent, ratio, status } = row;
+  const limited = status !== 'none';
+
+  return (
+    <li className={`bud-row${limited ? '' : ' bud-row-free'}${editing ? ' is-editing' : ''}`} style={{ '--cat': cat.color }}>
+      <span className="bud-chip" aria-hidden="true">{cat.icon || '📦'}</span>
+      <div className="bud-name">
+        <span className="bud-name-text" title={cat.name}>{cat.name}</span>
+        {limited && (
+          <span className={`bud-status bud-${status}`}>
+            {status === 'over' ? `${R$(spent - limit)} acima` : STATUS_TEXT[status]}
+          </span>
+        )}
+      </div>
+
+      {editing ? (
+        <LimitEditor
+          initial={limit}
+          hasLimit={limited}
+          name={cat.name}
+          onSave={onSave}
+          onRemove={onRemove}
+          onCancel={onCancel}
+        />
+      ) : limited ? (
+        <>
+          <PlanBar ratio={ratio} status={status} label={`${pctLabel(ratio)} do limite de ${cat.name}`} />
+          <span className="bud-amount">
+            <span className="bud-spent">{R$(spent)}</span>
+            <span className="bud-of">de {R$(limit)}</span>
+          </span>
+          <span className={`bud-pct bud-${status}`}>{pctLabel(ratio)}</span>
+          <button type="button" className="btn-icon bud-edit" aria-label={`Editar limite de ${cat.name}`} title="Editar limite" onClick={onEdit}>✏️</button>
+        </>
+      ) : (
+        <button type="button" className="bud-link" onClick={onEdit}>+ Definir limite</button>
+      )}
+    </li>
+  );
+}
+
+/**
+ * Orçamentos do mês: primeiro quanto do total já foi usado e o que estourou,
+ * depois cada categoria com limite (as que estouraram no topo) e, por fim,
+ * as que ainda não têm limite, cada uma a um clique de ganhar um.
+ */
 export default function BudgetView({
-  budgets, categories, activeMonth, setActiveMonth,
-  loadBudgets, budgetOps,
+  budgets = [], categories = [], activeMonth, setActiveMonth,
+  loadBudgets, budgetOps, notify, titleId = 'hh-budgets-title',
 }) {
   const [editingCatId, setEditingCatId] = useState(null);
-  const [editValue,    setEditValue]    = useState(0);
-  const [copying,      setCopying]      = useState(false);
+  const [copy,         setCopy]         = useState(null);   // null | { loading, plan, error, saving }
 
   const [activeYear, activeMonthNum] = (activeMonth || '').split('-').map(Number);
 
   useEffect(() => {
-    if (activeYear && activeMonthNum) loadBudgets(activeMonthNum, activeYear);
+    if (activeYear && activeMonthNum) loadBudgets?.(activeMonthNum, activeYear);
+    setEditingCatId(null);
+    setCopy(null);
   }, [activeMonth]);
 
-  const expenseCategories = (categories || []).filter(c => c.type === 'expense');
-  const hasAnyLimit = budgets.length > 0;
+  const rows    = useMemo(() => budgetRows(categories, budgets), [categories, budgets]);
+  const summary = useMemo(() => budgetSummary(rows), [rows]);
+  const month   = monthName(activeMonth);
+  const prevYm  = previousMonth(activeMonth);
+  const prevMonthName = monthName(prevYm);
+  const hasExpenseCats = rows.limited.length + rows.free.length > 0;
 
-  const rows = expenseCategories.map(cat => ({
-    cat,
-    budget: budgets.find(b => b.categoryId === cat.id) ?? null,
-  }));
-
-  const startEdit = (cat, budget) => {
-    setEditingCatId(cat.id);
-    setEditValue(budget?.limitAmount ?? 0);
-  };
-
-  const cancelEdit = () => { setEditingCatId(null); setEditValue(0); };
-
-  const handleSave = async (cat, budget) => {
-    if (editValue <= 0) {
-      if (budget) await budgetOps.onDelete(budget.id, activeMonthNum, activeYear);
+  const save = async (row, value) => {
+    if (value <= 0) {
+      if (row.budget) await budgetOps.onDelete(row.budget.id, activeMonthNum, activeYear);
     } else {
-      await budgetOps.onUpsert({
-        categoryId:  cat.id,
-        month:       activeMonthNum,
-        year:        activeYear,
-        limitAmount: editValue,
-      });
+      await budgetOps.onUpsert({ categoryId: row.cat.id, month: activeMonthNum, year: activeYear, limitAmount: value });
     }
     setEditingCatId(null);
-    setEditValue(0);
+  };
+  const remove = async (row) => {
+    if (row.budget) await budgetOps.onDelete(row.budget.id, activeMonthNum, activeYear);
+    setEditingCatId(null);
   };
 
-  const handleCopyFromPrevious = async () => {
-    setCopying(true);
+  /** Abre a confirmação já com o que vai mudar: nada é gravado antes do "Copiar". */
+  const openCopy = async () => {
+    setCopy({ loading: true, plan: null, error: '', saving: false });
+    const [py, pm] = prevYm.split('-').map(Number);
     try {
-      const prevYear  = activeMonthNum === 1 ? activeYear - 1 : activeYear;
-      const prevMonth = activeMonthNum === 1 ? 12 : activeMonthNum - 1;
-      const prev = await budgetRepo.listBudgets(prevMonth, prevYear);
-      const toCreate = (prev || []).filter(pb => !budgets.find(b => b.categoryId === pb.categoryId));
-      for (const pb of toCreate) {
-        await budgetRepo.upsertBudget({
-          categoryId:  pb.categoryId,
-          month:       activeMonthNum,
-          year:        activeYear,
-          limitAmount: pb.limitAmount,
-        });
-      }
-      await loadBudgets(activeMonthNum, activeYear);
-    } finally {
-      setCopying(false);
+      const prev = await budgetRepo.listBudgets(pm, py);
+      setCopy(c => c && { ...c, loading: false, plan: copyPlan(prev || [], budgets, categories) });
+    } catch (e) {
+      setCopy(c => c && { ...c, loading: false, error: e?.message || `Não foi possível buscar os limites de ${prevMonthName}.` });
     }
   };
 
+  const confirmCopy = async () => {
+    const items = [...copy.plan.create, ...copy.plan.update];
+    setCopy(c => ({ ...c, saving: true, error: '' }));
+    let saved = 0;
+    try {
+      for (const { cat, limitAmount } of items) {
+        await budgetRepo.upsertBudget({ categoryId: cat.id, month: activeMonthNum, year: activeYear, limitAmount });
+        saved += 1;
+      }
+      await loadBudgets(activeMonthNum, activeYear);
+      setCopy(null);
+      notify?.(`${saved === 1 ? '1 limite copiado' : `${saved} limites copiados`} de ${prevMonthName}.`, 'success');
+    } catch {
+      await loadBudgets(activeMonthNum, activeYear).catch(() => {});
+      const done = saved ? ` ${saved} de ${items.length} já foram salvos.` : '';
+      setCopy(c => ({ ...c, saving: false, error: `Não foi possível salvar todos os limites.${done} Tente de novo.` }));
+    }
+  };
+
+  const rowProps = (row) => ({
+    row,
+    editing: editingCatId === row.cat.id,
+    onEdit: () => setEditingCatId(row.cat.id),
+    onSave: (v) => save(row, v),
+    onRemove: () => remove(row),
+    onCancel: () => setEditingCatId(null),
+  });
+
+
   return (
-    <div className="bud-root" style={{ padding: '24px 28px', maxWidth: 1100 }}>
+    <div className="bud-root">
+      <PanelHeader id={titleId} title="Orçamentos" sub={`Limites de gasto por categoria em ${month}.`}>
+        <button type="button" className="btn btn-secondary" onClick={openCopy} disabled={Boolean(copy) || !activeMonthNum}
+          title={`Copiar os limites de ${prevMonthName} para ${month}`}>
+          📋 Copiar mês anterior
+        </button>
+        <MonthSelector month={activeMonth} onChange={setActiveMonth} />
+      </PanelHeader>
 
-      {/* Header */}
-      <div className="flex jcb aic" style={{ marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 2 }}>🎯 Orçamentos</h1>
-          <p style={{ fontSize: 12, color: 'var(--muted)' }}>
-            Limites mensais por categoria · clique em ✏️ para editar
-          </p>
-        </div>
-        <div className="flex aic page-actions" style={{ gap: 8 }}>
-          {!hasAnyLimit && (
-            <button
-              className="btn btn-secondary"
-              onClick={handleCopyFromPrevious}
-              disabled={copying}
-              style={{ fontSize: 12 }}
-            >
-              {copying ? '⏳' : '📋'} Copiar mês anterior
-            </button>
-          )}
-          <MonthSelector month={activeMonth} onChange={setActiveMonth} />
-        </div>
-      </div>
-
-      {/* Grid */}
-      {expenseCategories.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--muted)' }}>
-          <p style={{ fontSize: 14 }}>Nenhuma categoria de despesa cadastrada.</p>
+      {!hasExpenseCats ? (
+        <div className="card bud-empty">
+          <p>Nenhuma categoria de despesa cadastrada.</p>
+          <a className="bud-link" href="#household/categories">Criar categorias em Meu Lar</a>
         </div>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-          gap: 12,
-        }}>
-          {rows.map(({ cat, budget }) => {
-            const spent     = budget?.spentAmount ?? 0;
-            const limit     = budget?.limitAmount ?? 0;
-            const p         = pct(spent, limit);
-            const over      = limit > 0 && p >= 100;
-            const isEditing = editingCatId === cat.id;
-            const color     = barColor(p);
-
-            return (
-              <div
-                key={cat.id}
-                className="card"
-                style={{
-                  padding: '14px 16px',
-                  border: over
-                    ? '1px solid rgba(239,68,68,0.35)'
-                    : limit === 0
-                    ? '1px dashed var(--border)'
-                    : undefined,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 10,
-                }}
-              >
-                {/* Category header */}
-                <div className="flex jcb aic" style={{ gap: 8 }}>
-                  <div className="flex aic" style={{ gap: 8, minWidth: 0 }}>
-                    <span style={{ fontSize: 18, flexShrink: 0 }}>{cat.icon || '📦'}</span>
-                    <span style={{
-                      fontSize: 13, fontWeight: 600,
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}>
-                      {cat.name}
-                    </span>
-                  </div>
-                  {!isEditing && (
-                    <button
-                      className="btn-icon"
-                      title="Definir limite"
-                      onClick={() => startEdit(cat, budget)}
-                      style={{ fontSize: 13, flexShrink: 0, opacity: 0.6 }}
-                    >
-                      ✏️
-                    </button>
-                  )}
-                </div>
-
-                {/* Progress bar — only when there's a limit */}
-                {limit > 0 && !isEditing && (
-                  <div>
-                    <div style={{
-                      height: 5, borderRadius: 3,
-                      background: 'var(--surface2)', overflow: 'hidden',
-                    }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${Math.min(p, 100)}%`,
-                        background: color,
-                        borderRadius: 3,
-                        transition: 'width 0.4s ease',
-                      }} />
-                    </div>
-                  </div>
-                )}
-
-                {/* Amount row or inline edit */}
-                {isEditing ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <CurrencyInput
-                      value={editValue}
-                      onChange={setEditValue}
-                      className="form-input"
-                      style={{ fontSize: 13, padding: '5px 8px' }}
-                    />
-                    <div className="flex" style={{ gap: 6 }}>
-                      <button
-                        className="btn btn-primary"
-                        style={{ flex: 1, fontSize: 12, padding: '5px 0' }}
-                        onClick={() => handleSave(cat, budget)}
-                      >
-                        Salvar
-                      </button>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ flex: 1, fontSize: 12, padding: '5px 0' }}
-                        onClick={cancelEdit}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex jcb aic">
-                    {limit > 0 ? (
-                      <>
-                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                          {R$(spent)} <span style={{ opacity: 0.5 }}>/ {R$(limit)}</span>
-                        </span>
-                        <span style={{
-                          fontSize: 12, fontWeight: 700, color,
-                        }}>
-                          {p > 999 ? '>999' : Math.round(p)}%
-                        </span>
-                      </>
-                    ) : (
-                      <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>
-                        Sem limite definido
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Over-limit warning */}
-                {over && !isEditing && (
-                  <div style={{ fontSize: 10, color: 'var(--red)', marginTop: -4 }}>
-                    ⚠️ Excedido em {R$(spent - limit)}
-                  </div>
-                )}
+        <>
+          <section className="card bud-summary" aria-label={`Resumo de ${month}`}>
+            {summary.limitedCount === 0 ? (
+              <div className="bud-summary-empty">
+                <p className="bud-summary-empty-title">Nenhum limite em {month}.</p>
+                <p className="bud-summary-empty-sub">Defina um limite nas categorias abaixo ou traga os do mês anterior.</p>
               </div>
-            );
-          })}
-        </div>
+            ) : (
+              <>
+                <div className="bud-total">
+                  <span className="bud-k">Usado no mês</span>
+                  <span className="bud-total-v">
+                    <span className="bud-total-spent">{R$(summary.spent)}</span>
+                    <span className="bud-of">de {R$(summary.limit)}</span>
+                  </span>
+                  <PlanBar
+                    ratio={summary.ratio}
+                    status={statusOf(summary.spent, summary.limit)}
+                    label={`${pctLabel(summary.ratio)} do total dos limites`}
+                  />
+                </div>
+                <dl className="bud-stats">
+                  <div className="bud-stat">
+                    <dt className="bud-k">{summary.left >= 0 ? 'Disponível' : 'Acima do total'}</dt>
+                    <dd className={`bud-v${summary.left < 0 ? ' bud-over-text' : ''}`}>{R$(Math.abs(summary.left))}</dd>
+                  </div>
+                  <div className="bud-stat">
+                    <dt className="bud-k">Acima do limite</dt>
+                    <dd className={`bud-v${summary.overCount ? ' bud-over-text' : ''}`}>
+                      {plural(summary.overCount, 'categoria', 'categorias')}
+                    </dd>
+                  </div>
+                  <div className="bud-stat">
+                    <dt className="bud-k">Perto do limite</dt>
+                    <dd className="bud-v">{plural(summary.nearCount, 'categoria', 'categorias')}</dd>
+                  </div>
+                </dl>
+              </>
+            )}
+          </section>
+
+          {rows.limited.length > 0 && (
+            <section className="card bud-list" aria-labelledby="bud-limited-title">
+              <div className="bud-list-head">
+                <h3 id="bud-limited-title" className="bud-list-title">Com limite</h3>
+                <span className="bud-list-count">{plural(rows.limited.length, 'categoria', 'categorias')}</span>
+              </div>
+              <ul className="bud-rows">
+                {rows.limited.map(r => <BudgetRow key={r.cat.id} {...rowProps(r)} />)}
+              </ul>
+            </section>
+          )}
+
+          {rows.free.length > 0 && (
+            <section className="card bud-list" aria-labelledby="bud-free-title">
+              <div className="bud-list-head">
+                <h3 id="bud-free-title" className="bud-list-title">Sem limite</h3>
+                <span className="bud-list-count">{plural(rows.free.length, 'categoria', 'categorias')}</span>
+              </div>
+              <ul className="bud-rows bud-rows-free">
+                {rows.free.map(r => <BudgetRow key={r.cat.id} {...rowProps(r)} />)}
+              </ul>
+            </section>
+          )}
+        </>
+      )}
+      {copy && (
+        <CopyPreviousModal
+          fromLabel={prevMonthName}
+          toLabel={month}
+          state={copy}
+          onConfirm={confirmCopy}
+          onClose={() => setCopy(null)}
+        />
       )}
     </div>
   );

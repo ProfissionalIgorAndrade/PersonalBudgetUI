@@ -117,9 +117,9 @@ describe('catalog', () => {
     ['👨‍👩‍👧‍👦', '👩‍👧', '🧑‍🧑‍🧒', '👪'].forEach(e => expect(supportsTone(e)).toBe(false));
   });
 
-  it('uses 👫 (single code point) for the Família nav icon', () => {
-    const icon = NAV.find(n => n.id === 'members').icon;
-    expect(icon).toBe('\u{1F46B}');
+  it('uses 🏡 (single code point) for the Meu Lar nav icon, home of Família', () => {
+    const icon = NAV.find(n => n.id === 'household').icon;
+    expect(icon).toBe('\u{1F3E1}');
     expect(Array.from(icon)).toHaveLength(1);
   });
 });

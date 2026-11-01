@@ -17,16 +17,12 @@ import Toast                 from './presentation/shared/components/Toast';
 import LoadingOverlay        from './presentation/shared/components/LoadingOverlay';
 import AuthView              from './presentation/auth/AuthView';
 import DashboardView         from './presentation/dashboard/DashboardView';
-import HealthView            from './presentation/health/HealthView';
 import TransactionsView      from './presentation/transactions/TransactionsView';
 import CardsView             from './presentation/cards/CardsView';
 import AccountsView          from './presentation/accounts/AccountsView';
 import SavingsView           from './presentation/savings/SavingsView';
-import MembersView           from './presentation/members/MembersView';
-import CategoriesView        from './presentation/categories/CategoriesView';
-import ProfileView           from './presentation/profile/ProfileView';
-import SimulatorView         from './presentation/simulator/SimulatorView';
-import BudgetView            from './presentation/budget/BudgetView';
+import HouseholdView         from './presentation/household/HouseholdView';
+import PlanningView          from './presentation/planning/PlanningView';
 
 const pageVariants = {
   initial: { opacity: 0, y: 14 },
@@ -45,10 +41,10 @@ export default function App() {
     txOps, accOps, catOps, cardOps, mbrOps, budgetOps,
   } = useAppData(notify);
 
-  const [view,        setView]        = useHashView('dashboard');
+  const [view, setView, section]      = useHashView('dashboard');
   const [theme,       setTheme]       = useLocalStorage('pb_theme', 'dark');
   const [activeMonth, setActiveMonth] = useLocalStorage('pb_active_month', curMonth());
-  const [profile]                     = useLocalStorage('pb_profile', {});
+  const [profile,     setProfile]     = useLocalStorage('pb_profile', {});
   // Gaveta de navegação das telas estreitas; no desktop a sidebar é fixa.
   const [menuOpen,    setMenuOpen]    = useState(false);
 
@@ -96,8 +92,11 @@ export default function App() {
 
   const views = {
     dashboard:    <DashboardView    data={data} setView={setView} activeMonth={activeMonth} setActiveMonth={setActiveMonth} theme={theme} loadBudgets={loadBudgets} />,
-    health:       <HealthView       data={data} savingsTransactions={savingsTransactions} accounts={accounts}
-                                    activeMonth={activeMonth} setActiveMonth={setActiveMonth} theme={theme} />,
+    planning:     <PlanningView     section={section} onSection={(s) => setView('planning', s)}
+                                    data={data} savingsTransactions={savingsTransactions} theme={theme}
+                                    activeMonth={activeMonth} setActiveMonth={setActiveMonth}
+                                    budgets={budgets} loadBudgets={loadBudgets} budgetOps={budgetOps}
+                                    authSession={authSession} notify={notify} />,
     transactions: <TransactionsView data={data} {...txOps} activeMonth={activeMonth} setActiveMonth={setActiveMonth}
                                     onImportStatement={txOps.onImportStatement} />,
     cards:        <CardsView        cards={cards} members={members} transactions={transactions} categories={categories} accounts={accounts}
@@ -114,18 +113,17 @@ export default function App() {
                                     onCreateBox={accOps.onCreateSavingsBox} onRenameBox={accOps.onRenameSavingsBox}
                                     onSetGoal={accOps.onSetSavingsGoal} onDeleteBox={accOps.onDeleteSavingsBox}
                                     onMove={accOps.onMoveSavings} notify={notify} />,
-    members:      <MembersView      members={members} {...mbrOps} notify={notify} onLogout={handleLogout} />,
-    categories:   <CategoriesView   categories={categories} {...catOps} />,
-    profile:      <ProfileView      authSession={authSession} notify={notify} />,
-    simulator:    <SimulatorView    transactions={data.transactions} members={members} authSession={authSession} theme={theme} />,
-    budgets:      <BudgetView       budgets={budgets} categories={categories} activeMonth={activeMonth} setActiveMonth={setActiveMonth} loadBudgets={loadBudgets} budgetOps={budgetOps} />,
+    household:    <HouseholdView    section={section} onSection={(s) => setView('household', s)}
+                                    profile={profile} onProfileChange={setProfile} authSession={authSession}
+                                    members={members} mbrOps={mbrOps} categories={categories} catOps={catOps}
+                                    notify={notify} onLogout={handleLogout} />,
   };
 
   return (
     <div className="layout">
       <MobileTopBar view={view} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(o => !o)} />
       <Sidebar
-        view={view} setView={setView}
+        view={view} section={section} setView={setView}
         theme={theme} setTheme={setTheme}
         profile={profile}
         authSession={authSession}

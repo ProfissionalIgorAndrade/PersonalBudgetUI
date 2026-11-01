@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useSimulator, HORIZONS } from '../../application/hooks/useSimulator';
 import { localToday } from '../../core/utils/simulatorMath';
 import Modal from '../shared/components/Modal';
+import PanelHeader from '../shared/components/PanelHeader';
 import { HlCard, HlEmpty, HlToggle } from '../health/widgets/HlParts';
 import { composeMonthly, buildVerdict, assignSimColors } from './logic/compose';
 import { buildMonthlyBaseline } from './logic/baseline';
@@ -24,12 +25,21 @@ const NO_MEMBERS = [];
  * por cima. Só as simulações usam a rede; o cálculo é no cliente.
  * O primeiro mês do horizonte é o mês atual (data local).
  */
-export default function SimulatorView({ transactions = NO_TRANSACTIONS, members = NO_MEMBERS, authSession = null }) {
+export default function SimulatorView({ transactions = NO_TRANSACTIONS, members = NO_MEMBERS, authSession = null, titleId }) {
+  const sim = useSimulator({ userId: authSession?.userId });
+  return <SimulatorScreen sim={sim} transactions={transactions} members={members} titleId={titleId} />;
+}
+
+/**
+ * A tela em si, recebendo o resultado de `useSimulator`: o Planejamento chama
+ * o hook uma vez e usa as mesmas simulações no resumo do sub-menu.
+ */
+export function SimulatorScreen({ sim, transactions = NO_TRANSACTIONS, members = NO_MEMBERS, titleId = 'hh-simulator-title' }) {
   const {
     simulations, months, setMonths, loading, error, retry, saving, actionError, dismissActionError,
     addSimulation, editSimulation, removeSimulation, removeMine, toggleSimulation, limitReached, ownedCount,
     legacyCount, importing, importError, importLegacy, dismissImport,
-  } = useSimulator({ userId: authSession?.userId });
+  } = sim;
 
   const [mode, setMode] = useState('chart');     // 'chart' | 'table'
   const [form, setForm] = useState(null);           // null | { editing: sim|null }
@@ -74,28 +84,23 @@ export default function SimulatorView({ transactions = NO_TRANSACTIONS, members 
 
   return (
     <div className="wi-root hl-root">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">E se...?</h1>
-          <p className="page-sub">
-            Veja, mês a mês, se o caixa fecha no verde ao assumir uma compra, renda ou gasto novo. Nenhum lançamento é alterado.
-            {' '}As simulações são compartilhadas com a família.
-          </p>
+      <PanelHeader
+        id={titleId}
+        title="E se...?"
+        sub="Veja, mês a mês, se o caixa fecha no verde ao assumir uma compra, renda ou gasto novo. Nenhum lançamento é alterado. As simulações são compartilhadas com a família."
+      >
+        <div className="seg" role="group" aria-label="Horizonte da projeção">
+          {HORIZONS.map((m) => (
+            <button key={m} type="button" aria-pressed={months === m} onClick={() => setMonths(m)}>
+              {horizonLabel(m)}
+            </button>
+          ))}
         </div>
-        <div className="wi-header-actions">
-          <div className="seg" role="group" aria-label="Horizonte da projeção">
-            {HORIZONS.map((m) => (
-              <button key={m} type="button" aria-pressed={months === m} onClick={() => setMonths(m)}>
-                {horizonLabel(m)}
-              </button>
-            ))}
-          </div>
-          <button type="button" className="btn btn-primary" onClick={openAdd} disabled={limitReached || blocked || saving}>+ Nova simulação</button>
-          <button type="button" className="btn btn-secondary" onClick={() => setConfirmClear(true)} disabled={ownedCount === 0 || saving}>
-            Remover minhas simulações
-          </button>
-        </div>
-      </div>
+        <button type="button" className="btn btn-primary" onClick={openAdd} disabled={limitReached || blocked || saving}>+ Nova simulação</button>
+        <button type="button" className="btn btn-secondary" onClick={() => setConfirmClear(true)} disabled={ownedCount === 0 || saving}>
+          Remover minhas simulações
+        </button>
+      </PanelHeader>
 
       {loading && <p className="wi-state" role="status">Carregando simulações...</p>}
       {!loading && error && (

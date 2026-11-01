@@ -5,12 +5,13 @@ import { NAV } from '../../../core/constants';
  * `open` e `onClose` só importam em telas estreitas, onde a sidebar vira uma
  * gaveta (mobile.css): escolher um destino fecha a gaveta.
  */
-export default function Sidebar({ view, setView, theme, setTheme, profile = {}, authSession = {}, onLogout, open = false, onClose }) {
+export default function Sidebar({ view, section = null, setView, theme, setTheme, profile = {}, authSession = {}, onLogout, open = false, onClose }) {
   const displayName = profile.nickname || profile.firstName || authSession.displayName || authSession.firstName || 'Usuário';
   const initials    = displayName.slice(0, 2).toUpperCase();
   const email       = profile.email || authSession.email || '';
 
   const go = (id) => { setView(id); onClose?.(); };
+  const onProfile = view === 'household' && section === 'profile';
 
   return (
     <aside id="app-sidebar" className={`sidebar${open ? ' open' : ''}`}>
@@ -30,8 +31,8 @@ export default function Sidebar({ view, setView, theme, setTheme, profile = {}, 
       ))}
 
       <div style={{ marginTop: 'auto', paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 5 }}>
-        <button onClick={() => go('profile')} className={`sidebar-profile-btn${view === 'profile' ? ' active' : ''}`}>
-          {view === 'profile' && <div className="sidebar-active-bar" />}
+        <button onClick={() => go('profile')} className={`sidebar-profile-btn${onProfile ? ' active' : ''}`}>
+          {onProfile && <div className="sidebar-active-bar" />}
           <div className="sidebar-avatar">{initials}</div>
           <div className="sidebar-user-info">
             <span className="sidebar-user-name">{displayName}</span>

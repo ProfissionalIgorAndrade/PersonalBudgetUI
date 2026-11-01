@@ -7,10 +7,11 @@ import MemberSection from './components/MemberSection';
 import MemberForm from './components/MemberForm';
 import InvitePanel from './components/InvitePanel';
 import DeleteMemberModal from './components/DeleteMemberModal';
+import PanelHeader from '../shared/components/PanelHeader';
 
 const hasLogin = (m) => m?.userId != null && m.userId !== '';
 
-export default function MembersView({ members, onAdd, onEdit, onDeleteProfile, notify, onLogout }) {
+export default function MembersView({ members, onAdd, onEdit, onDeleteProfile, notify, onLogout, titleId = 'hh-family-title' }) {
   const [showForm, setShowForm]         = useState(false);
   const [f, setF]                       = useState({});
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -59,15 +60,13 @@ export default function MembersView({ members, onAdd, onEdit, onDeleteProfile, n
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Membros da Família</h1>
-          <p className="page-sub">
-            {nUsers} {nUsers === 1 ? 'usuário' : 'usuários'} com conta · {nProfiles} {nProfiles === 1 ? 'membro' : 'membros'} (perfis)
-          </p>
-        </div>
-        <button className="btn btn-primary" onClick={openNew}>+ Adicionar Membro</button>
-      </div>
+      <PanelHeader
+        id={titleId}
+        title="Família"
+        sub={`${nUsers} ${nUsers === 1 ? 'usuário' : 'usuários'} com conta · ${nProfiles} ${nProfiles === 1 ? 'membro' : 'membros'} (perfis)`}
+      >
+        <button type="button" className="btn btn-primary" onClick={openNew}>+ Adicionar membro</button>
+      </PanelHeader>
 
       <div className="mbr-layout">
         <div className="mbr-main">

@@ -53,7 +53,7 @@ const view = (props = {}) => render(<SimulatorView transactions={TRANSACTIONS} {
 describe('SimulatorView: uma página', () => {
   it('título, horizontes 1, 3, 6, 12 e 24, e a ordem: veredito, simulações, mês a mês, como calculamos', () => {
     const { container } = view();
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('E se...?');
+    expect(screen.getByRole('heading', { level: 2, name: 'E se...?' })).toBeTruthy();
     const seg = screen.getByRole('group', { name: 'Horizonte da projeção' });
     expect(within(seg).getAllByRole('button').map((b) => b.textContent)).toEqual(['1 mês', '3 meses', '6 meses', '12 meses', '24 meses']);
     expect(within(seg).getByText('6 meses').getAttribute('aria-pressed')).toBe('true');

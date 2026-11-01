@@ -11,7 +11,7 @@ const STATES_BR = [
 function Section({ title, children }) {
   return (
     <div style={{ marginBottom: 28 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 1.4, paddingBottom: 10, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>{title}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 1.2, paddingBottom: 10, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>{title}</div>
       {children}
     </div>
   );
@@ -20,8 +20,8 @@ function Section({ title, children }) {
 function Field({ label, value }) {
   return (
     <div>
-      <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: value ? 'var(--text)' : 'var(--muted)' }}>{value || '—'}</div>
+      <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: value ? 'var(--text)' : 'var(--muted)' }}>{value || '—'}</div>
     </div>
   );
 }

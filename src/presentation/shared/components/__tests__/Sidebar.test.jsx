@@ -42,6 +42,30 @@ describe('Sidebar as a mobile drawer', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('marks the profile button only on the profile section of Meu Lar', () => {
+    const { container, rerender } = renderSidebar({ view: 'household', section: 'profile', authSession: { displayName: 'Igor' } });
+    expect(container.querySelector('.sidebar-profile-btn').classList.contains('active')).toBe(true);
+    rerender(<Sidebar view="household" section="family" setView={() => {}} theme="dark" setTheme={() => {}} authSession={{ displayName: 'Igor' }} />);
+    expect(container.querySelector('.sidebar-profile-btn').classList.contains('active')).toBe(false);
+  });
+
+  it('lists Meu Lar instead of separate Categorias and Família items', () => {
+    renderSidebar();
+    expect(screen.getByText('Meu Lar')).toBeTruthy();
+    expect(screen.queryByText('Categorias')).toBeNull();
+    expect(screen.queryByText('Família')).toBeNull();
+  });
+
+  it('lists Planejamento instead of Saúde Financeira, Orçamentos and E se...?', () => {
+    const setView = vi.fn();
+    renderSidebar({ setView });
+    fireEvent.click(screen.getByText('Planejamento'));
+    expect(setView).toHaveBeenCalledWith('planning');
+    expect(screen.queryByText('Saúde Financeira')).toBeNull();
+    expect(screen.queryByText('Orçamentos')).toBeNull();
+    expect(screen.queryByText('E se...?')).toBeNull();
+  });
+
   it('still navigates without an onClose handler', () => {
     const setView = vi.fn();
     renderSidebar({ setView });
@@ -57,9 +81,9 @@ describe('MobileTopBar', () => {
     expect(screen.getByLabelText('Abrir menu').getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('names the profile screen, which is not in the navigation list', () => {
-    render(<MobileTopBar view="profile" menuOpen={false} onToggleMenu={() => {}} />);
-    expect(screen.getByText('Meu Perfil')).toBeTruthy();
+  it('names Meu Lar, where profile, family and categories now live', () => {
+    render(<MobileTopBar view="household" menuOpen={false} onToggleMenu={() => {}} />);
+    expect(screen.getByText('Meu Lar')).toBeTruthy();
   });
 
   it('toggles the menu and reflects the open state', () => {
