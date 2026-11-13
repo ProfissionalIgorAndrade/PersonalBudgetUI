@@ -69,8 +69,8 @@ describe('helpers de rótulo', () => {
     expect(n(signedMoney(5))).toBe('+R$ 5,00');
     expect(n(signedMoney(0))).toBe('R$ 0,00');
   });
-  it('um só MODE_LABEL com as três modalidades', () => {
-    expect(MODE_LABEL).toEqual({ Single: 'Única', Installment: 'Parcelada', Monthly: 'Mensal' });
+  it('um só MODE_LABEL com as quatro modalidades', () => {
+    expect(MODE_LABEL).toEqual({ Single: 'Única', Installment: 'Parcelada', Monthly: 'Mensal', CardPayoff: 'Quitação de cartão' });
   });
 });
 

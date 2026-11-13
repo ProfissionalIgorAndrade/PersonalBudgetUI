@@ -826,3 +826,26 @@
 @media (prefers-reduced-motion: reduce) {
   .wf-switch-thumb, .wf-svg-seg, .wf-cs-bar { transition: none; }
 }
+
+/* ─── Editar e excluir no cartão da simulação ──────────────────── */
+.wf-card-actions { margin-left: auto; display: inline-flex; gap: 6px; align-self: center; }
+.wf-card-actions .wf-icon-btn { width: 30px; height: 30px; color: var(--text-2); }
+.wf-card-actions .wf-icon-btn:hover:not(:disabled) { color: var(--text); }
+.wf-icon-btn.is-danger:hover:not(:disabled) { color: var(--red); border-color: color-mix(in srgb, var(--red) 55%, var(--border)); }
+.wf-icon-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.wf-card-lock { color: var(--text-2); width: 30px; height: 30px; justify-content: center; align-items: center; }
+
+/* ─── Quitar parcelas do cartão (painel) ───────────────────────── */
+.wf-cards-pick { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
+.wf-cards-pick-list { list-style: none; margin: 0; padding: 0 0 0 4px; display: grid; gap: 6px; }
+.wf-card-swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--c); flex: none; }
+.wf-payoff {
+  display: grid; gap: 6px; padding: 12px; border-radius: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.wf-payoff-total { font-size: 14px; }
+.wf-payoff-total strong { font-weight: 600; }
+.wf-payoff-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 13px; color: var(--text-2); }
+
+/* Efeito zero no período (ex.: quitação que só antecipa): sem cor de ganho ou perda. */
+.wf-card .wf-card-amount.is-zero, [data-theme="light"] .wf-card .wf-card-amount.is-zero { color: var(--text-2); }

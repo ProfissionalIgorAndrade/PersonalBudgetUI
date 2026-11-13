@@ -5,6 +5,8 @@ import { validateSimulationForm } from '../../simulator/components/SimulationFor
 import { previewText, signedMoney } from '../../simulator/logic/labels';
 import { MAX_DESCRIPTION, MAX_INSTALLMENTS, MAX_MONTHLY_DURATION, MAX_SIMULATIONS } from '../../../core/utils/simulatorStorage';
 import { INTENTS, intentById, intentOf, modeFor } from '../logic/intents';
+import { payoffDefaultName } from '../../simulator/logic/payoff';
+import { shortMonth } from '../../simulator/logic/labels';
 
 const INTENT_HINT = {
   'buy': 'Sai tudo em um mês',
@@ -12,26 +14,34 @@ const INTENT_HINT = {
   'sell': 'Entra de uma vez ou em parcelas',
   'new-expense': 'Assinatura, escola, aluguel',
   'new-income': 'Aumento, freela, aluguel recebido',
+  'card-payoff': 'Pagar todas as parcelas de uma vez',
 };
 
 const money = (v) => (v < 0 ? `−${R$(-v)}` : R$(v));
 
+/** Quitação nova começa em dezembro do ano corrente: o costume de zerar os cartões no fim do ano. */
+const payoffDefaultMonth = (defaultMonth) => `${defaultMonth.slice(0, 4)}-12`;
+
 function initialForm(editing, defaultMonth, initialIntent) {
   if (!editing) {
     return {
-      intent: initialIntent ?? null, description: '', amount: 0, startMonth: defaultMonth,
+      intent: initialIntent ?? null, description: '', amount: 0,
+      startMonth: initialIntent === 'card-payoff' ? payoffDefaultMonth(defaultMonth) : defaultMonth,
       amountKind: 'Total', installments: '10', months: '', splitSale: false,
+      allCards: true, cardIds: [],
     };
   }
   return {
     intent: intentOf(editing),
     description: editing.description ?? '',
-    amount: editing.amount,
+    amount: editing.mode === 'CardPayoff' ? 0 : editing.amount,
     startMonth: editing.startMonth,
     amountKind: editing.amountKind || 'PerInstallment',
     installments: editing.installments ? String(editing.installments) : '10',
     months: editing.months ? String(editing.months) : '',
     splitSale: editing.type === 'Income' && editing.mode === 'Installment',
+    allCards: !Array.isArray(editing.creditCardIds),
+    cardIds: Array.isArray(editing.creditCardIds) ? editing.creditCardIds : [],
   };
 }
 
@@ -39,6 +49,19 @@ function initialForm(editing, defaultMonth, initialIntent) {
 function toValues(form) {
   const intent = intentById(form.intent);
   const mode = modeFor(form.intent, form.splitSale);
+  if (mode === 'CardPayoff') {
+    return {
+      description: form.description,
+      type: 'Expense',
+      mode,
+      startMonth: form.startMonth,
+      amount: 0,
+      amountKind: 'PerInstallment',
+      installments: '',
+      months: '',
+      creditCardIds: form.allCards ? null : form.cardIds,
+    };
+  }
   return {
     description: form.description,
     type: intent.type,
@@ -52,15 +75,46 @@ function toValues(form) {
 }
 
 /**
+ * Erros do formulário. A quitação não tem valor nem exige descrição (o nome
+ * padrão sai dos cartões); precisa de mês válido e, sem "Todos os cartões",
+ * de ao menos um cartão.
+ */
+export function validateForm(values) {
+  if (values.mode !== 'CardPayoff') return validateSimulationForm(values);
+  const errors = {};
+  const description = values.description.trim();
+  if (description.length > MAX_DESCRIPTION) errors.description = `Use no máximo ${MAX_DESCRIPTION} caracteres.`;
+  const monthError = validateSimulationForm({ ...values, description: 'x', amount: 1 }).startMonth;
+  if (monthError) errors.startMonth = monthError;
+  if (Array.isArray(values.creditCardIds) && values.creditCardIds.length === 0) {
+    errors.cards = 'Escolha ao menos um cartão, ou marque "Todos os cartões".';
+  }
+  return errors;
+}
+
+/**
  * Simulação provisória a partir do formulário, para o quadro mostrar o efeito
  * antes de salvar. Devolve null enquanto valor, mês ou prazo estiverem
  * inválidos; a descrição pode faltar (o quadro chama de "Nova simulação").
  */
 export function draftToSim(values) {
   if (!values) return null;
-  const errors = validateSimulationForm(values);
+  const errors = validateForm(values);
   delete errors.description;
   if (Object.keys(errors).length > 0) return null;
+  if (values.mode === 'CardPayoff') {
+    return {
+      description: values.description.trim(),
+      type: 'Expense',
+      mode: 'CardPayoff',
+      startMonth: values.startMonth,
+      amount: 0,
+      amountKind: 'PerInstallment',
+      installments: null,
+      months: null,
+      creditCardIds: values.creditCardIds,
+    };
+  }
   return {
     description: values.description.trim(),
     type: values.type,
@@ -104,6 +158,7 @@ export function IntentList({ onPick, limitReached }) {
  */
 export default function Composer({
   editing, initialIntent, defaultMonth, before, after, months, limitReached, saving, error,
+  cards = [], draftSchedule = null,
   onChange, onSave, onCancel, onRemove,
 }) {
   const [form, setForm] = useState(() => initialForm(editing, defaultMonth, initialIntent));
@@ -135,23 +190,36 @@ export default function Composer({
   }, []);
 
   const chooseIntent = (id) => {
-    setForm((f) => ({ ...f, intent: id, splitSale: id === 'sell' ? f.splitSale : false }));
+    setForm((f) => ({
+      ...f,
+      intent: id,
+      splitSale: id === 'sell' ? f.splitSale : false,
+      // Quitação nova sugere dezembro; quem já mexeu no mês continua com o mês escolhido.
+      startMonth: id === 'card-payoff' && !editing && f.startMonth === defaultMonth ? payoffDefaultMonth(defaultMonth) : f.startMonth,
+    }));
     setErrors({});
     requestAnimationFrame(() => firstFieldRef.current?.focus());
   };
 
+  const toggleCard = (id, on) => setForm((f) => ({
+    ...f,
+    cardIds: on ? [...f.cardIds.filter((c) => c !== id), id] : f.cardIds.filter((c) => c !== id),
+  }));
+
   const submit = async (e) => {
     e.preventDefault();
     const values = toValues(form);
-    const found = validateSimulationForm(values);
+    const found = validateForm(values);
     setErrors(found);
     if (Object.keys(found).length > 0) {
       requestAnimationFrame(() => formRef.current?.querySelector('[aria-invalid="true"]')?.focus());
       return;
     }
+    const description = values.description.trim()
+      || (values.mode === 'CardPayoff' ? payoffDefaultName(values.creditCardIds, cards) : '');
     await onSave({
       ...values,
-      description: values.description.trim(),
+      description,
       installments: values.mode === 'Installment' ? Number(values.installments) : null,
       months: values.mode === 'Monthly' && values.months !== '' ? Number(values.months) : null,
     });
@@ -181,7 +249,8 @@ export default function Composer({
   const intent = intentById(form.intent);
   const values = toValues(form);
   const mode = values.mode;
-  const preview = previewText(values);
+  const isPayoffForm = mode === 'CardPayoff';
+  const preview = isPayoffForm ? '' : previewText(values);
   const draftReady = Boolean(draftToSim(values));
   const invalid = (k) => (errors[k] ? { 'aria-invalid': 'true', 'aria-describedby': `wf-f-${k}-error` } : {});
   const amountLabel = mode === 'Installment'
@@ -212,10 +281,11 @@ export default function Composer({
       )}
 
       <form ref={formRef} className="wf-form" onSubmit={submit} noValidate>
-        <Field id="description" label="Descrição" error={errors.description}>
+        <Field id="description" label={isPayoffForm ? 'Descrição (opcional)' : 'Descrição'} error={errors.description}>
           <input
             ref={firstFieldRef} id="wf-f-description" className="wf-input" value={form.description}
-            maxLength={MAX_DESCRIPTION} autoComplete="off" placeholder={intent.placeholder}
+            maxLength={MAX_DESCRIPTION} autoComplete="off"
+            placeholder={isPayoffForm ? payoffDefaultName(values.creditCardIds, cards) : intent.placeholder}
             onChange={(e) => set('description', e.target.value)} {...invalid('description')}
           />
         </Field>
@@ -234,6 +304,7 @@ export default function Composer({
           </div>
         )}
 
+        {!isPayoffForm && (
         <div className="wf-form-row">
           <Field id="amount" label={amountLabel} error={errors.amount}>
             <CurrencyInput
@@ -251,6 +322,7 @@ export default function Composer({
             </Field>
           )}
         </div>
+        )}
 
         <div className="wf-form-row">
           <Field id="startMonth" label={intent.monthLabel} error={errors.startMonth}>
@@ -270,6 +342,44 @@ export default function Composer({
             </Field>
           )}
         </div>
+
+        {isPayoffForm && (
+          <fieldset className="wf-cards-pick" aria-describedby={errors.cards ? 'wf-f-cards-error' : undefined}>
+            <legend className="wf-label">Cartões</legend>
+            <label className="wf-check">
+              <input
+                type="checkbox" checked={form.allCards}
+                onChange={(e) => set('allCards', e.target.checked)}
+              />
+              Todos os cartões
+            </label>
+            {!form.allCards && (
+              cards.length === 0 ? (
+                <p className="wf-hint">Nenhum cartão cadastrado no lar.</p>
+              ) : (
+                <ul className="wf-cards-pick-list">
+                  {cards.map((c) => (
+                    <li key={c.id}>
+                      <label className="wf-check">
+                        <input
+                          type="checkbox" checked={form.cardIds.includes(c.id)}
+                          onChange={(e) => toggleCard(c.id, e.target.checked)}
+                          aria-invalid={errors.cards ? 'true' : undefined}
+                        />
+                        <span className="wf-card-swatch" style={{ '--c': c.color || 'var(--text-2)' }} aria-hidden="true" />
+                        {c.name}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )
+            )}
+            {form.allCards && <p className="wf-hint">Inclui cartões cadastrados depois.</p>}
+            {errors.cards && <p className="wf-field-error" id="wf-f-cards-error">{errors.cards}</p>}
+          </fieldset>
+        )}
+
+        {isPayoffForm && draftReady && <PayoffPreview schedule={draftSchedule} startMonth={form.startMonth} />}
 
         {preview && <p className="wf-preview wf-num" aria-live="polite">{preview}</p>}
 
@@ -310,6 +420,40 @@ function Field({ id, label, error, hint, narrow, children }) {
       {children}
       {hint && !error && <p className="wf-hint" id={`wf-f-${id}-hint`}>{hint}</p>}
       {error && <p className="wf-field-error" id={`wf-f-${id}-error`}>{error}</p>}
+    </div>
+  );
+}
+
+const parcelasWord = (n) => `${n} ${n === 1 ? 'parcela' : 'parcelas'}`;
+const monthRange = (a, b) => (a === b ? shortMonth(a) : `${shortMonth(a)} a ${shortMonth(b)}`);
+
+/**
+ * A conta que o casal fazia na mão: quanto sai no mês da quitação e, por
+ * cartão, quantas parcelas, quanto e de qual fatura até qual.
+ */
+function PayoffPreview({ schedule, startMonth }) {
+  const payoff = schedule?.payoff;
+  if (!payoff) return null;
+  const notes = (schedule.warnings || []).filter((w) => w.code !== 'Empty');
+  return (
+    <div className="wf-payoff" aria-live="polite">
+      {payoff.total === 0 ? (
+        <p className="wf-payoff-total">Nenhuma parcela de cartão a quitar depois de {shortMonth(startMonth)}.</p>
+      ) : (
+        <>
+          <p className="wf-payoff-total">
+            Total a pagar em {shortMonth(startMonth)}: <strong className="wf-num">{R$(payoff.total)}</strong>
+          </p>
+          <ul className="wf-payoff-cards">
+            {payoff.cards.map((c) => (
+              <li key={c.cardId} className="wf-num">
+                {c.name} · {parcelasWord(c.count)} · {R$(c.amount)} · {monthRange(c.firstMonth, c.lastMonth)}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {notes.map((w) => <p key={w.code} className="wf-hint">{w.message}</p>)}
     </div>
   );
 }

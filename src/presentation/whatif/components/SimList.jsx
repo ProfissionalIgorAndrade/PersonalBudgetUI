@@ -33,7 +33,7 @@ export function PlusIcon() {
  * lateral da visão por mês.
  */
 export default function SimList({
-  rows, onToggle, onEdit, onSetAll, onCreate, saving, limitReached, ownedCount, onClearMine,
+  rows, onToggle, onEdit, onDelete = () => {}, onSetAll, onCreate, saving, limitReached, ownedCount, onClearMine,
   compact = false, hoverId = null, onHover = () => {},
 }) {
   const saved = rows.filter((r) => r.id !== '__draft');
@@ -61,7 +61,7 @@ export default function SimList({
       <ul className="wf-cards" onMouseLeave={() => onHover(null)}>
         {rows.map((row) => (
           <SimCard
-            key={row.id} row={row} saving={saving} onToggle={onToggle} onEdit={onEdit}
+            key={row.id} row={row} saving={saving} onToggle={onToggle} onEdit={onEdit} onDelete={onDelete}
             dimmed={hoverId !== null && hoverId !== row.id} onHover={onHover}
           />
         ))}
@@ -88,8 +88,8 @@ export default function SimList({
   );
 }
 
-function SimCard({ row, saving, onToggle, onEdit, dimmed, onHover }) {
-  const { sim, name, owner, total, isDraft } = row;
+function SimCard({ row, saving, onToggle, onEdit, onDelete, dimmed, onHover }) {
+  const { sim, name, owner, total, isDraft, schedule } = row;
   const editable = sim.isOwner && !isDraft;
   const kind = sim.type === 'Income' ? 'is-income' : 'is-expense';
   const cls = ['wf-card', kind, sim.enabled ? '' : 'is-off', isDraft ? 'is-draft' : '', dimmed ? 'is-dimmed' : '']
@@ -106,7 +106,7 @@ function SimCard({ row, saving, onToggle, onEdit, dimmed, onHover }) {
         ) : (
           <span className="wf-card-name is-static" title={name}>{name}</span>
         )}
-        <span className="wf-card-when">{simulationSummary(sim)}</span>
+        <span className="wf-card-when">{simulationSummary(sim, schedule)}</span>
       </div>
 
       {isDraft ? (
@@ -125,9 +125,55 @@ function SimCard({ row, saving, onToggle, onEdit, dimmed, onHover }) {
       <p className="wf-card-impact">
         {/* A cor da simulação nos gráficos; desligada, só o contorno. */}
         <span className="wf-card-key" style={{ '--c': simColor(row.slot) }} aria-hidden="true" />
-        <span className="wf-card-amount wf-num">{signedMoney(total)}</span>
+        <span className={`wf-card-amount wf-num${total === 0 ? ' is-zero' : ''}`}>{signedMoney(total)}</span>
         <span className="wf-card-period">{sim.enabled || isDraft ? 'no período' : 'fora da conta'}</span>
+        {editable && (
+          <span className="wf-card-actions">
+            <button
+              type="button" className="wf-icon-btn" onClick={() => onEdit(sim)} disabled={saving}
+              aria-label={`Editar ${name}`} title="Editar"
+            >
+              <EditIcon />
+            </button>
+            <button
+              type="button" className="wf-icon-btn is-danger" onClick={() => onDelete(row)} disabled={saving}
+              aria-label={`Excluir ${name}`} title="Excluir"
+            >
+              <TrashIcon />
+            </button>
+          </span>
+        )}
+        {!sim.isOwner && !isDraft && (
+          <span className="wf-card-actions wf-card-lock" role="img" aria-label={`Criada por ${owner.name}; só quem criou edita`} title={`Criada por ${owner.name}; só quem criou edita`}>
+            <LockIcon />
+          </span>
+        )}
       </p>
     </li>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M10.5 2.5l3 3L5 14H2v-3l8.5-8.5z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.5 6.5v5M9.5 6.5v5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="3" y="7" width="10" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5.5 7V5a2.5 2.5 0 015 0v2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
   );
 }

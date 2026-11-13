@@ -29,7 +29,7 @@ export default function PlanningView({
   budgets = [], loadBudgets, budgetOps,
   authSession = null, notify,
 }) {
-  const { transactions = [], accounts = [], categories = [], members = [] } = data;
+  const { transactions = [], accounts = [], categories = [], members = [], cards = [] } = data;
   const month = activeMonth || curMonth();
   const sim = useSimulator({ userId: authSession?.userId });
 
@@ -77,7 +77,7 @@ export default function PlanningView({
         : `${plural(total, 'simulação', 'simulações')} · ${plural(enabled, 'ligada', 'ligadas')}`,
       short: total === 0 ? 'Simular' : plural(enabled, 'ligada', 'ligadas'),
       media: <Figure value={sim.loading ? '…' : enabled} tone={enabled > 0 ? 'accent' : 'neutral'} />,
-      render: () => <WhatIfScreen sim={sim} transactions={transactions} members={members} />,
+      render: () => <WhatIfScreen sim={sim} transactions={transactions} members={members} cards={cards} />,
     },
   ];
 

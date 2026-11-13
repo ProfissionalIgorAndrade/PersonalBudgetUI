@@ -5,7 +5,7 @@ import {
 } from '../../data/repositories/simulationRepository';
 import { getHouseholdId } from '../../data/http/client';
 import {
-  loadSimulations, sanitizeSimulation, MAX_SIMULATIONS,
+  loadSimulations, sanitizeSimulation, MAX_SIMULATIONS, MAX_DESCRIPTION,
 } from '../../core/utils/simulatorStorage';
 import {
   loadEnabledMap, saveEnabledMap, mergeEnabled, pruneEnabled, toggleEnabled,
@@ -19,20 +19,52 @@ export const DEFAULT_HORIZON = 6;
 
 const INVALID_MESSAGE = 'Confira os dados da simulação.';
 
-/** Formato do corpo da API a partir dos campos do formulário. */
-const normalize = (data) => ({
-  description: data.description.trim(),
-  type: data.type,
-  mode: data.mode,
-  startMonth: data.startMonth,
-  amount: round2(data.amount),
-  amountKind: data.mode === 'Installment' ? data.amountKind : 'PerInstallment',
-  installments: data.mode === 'Installment' ? Number(data.installments) : null,
-  months: data.mode === 'Monthly' && data.months ? Number(data.months) : null,
-});
+/**
+ * Formato do corpo da API a partir dos campos do formulário. A quitação de
+ * cartão não tem valor (o cliente calcula a partir das parcelas): vai só o mês
+ * e os cartões (`creditCardIds` null = todos).
+ */
+const normalize = (data) => {
+  if (data.mode === 'CardPayoff') {
+    return {
+      description: data.description.trim(),
+      type: 'Expense',
+      mode: 'CardPayoff',
+      startMonth: data.startMonth,
+      amount: 0,
+      amountKind: 'PerInstallment',
+      installments: null,
+      months: null,
+      creditCardIds: Array.isArray(data.creditCardIds) ? [...data.creditCardIds] : null,
+    };
+  }
+  return {
+    description: data.description.trim(),
+    type: data.type,
+    mode: data.mode,
+    startMonth: data.startMonth,
+    amount: round2(data.amount),
+    amountKind: data.mode === 'Installment' ? data.amountKind : 'PerInstallment',
+    installments: data.mode === 'Installment' ? Number(data.installments) : null,
+    months: data.mode === 'Monthly' && data.months ? Number(data.months) : null,
+  };
+};
+
+const MONTH_RE = /^\d{4}-\d{2}$/;
+const MAX_PAYOFF_CARDS = 50;
+
+/** Mesmos limites do servidor para a quitação: mês válido e, se houver lista, de 1 a 50 cartões distintos. */
+const isValidPayoff = (body) => {
+  if (body.description.length > MAX_DESCRIPTION || !MONTH_RE.test(body.startMonth || '')) return false;
+  const ids = body.creditCardIds;
+  if (ids === null) return true;
+  return ids.length > 0 && ids.length <= MAX_PAYOFF_CARDS && new Set(ids).size === ids.length && ids.every(Boolean);
+};
 
 /** Mesmos limites do servidor, checados antes de enviar. */
-const isValidBody = (body) => sanitizeSimulation({ ...body, id: 'x' }) !== null;
+const isValidBody = (body) => (
+  body.mode === 'CardPayoff' ? isValidPayoff(body) : sanitizeSimulation({ ...body, id: 'x' }) !== null
+);
 
 /**
  * Estado do "E se...?" compartilhado pela família.
