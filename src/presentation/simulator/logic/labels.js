@@ -3,7 +3,7 @@ import { installmentBreakdown } from '../../../core/utils/simulatorMath';
 import { findMember } from '../../../application/mappers/index';
 
 /** Único rótulo de modalidade da tela (formulário, lista e tabelas). */
-export const MODE_LABEL = { Single: 'Única', Installment: 'Parcelada', Monthly: 'Mensal' };
+export const MODE_LABEL = { Single: 'Única', Installment: 'Parcelada', Monthly: 'Mensal', CardPayoff: 'Quitação de cartão' };
 export const TYPE_LABEL = { Income: 'Receita', Expense: 'Despesa' };
 export const TYPE_ICON = { Income: '📥', Expense: '📤' };
 
@@ -81,9 +81,19 @@ export function previewText(form) {
 /** Nome do cartão: a descrição, ou "Simulação N" (N = posição na lista, a partir de 1). */
 export const simulationName = (sim, index) => (sim.description?.trim() || `Simulação ${index + 1}`);
 
-/** Frase curta da parcela no cartão: "R$ 150,00/mês de mar/26 a fev/27". */
-export function simulationSummary(sim) {
+/**
+ * Frase curta da parcela no cartão: "R$ 150,00/mês de mar/26 a fev/27".
+ * Quitação de cartão: "R$ 1.700,00 hoje, pagos em dez/26" (o valor vem do
+ * `schedule`, calculado a partir dos lançamentos atuais).
+ */
+export function simulationSummary(sim, schedule) {
   const start = shortMonth(sim.startMonth);
+  if (sim.mode === 'CardPayoff') {
+    const total = schedule?.payoff?.total;
+    if (total === undefined) return `Quitação em ${start}`;
+    if (total === 0) return `Nenhuma parcela a quitar depois de ${start}`;
+    return `${R$(total)} hoje, pagos em ${start}`;
+  }
   if (sim.mode === 'Installment') {
     const b = installmentBreakdown(sim);
     if (!b) return '';

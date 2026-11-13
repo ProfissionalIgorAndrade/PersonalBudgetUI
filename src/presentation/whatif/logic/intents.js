@@ -1,7 +1,8 @@
 /**
  * Atalhos por intenção do "E se...?" novo. Cada um é só um jeito de preencher
  * tipo e modalidade da mesma simulação que o servidor já aceita
- * (Income/Expense × Single/Installment/Monthly): nada muda no back-end.
+ * (Income/Expense × Single/Installment/Monthly, mais CardPayoff, a quitação
+ * das parcelas de cartão, que só guarda o mês e os cartões).
  */
 export const INTENTS = [
   {
@@ -44,6 +45,14 @@ export const INTENTS = [
     monthLabel: 'A partir de',
     placeholder: 'Ex.: Aumento de salário',
   },
+  {
+    id: 'card-payoff',
+    label: 'Quitar parcelas do cartão',
+    type: 'Expense', mode: 'CardPayoff',
+    amountLabel: 'Total a pagar',
+    monthLabel: 'Mês da quitação',
+    placeholder: 'Ex.: Zerar os cartões no fim do ano',
+  },
 ];
 
 const BY_ID = new Map(INTENTS.map((i) => [i.id, i]));
@@ -55,6 +64,7 @@ export const intentById = (id) => BY_ID.get(id) ?? INTENTS[0];
  * não tem atalho próprio: é "Vender algo" com "recebo em parcelas" ligado.
  */
 export function intentOf(sim) {
+  if (sim.mode === 'CardPayoff') return 'card-payoff';
   if (sim.type === 'Income') return sim.mode === 'Monthly' ? 'new-income' : 'sell';
   if (sim.mode === 'Installment') return 'buy-installments';
   if (sim.mode === 'Monthly') return 'new-expense';

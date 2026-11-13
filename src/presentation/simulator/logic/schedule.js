@@ -1,5 +1,6 @@
 import { toCents, fromCents, installmentBreakdown } from '../../../core/utils/simulatorMath';
 import { addMonths, shortMonth } from './labels';
+import { isPayoff, buildPayoffSchedule } from './payoff';
 
 /**
  * Posiciona cada simulação na linha do tempo do horizonte. Porte fiel do
@@ -32,7 +33,8 @@ export const monthsUntil = (a, b) => ordinal(b) - ordinal(a);
  *   installmentAmount, lastInstallmentAmount, installmentsInHorizon, installmentsTotal,
  *   warnings: {impactId, code, message}[]}}
  */
-export function buildSchedule(sim, firstMonth, horizon) {
+export function buildSchedule(sim, firstMonth, horizon, ctx = {}) {
+  if (isPayoff(sim)) return buildPayoffSchedule(sim, firstMonth, horizon, ctx);
   const horizonEnd = addMonths(firstMonth, horizon - 1);
   const sign = sim.type === 'Income' ? 1 : -1;
   const isInstallment = sim.mode === 'Installment';
@@ -108,6 +110,34 @@ export function buildSchedule(sim, firstMonth, horizon) {
   };
 }
 
-/** Um schedule por simulação (ligada ou não), na ordem da lista. */
-export const buildSchedules = (simulations, firstMonth, horizon) =>
-  simulations.map((s) => buildSchedule(s, firstMonth, horizon));
+/**
+ * Um schedule por simulação (ligada ou não), na ordem da lista.
+ *
+ * Quitações de cartão (`CardPayoff`) dependem dos lançamentos e dos cartões
+ * (`ctx`) e umas das outras: uma parcela coberta por duas quitações LIGADAS
+ * conta uma vez só, para a de mês mais cedo (empate: a que vem antes na lista,
+ * que é a criada primeiro). Uma quitação desligada não reivindica nada, então
+ * desligar a primeira faz a seguinte assumir as parcelas.
+ *
+ * @param {{transactions?: Array, cards?: Array}} ctx
+ */
+export function buildSchedules(simulations, firstMonth, horizon, ctx = {}) {
+  const out = new Array(simulations.length);
+
+  const payoffs = simulations
+    .map((s, i) => ({ s, i }))
+    .filter(({ s }) => isPayoff(s))
+    .sort((a, b) => (a.s.startMonth === b.s.startMonth ? a.i - b.i : (a.s.startMonth < b.s.startMonth ? -1 : 1)));
+
+  const claimed = new Set();
+  for (const { s, i } of payoffs) {
+    const schedule = buildPayoffSchedule(s, firstMonth, horizon, ctx, claimed);
+    if (s.enabled !== false) schedule.payoff.rowIds.forEach((id) => claimed.add(id));
+    out[i] = schedule;
+  }
+
+  simulations.forEach((s, i) => {
+    if (!out[i]) out[i] = buildSchedule(s, firstMonth, horizon);
+  });
+  return out;
+}
