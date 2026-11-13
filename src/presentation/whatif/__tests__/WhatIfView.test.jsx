@@ -148,3 +148,167 @@ describe('WhatIfView: dados do back-end', () => {
     expect(calls.filter((c) => c.method === 'GET').length).toBeGreaterThan(1);
   });
 });
+
+/** Servidor com estado: POST e DELETE mudam o que o próximo GET devolve. */
+function statefulServer(initial, { failDelete = false } = {}) {
+  let list = initial.map((s) => ({ ...s }));
+  global.fetch = vi.fn(async (url, opts = {}) => {
+    const method = opts.method || 'GET';
+    const body = opts.body ? JSON.parse(opts.body) : null;
+    calls.push({ url, method, body });
+    const id = url.split('/').pop();
+    if (method === 'GET') return json(list);
+    if (method === 'DELETE') {
+      if (failDelete) {
+        return new Response(JSON.stringify({ success: false, message: 'Simulação não pertence ao usuário.' }), { status: 400 });
+      }
+      list = list.filter((s) => s.id !== id);
+      return json(null);
+    }
+    if (method === 'POST') {
+      list = [...list, { ...body, id: 'novo', ownerUserId: 'u1', ownerName: 'Igor', isOwner: true }];
+      return json({ id: 'novo' });
+    }
+    return json(null);
+  });
+}
+
+describe('WhatIfView: editar e excluir pelo cartão', () => {
+  it('só as simulações próprias mostram Editar e Excluir; a de outra pessoa mostra o cadeado', async () => {
+    view();
+    await loaded();
+    expect(screen.getByRole('button', { name: 'Editar Intercâmbio - Passagem' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Excluir Intercâmbio - Passagem' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Editar Compra casa nova' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Excluir Compra casa nova' })).toBeNull();
+    expect(screen.getByRole('img', { name: /Criada por Andreza; só quem criou edita/ })).toBeTruthy();
+  });
+
+  it('Editar abre o painel preenchido com a simulação', async () => {
+    view();
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Intercâmbio - Passagem' }));
+    const panel = screen.getByRole('dialog', { name: 'Editar simulação' });
+    expect(within(panel).getByLabelText('Descrição').value).toBe('Intercâmbio - Passagem');
+    expect(within(panel).getByLabelText('Parcelas').value).toBe('6');
+  });
+
+  it('Excluir pede confirmação com o nome; Cancelar não muda nada', async () => {
+    statefulServer(SERVER_SIMS);
+    view();
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir Intercâmbio - Passagem' }));
+    const modal = screen.getByRole('dialog', { name: 'Excluir "Intercâmbio - Passagem"?' });
+    fireEvent.click(within(modal).getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
+    expect(screen.getAllByText('Intercâmbio - Passagem').length).toBeGreaterThan(0);
+  });
+
+  it('Excluir confirmado faz DELETE e o cartão some', async () => {
+    statefulServer(SERVER_SIMS);
+    view();
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir Intercâmbio - Passagem' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'DELETE')).toBe(true));
+    expect(calls.find((c) => c.method === 'DELETE').url).toMatch(/\/api\/simulations\/a1$/);
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Excluir Intercâmbio - Passagem' })).toBeNull());
+    expect(screen.queryAllByText('Intercâmbio - Passagem')).toHaveLength(0);
+  });
+
+  it('se o servidor recusa a exclusão, o cartão fica e o erro aparece', async () => {
+    statefulServer(SERVER_SIMS, { failDelete: true });
+    view();
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir Intercâmbio - Passagem' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Excluir Intercâmbio - Passagem' })).toBeTruthy();
+  });
+});
+
+describe('WhatIfView: quitar parcelas do cartão', () => {
+  const CARDS = [{ id: 'nu', name: 'Nubank', color: '#8a05be' }, { id: 'it', name: 'Itaú', color: '#ec7000' }];
+  const inst = (id, cardId, ym, amount) => ({
+    id, type: 'expense', amount, recurrence: 'installment', cardId,
+    statementMonth: Number(ym.slice(5)), statementYear: Number(ym.slice(0, 4)), date: `${ym}-01`,
+  });
+  const TX = [
+    ...TRANSACTIONS,
+    inst('n1', 'nu', '2027-01', 500), inst('n2', 'nu', '2027-02', 500),
+    inst('i1', 'it', '2027-01', 200), inst('i2', 'it', '2027-02', 200),
+  ];
+  const payoffView = () => render(
+    <WhatIfView transactions={TX} members={[]} cards={CARDS} authSession={{ userId: 'u1' }} />,
+  );
+  const openPayoff = () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Nova simulação', expanded: false }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Simular algo' })).getByText('Quitar parcelas do cartão'));
+    return screen.getByRole('dialog', { name: 'Quitar parcelas do cartão' });
+  };
+  const norm = (s) => s.replace(/ /g, ' ');
+
+  it('sugere dezembro e mostra a conta de todos os cartões antes de salvar', async () => {
+    statefulServer(SERVER_SIMS);
+    payoffView();
+    await loaded();
+    const panel = openPayoff();
+    expect(within(panel).getByLabelText('Mês da quitação').value).toBe('2026-12');
+    expect(within(panel).getByLabelText('Todos os cartões').checked).toBe(true);
+    const text = norm(panel.textContent);
+    expect(text).toContain('Total a pagar em dez/26: R$ 1.400,00');
+    expect(text).toContain('Itaú · 2 parcelas · R$ 400,00 · jan/27 a fev/27');
+    expect(text).toContain('Nubank · 2 parcelas · R$ 1.000,00 · jan/27 a fev/27');
+  });
+
+  it('desmarcar "Todos" e marcar o Itaú mostra R$ 400,00; salvar faz POST CardPayoff e o cartão aparece', async () => {
+    statefulServer(SERVER_SIMS);
+    payoffView();
+    await loaded();
+    const panel = openPayoff();
+    fireEvent.click(within(panel).getByLabelText('Todos os cartões'));
+    fireEvent.click(within(panel).getByLabelText('Itaú'));
+    expect(norm(panel.textContent)).toContain('Total a pagar em dez/26: R$ 400,00');
+
+    fireEvent.click(within(panel).getByRole('button', { name: 'Salvar simulação' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST')).toBe(true));
+    expect(calls.find((c) => c.method === 'POST').body).toEqual({
+      description: 'Quitar Itaú', type: 'Expense', mode: 'CardPayoff', startMonth: '2026-12',
+      amount: 0, amountKind: 'PerInstallment', installments: null, months: null, creditCardIds: ['it'],
+    });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByRole('button', { name: 'Editar Quitar Itaú' })).toBeTruthy();
+    expect(norm(screen.getByText(/hoje, pagos em dez\/26/).textContent)).toBe('R$ 400,00 hoje, pagos em dez/26');
+  });
+
+  it('sem "Todos" e sem cartão marcado, não salva e explica', async () => {
+    statefulServer(SERVER_SIMS);
+    payoffView();
+    await loaded();
+    const panel = openPayoff();
+    fireEvent.click(within(panel).getByLabelText('Todos os cartões'));
+    fireEvent.click(within(panel).getByRole('button', { name: 'Salvar simulação' }));
+    expect(within(panel).getByText('Escolha ao menos um cartão, ou marque "Todos os cartões".')).toBeTruthy();
+    expect(calls.some((c) => c.method === 'POST')).toBe(false);
+  });
+
+  it('editar uma quitação salva reabre com os cartões escolhidos', async () => {
+    statefulServer([
+      ...SERVER_SIMS,
+      {
+        id: 'q1', description: 'Zerar Nubank', type: 'Expense', mode: 'CardPayoff', startMonth: '2026-12', amount: 0,
+        amountKind: 'PerInstallment', installments: null, months: null, creditCardIds: ['nu'],
+        ownerUserId: 'u1', ownerName: 'Igor', isOwner: true,
+      },
+    ]);
+    payoffView();
+    await loaded();
+    expect(norm(screen.getByText(/hoje, pagos em dez\/26/).textContent)).toBe('R$ 1.000,00 hoje, pagos em dez/26');
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Zerar Nubank' }));
+    const panel = screen.getByRole('dialog', { name: 'Editar simulação' });
+    expect(within(panel).getByLabelText('Todos os cartões').checked).toBe(false);
+    expect(within(panel).getByLabelText('Nubank').checked).toBe(true);
+    expect(within(panel).getByLabelText('Itaú').checked).toBe(false);
+  });
+});

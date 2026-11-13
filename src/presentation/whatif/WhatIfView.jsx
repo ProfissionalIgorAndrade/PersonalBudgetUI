@@ -6,6 +6,7 @@ import { composeMonthly, buildVerdict, assignSimColors } from '../simulator/logi
 import { buildMonthlyBaseline } from '../simulator/logic/baseline';
 import { buildSchedules } from '../simulator/logic/schedule';
 import { simulationName, ownerInfo } from '../simulator/logic/labels';
+import { isPayoff, payoffDefaultName } from '../simulator/logic/payoff';
 import Outlook from './components/Outlook';
 import SimList, { PlusIcon } from './components/SimList';
 import ScenarioTable from './components/ScenarioTable';
@@ -17,6 +18,7 @@ import './whatif.css';
 
 const NO_TRANSACTIONS = [];
 const NO_MEMBERS = [];
+const NO_CARDS = [];
 const DRAFT_ID = '__draft';
 
 const horizonLabel = (m) => (m === 1 ? '1 mês' : `${m} meses`);
@@ -47,9 +49,9 @@ const periodTotal = (monthly = [], months) => months.reduce((acc, m, i) => (m.ha
  * números a um clique.
  * O painel lateral simula por intenção e mostra o efeito antes de salvar.
  */
-export default function WhatIfView({ transactions = NO_TRANSACTIONS, members = NO_MEMBERS, authSession = null, titleId }) {
+export default function WhatIfView({ transactions = NO_TRANSACTIONS, members = NO_MEMBERS, cards = NO_CARDS, authSession = null, titleId }) {
   const sim = useSimulator({ userId: authSession?.userId });
-  return <WhatIfScreen sim={sim} transactions={transactions} members={members} titleId={titleId} />;
+  return <WhatIfScreen sim={sim} transactions={transactions} members={members} cards={cards} titleId={titleId} />;
 }
 
 /**
@@ -57,7 +59,7 @@ export default function WhatIfView({ transactions = NO_TRANSACTIONS, members = N
  * o hook uma vez e usa as mesmas simulações no resumo do sub-menu. O título é
  * o h2 da seção (`hh-simulator-title`), que recebe o foco ao abrir pelo sub-menu.
  */
-export function WhatIfScreen({ sim, transactions = NO_TRANSACTIONS, members = NO_MEMBERS, titleId = 'hh-simulator-title' }) {
+export function WhatIfScreen({ sim, transactions = NO_TRANSACTIONS, members = NO_MEMBERS, cards = NO_CARDS, titleId = 'hh-simulator-title' }) {
   const {
     simulations, months, setMonths, loading, error, retry, saving, actionError, dismissActionError,
     addSimulation, editSimulation, removeSimulation, removeMine, toggleSimulation, limitReached, ownedCount,
@@ -89,7 +91,12 @@ export function WhatIfScreen({ sim, transactions = NO_TRANSACTIONS, members = NO
     return list;
   }, [simulations, draftSim, editingId]);
 
-  const schedules = useMemo(() => buildSchedules(effective, firstMonth, months), [effective, firstMonth, months]);
+  // Quitações de cartão leem os lançamentos e os cartões; as demais simulações ignoram o contexto.
+  const scheduleCtx = useMemo(() => ({ transactions, cards }), [transactions, cards]);
+  const schedules = useMemo(
+    () => buildSchedules(effective, firstMonth, months, scheduleCtx),
+    [effective, firstMonth, months, scheduleCtx],
+  );
   const enabledIds = useMemo(() => effective.filter((s) => s.enabled).map((s) => s.id), [effective]);
   const composed = useMemo(() => composeMonthly({ baseline, schedules, enabledIds }), [baseline, schedules, enabledIds]);
   const verdict = useMemo(() => buildVerdict({ composed }), [composed]);
@@ -97,9 +104,9 @@ export function WhatIfScreen({ sim, transactions = NO_TRANSACTIONS, members = NO
   // O mesmo cenário sem o rascunho: o painel mostra o antes e o depois.
   const savedComposed = useMemo(() => {
     if (!draftSim) return composed;
-    const saved = buildSchedules(simulations, firstMonth, months);
+    const saved = buildSchedules(simulations, firstMonth, months, scheduleCtx);
     return composeMonthly({ baseline, schedules: saved, enabledIds: simulations.filter((s) => s.enabled).map((s) => s.id) });
-  }, [draftSim, composed, simulations, baseline, firstMonth, months]);
+  }, [draftSim, composed, simulations, baseline, firstMonth, months, scheduleCtx]);
 
   const scheduleById = useMemo(() => new Map(schedules.map((s) => [s.id, s])), [schedules]);
   // Cor de cada simulação pela posição na lista completa: ligar ou desligar não repinta as outras.
@@ -108,12 +115,15 @@ export function WhatIfScreen({ sim, transactions = NO_TRANSACTIONS, members = NO
     id: sim.id,
     sim,
     slot: slots[sim.id],
-    name: sim.id === DRAFT_ID ? (sim.description?.trim() || 'Nova simulação') : simulationName(sim, i),
+    // Quitação sem descrição (criada por outro cliente) leva o nome dos cartões, não "Simulação N".
+    name: isPayoff(sim) && !sim.description?.trim()
+      ? payoffDefaultName(sim.creditCardIds, cards)
+      : sim.id === DRAFT_ID ? (sim.description?.trim() || 'Nova simulação') : simulationName(sim, i),
     owner: ownerInfo(sim, members),
     schedule: scheduleById.get(sim.id),
     total: periodTotal(scheduleById.get(sim.id)?.monthly, composed.months),
     isDraft: sim.id === DRAFT_ID || sim.id === editingId,
-  })), [effective, members, scheduleById, editingId, composed, slots]);
+  })), [effective, members, scheduleById, editingId, composed, slots, cards]);
 
   const [layout, setLayoutState] = useState(readLayout);
   const setLayout = (id) => {
@@ -159,6 +169,17 @@ export function WhatIfScreen({ sim, transactions = NO_TRANSACTIONS, members = NO
     return ok;
   };
   const doRemoveMine = async () => { setConfirmClear(false); closeComposer(); await removeMine(); };
+
+  // Excluir pelo cartão pede confirmação com o nome. Com erro, o cartão fica e a mensagem aparece no topo.
+  const [confirmDelete, setConfirmDelete] = useState(null);   // null | { id, name }
+  const askDelete = (row) => { dismissActionError(); setConfirmDelete({ id: row.sim.id, name: row.name }); };
+  const doDelete = async () => {
+    const target = confirmDelete;
+    setConfirmDelete(null);
+    if (!target) return;
+    if (editingId === target.id) closeComposer();
+    await removeSimulation(target.id);
+  };
 
   const blocked = loading || Boolean(error);
   const noFlow = composed.countedCount === 0;
@@ -216,7 +237,7 @@ export function WhatIfScreen({ sim, transactions = NO_TRANSACTIONS, members = NO
           />
 
           <SimList
-            rows={rows} onToggle={toggleSimulation} onEdit={openComposer} onSetAll={setAll}
+            rows={rows} onToggle={toggleSimulation} onEdit={openComposer} onDelete={askDelete} onSetAll={setAll}
             onCreate={() => openSheet()} saving={saving} limitReached={limitReached}
             ownedCount={ownedCount} onClearMine={() => setConfirmClear(true)} onHover={setHoverId}
           />
@@ -266,6 +287,7 @@ export function WhatIfScreen({ sim, transactions = NO_TRANSACTIONS, members = NO
               editing={editing} initialIntent={sheet.intent} defaultMonth={firstMonth}
               before={savedComposed} after={composed} months={months}
               limitReached={limitReached} saving={saving} error={actionError}
+              cards={cards} draftSchedule={scheduleById.get(editingId ?? DRAFT_ID) ?? null}
               onChange={setDraft}
               onSave={handleSave} onCancel={closeComposer} onRemove={handleRemove}
             />
@@ -282,6 +304,19 @@ export function WhatIfScreen({ sim, transactions = NO_TRANSACTIONS, members = NO
           <div className="wf-modal-actions">
             <button type="button" className="wf-btn" onClick={() => setConfirmClear(false)}>Cancelar</button>
             <button type="button" className="wf-btn wf-btn-danger" onClick={doRemoveMine}>Remover minhas simulações</button>
+          </div>
+        </Modal>
+      )}
+
+      {confirmDelete && (
+        <Modal title={`Excluir "${confirmDelete.name}"?`} onClose={() => setConfirmDelete(null)}>
+          <p className="wf-modal-text">
+            A simulação some para toda a família. Seus lançamentos reais não mudam.
+          </p>
+          {/* Foco em Cancelar (a opção segura) e Esc fecha: dá para confirmar ou desistir só pelo teclado. */}
+          <div className="wf-modal-actions" onKeyDown={(e) => { if (e.key === 'Escape') setConfirmDelete(null); }}>
+            <button type="button" className="wf-btn" autoFocus onClick={() => setConfirmDelete(null)}>Cancelar</button>
+            <button type="button" className="wf-btn wf-btn-danger" onClick={doDelete}>Excluir</button>
           </div>
         </Modal>
       )}
